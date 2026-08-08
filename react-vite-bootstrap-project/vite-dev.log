@@ -2,8 +2,9 @@
 > greenmarket@0.1.0 dev
 > vite --host
 
+Re-optimizing dependencies because vite config has changed
 
-  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m272[22m[2m[0m ms[22m
+  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m332[22m[2m[0m ms[22m
 
   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
   [32m➜[39m  [1mNetwork[22m: [36mhttp://26.8.34.108:[1m5173[22m/[39m
@@ -12,15 +13,147 @@
   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.30.240.1:[1m5173[22m/[39m
   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.18.192.1:[1m5173[22m/[39m
 [2m[32m  ➜[39m[22m[2m  press [22m[1mh + enter[22m[2m to show help[22m
-[2m13:56:56[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
-[2m13:57:01[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
-[2m14:00:14[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
-[2m14:09:50[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapLocationButton.tsx[22m
-[2m14:09:53[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
-[2m14:09:57[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
-[2m14:10:01[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
-[2m14:10:06[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
-[2m14:10:09[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
-[2m14:10:15[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/design-system/components/Overlays.tsx[22m
-[2m14:10:18[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
-^C^C
+[2m17:12:01[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m17:12:02[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m17:12:48[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m17:14:49[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/design-system/components/components.css[22m
+[2m17:24:10[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m17:24:18[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m17:24:25[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m17:24:33[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m17:24:39[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m17:28:39[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/design-system/components/components.css[22m
+[2m17:28:46[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m17:28:54[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m17:35:50[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m17:35:55[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m17:35:59[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m17:36:04[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m17:36:09[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m17:36:17[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m17:36:22[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m17:36:29[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m17:36:34[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m17:36:39[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m17:36:44[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m17:36:53[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m17:51:24[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m17:57:39[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/design-system/ThemeProvider.tsx[22m
+[2m17:57:43[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/design-system/ThemeProvider.tsx[22m
+[2m17:57:48[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/design-system/ThemeProvider.tsx[22m
+[2m17:57:53[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/design-system/tokens.css[22m
+[2m17:57:58[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/design-system/tokens.css[22m
+[2m17:58:04[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/platform-core/map/gis/LeafletAdapter.tsx[22m
+[2m17:59:52[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/platform-core/map/gis/LeafletAdapter.tsx[22m
+[2m17:59:56[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/platform-core/map/gis/LeafletAdapter.tsx[22m
+[2m18:02:12[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/platform-core/map/gis/LeafletAdapter.tsx[22m
+[2m18:04:25[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/platform-core/map/gis/LeafletAdapter.tsx[22m
+[2m18:06:28[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m18:06:47[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m18:06:55[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m18:07:02[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m18:22:38[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/map.css[22m
+[2m18:25:48[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/map.css[22m
+[2m18:34:19[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/app/App.tsx[22m
+[2m18:34:42[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx, /src/platform-core/map/gis/LeafletAdapter.tsx[22m
+[2m18:40:15[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mz19test.html[22m
+[2m18:42:14[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mz19test2.html[22m
+[2m18:45:23[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/platform-core/map/gis/LeafletAdapter.tsx[22m
+[2m18:45:28[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/platform-core/map/gis/LeafletAdapter.tsx[22m
+[2m18:45:28[22m [31m[1m[vite][22m[39m [31mInternal server error: C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\src\platform-core\map\gis\LeafletAdapter.tsx: 'import' and 'export' may only appear at the top level. (100:0)
+
+[0m [90m  98 |[31m [36mfunction[31m [33mCenterRequestBridge[31m({ token[33m,[31m camera }[33m:[31m { token[33m:[31m number[33m;[31m camera[33m:[31m [33mMapAdapterProps[31m[[32m"camera"[31m] }) {
+ [90m  99 |[31m
+[31m[1m>[22m[31m[90m 100 |[31m [36mexport[31m [36mfunction[31m [33mLeafletAdapter[31m({
+ [90m     |[31m [31m[1m^[22m[31m
+ [90m 101 |[31m   sellers[33m,[31m
+ [90m 102 |[31m   selectedSellerId[33m,[31m
+ [90m 103 |[31m   userLocation[33m,[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mC:/Users/admin/Desktop/GreenMarket_CustomerUI/react-vite-bootstrap-project/src/platform-core/map/gis/LeafletAdapter.tsx[39m:100:0
+[33m  98 |  function CenterRequestBridge({ token, camera }: { token: number; camera: MapAdapterProps["camera"] }) {
+  99 |  
+  100|  export function LeafletAdapter({
+     |  ^
+  101|    sellers,
+  102|    selectedSellerId,[39m
+      at constructor (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.parseStatementContent (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\parser\lib\index.js:12888:18)
+      at TypeScriptParserMixin.parseStatementContent (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseStatementListItem (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\parser\lib\index.js:12764:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\parser\lib\index.js:13333:61)
+      at TypeScriptParserMixin.parseBlockBody (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseBlock (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\parser\lib\index.js:13314:10)
+      at TypeScriptParserMixin.parseFunctionBody (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\parser\lib\index.js:12117:24)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\parser\lib\index.js:12103:10)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\parser\lib\index.js:9189:18)
+      at C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\parser\lib\index.js:13462:12
+      at TypeScriptParserMixin.withSmartMixTopicForbiddingContext (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\parser\lib\index.js:12420:14)
+      at TypeScriptParserMixin.parseFunction (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\parser\lib\index.js:13461:10)
+      at TypeScriptParserMixin.parseFunctionStatement (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\parser\lib\index.js:13142:17)
+      at TypeScriptParserMixin.parseStatementContent (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\parser\lib\index.js:12808:21)
+      at TypeScriptParserMixin.parseStatementContent (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseModuleItem (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\parser\lib\index.js:12761:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\parser\lib\index.js:13333:36)
+      at TypeScriptParserMixin.parseBlockBody (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseProgram (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\parser\lib\index.js:12639:10)
+      at TypeScriptParserMixin.parseTopLevel (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\parser\lib\index.js:12629:25)
+      at TypeScriptParserMixin.parse (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\parser\lib\index.js:14505:25)
+      at TypeScriptParserMixin.parse (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\parser\lib\index.js:10143:18)
+      at parse (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\core\lib\parser\index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\core\lib\transformation\normalize-file.js:51:37)
+      at normalizeFile.next (<anonymous>)
+      at run (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\core\lib\transformation\index.js:22:50)
+      at run.next (<anonymous>)
+      at transform (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\core\lib\transform.js:22:33)
+      at transform.next (<anonymous>)
+      at step (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\gensync\index.js:261:32)
+      at C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\gensync\index.js:223:11)
+      at C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\gensync\index.js:189:28
+      at C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\@babel\core\lib\gensync-utils\async.js:67:7
+      at C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\gensync\index.js:113:33
+      at step (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\gensync\index.js:287:14)
+      at C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (C:\Users\admin\Desktop\GreenMarket_CustomerUI\react-vite-bootstrap-project\node_modules\gensync\index.js:223:11)
+[2m18:45:40[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/platform-core/map/gis/LeafletAdapter.tsx[22m
+[2m18:47:12[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/platform-core/map/gis/LeafletAdapter.tsx[22m
+[2m18:47:34[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/platform-core/map/gis/LeafletAdapter.tsx[22m
+[2m18:48:01[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/platform-core/map/gis/LeafletAdapter.tsx[22m
+[2m18:49:10[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mz19test3.html[22m
+[2m18:49:58[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mz19test4.html[22m
+[2m18:51:12[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/platform-core/map/gis/LeafletAdapter.tsx[22m
+[2m18:52:26[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/platform-core/map/gis/LeafletAdapter.tsx[22m
+[2m18:54:50[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/platform-core/map/gis/LeafletAdapter.tsx[22m
+[2m18:54:55[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/platform-core/map/gis/LeafletAdapter.tsx[22m
+[2m18:55:08[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/platform-core/map/gis/LeafletAdapter.tsx[22m
+[2m18:55:12[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/app/App.tsx[22m
+[2m18:55:18[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/app/App.tsx[22m
+[2m18:55:27[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/app/App.tsx[22m
+[2m18:55:32[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx, /src/platform-core/map/gis/LeafletAdapter.tsx, /src/z19test.tsx, /src/z19test2.tsx, /src/z19test3.tsx, /src/z19test4.tsx[22m
+[2m18:55:43[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m18:55:48[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m18:55:53[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m18:56:05[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m18:56:10[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/z19test.tsx[22m
+[2m18:56:10[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/z19test2.tsx[22m
+[2m18:56:10[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/z19test3.tsx[22m
+[2m18:56:10[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/z19test4.tsx[22m
+[2m18:56:10[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mz19test.html[22m
+[2m18:56:10[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mz19test2.html[22m
+[2m18:56:10[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mz19test3.html[22m
+[2m18:56:10[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mz19test4.html[22m
+[2m18:56:32[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/app/App.tsx[22m
+[2m19:09:00[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m19:09:04[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m19:09:08[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m19:09:16[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m19:13:08[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m19:13:13[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m19:13:16[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m
+[2m19:13:20[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/screens/map/MapScreenView.tsx[22m

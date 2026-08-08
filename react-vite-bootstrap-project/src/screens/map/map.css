@@ -1,3 +1,11 @@
+/* Тайлы OSM — непрозрачные PNG; любое mix-blend-mode (в частности, патч
+ * plus-lighter в node_modules/leaflet) выжигает карту в серый/белый фон.
+ * Правило сделано специфичнее, чтобы побеждать даже если leaflet.css
+ * (содержащий этот патч) подключается после map.css в бандле. */
+.leaflet-container .leaflet-tile-pane img.leaflet-tile {
+  mix-blend-mode: normal;
+}
+
 /* ---------- Map UI: FAB "Моё местоположение" (нижний правый угол) ---------- */
 .gm-map-location {
   position: relative;

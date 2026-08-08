@@ -14,11 +14,34 @@ import "leaflet/dist/leaflet.css";
  *  (дефолты dragging/doubleClickZoom = true) и explicit-конфигурируются
  *  через MapConfig, а не магическими значениями в компоненте. */
 
-function sellerDivIcon(selected: boolean, available: boolean, sellerId: string): L.DivIcon {
-  const bg = !available ? "var(--color-disabled-content)" : selected ? "var(--color-brand-accent)" : "var(--color-brand-primary)";
+function sellerDivIcon(selected: boolean, available: boolean, sellerId: string, zoom: number): L.DivIcon {
+  // Доступные продавцы — светло-зелёные со свечением, чтобы выделяться на фоне
+  // посторонних заведений карты (GM-UX-001). Цвет ореола взят из токена через
+  // color-mix, поэтому следует теме (light/dark) без отдельного токена.
+  //
+  // Свечение растёт при приближении карты (большой zoom): чем ближе смотрим,
+  // тем крупнее ореол; на отдалении он почти исчезает, чтобы разрозненные
+  // точки не сливались в одно пятно. База: кольцо 4px / размытие 16px на
+  // дефолтном zoom 13, масштаб от 0.3 до 4.
+  const scale = Math.max(0.3, Math.min(4, 1 + (zoom - 13) * 0.6));
+  const ring = Math.round(4 * scale);
+  const blur = Math.round(16 * scale);
+  const spread = Math.round(4 * scale);
+  const bg = !available
+    ? "var(--color-disabled-content)"
+    : selected
+      ? "var(--color-brand-accent)"
+      : "var(--color-brand-primary-light)";
+  // Недоступные продавцы не должны теряться на фоне карты — у них тоже есть
+  // мягкий нейтральный ореол, но скромнее зелёного, чтобы иерархия читалась.
+  const glow = selected
+    ? "0 1px 4px rgba(0,0,0,0.35)"
+    : available
+      ? `0 1px 4px rgba(0,0,0,0.35), 0 0 0 ${ring}px color-mix(in srgb, var(--color-brand-primary-light) 45%, transparent), 0 0 ${blur}px ${spread}px color-mix(in srgb, var(--color-brand-primary-light) 55%, transparent)`
+      : `0 1px 4px rgba(0,0,0,0.35), 0 0 0 ${Math.round(2 * scale)}px color-mix(in srgb, var(--color-disabled-content) 50%, transparent), 0 0 ${Math.round(9 * scale)}px ${Math.round(2 * scale)}px color-mix(in srgb, var(--color-disabled-content) 40%, transparent)`;
   return L.divIcon({
     className: "gm-map-marker",
-    html: `<span data-testid="seller-marker" data-seller-id="${sellerId}" style="display:block;width:${selected ? 20 : 14}px;height:${selected ? 20 : 14}px;border-radius:999px;background:${bg};border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.35);"></span>`,
+    html: `<span data-testid="seller-marker" data-seller-id="${sellerId}" style="display:block;width:${selected ? 20 : 14}px;height:${selected ? 20 : 14}px;border-radius:999px;background:${bg};border:2px solid white;box-shadow:${glow};"></span>`,
     iconSize: [selected ? 24 : 18, selected ? 24 : 18],
     iconAnchor: [selected ? 12 : 9, selected ? 12 : 9],
   });
@@ -114,7 +137,13 @@ export function LeafletAdapter({
         zoomControl={false}
         attributionControl={true}
       >
-        <TileLayer url={defaultMapConfig.tileProvider.urlTemplate} attribution={defaultMapConfig.tileProvider.attribution} />
+        <TileLayer
+          url={defaultMapConfig.tileProvider.urlTemplate}
+          attribution={defaultMapConfig.tileProvider.attribution}
+          maxZoom={defaultMapConfig.tileProvider.maxZoom}
+          maxNativeZoom={defaultMapConfig.tileProvider.maxZoom}
+          minZoom={defaultMapConfig.tileProvider.minZoom}
+        />
         <MapEventsBridge
           onCameraChange={onCameraChange}
           onVisibleBoundsChange={onVisibleBoundsChange}
@@ -135,7 +164,7 @@ export function LeafletAdapter({
           <Marker
             key={seller.sellerId}
             position={[seller.location.lat, seller.location.lng]}
-            icon={sellerDivIcon(seller.sellerId === selectedSellerId, seller.isAvailable, seller.sellerId)}
+            icon={sellerDivIcon(seller.sellerId === selectedSellerId, seller.isAvailable, seller.sellerId, camera.zoom)}
             eventHandlers={{ click: () => onSellerSelect(seller.sellerId) }}
           />
         ))}
