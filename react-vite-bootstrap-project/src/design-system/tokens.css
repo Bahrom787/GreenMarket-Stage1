@@ -1,0 +1,194 @@
+/* Design tokens as CSS custom properties. Mirrors src/design-system/tokens/*.
+   Components must consume values exclusively through these variables. */
+
+:root,
+[data-theme='light'] {
+  /* Color: brand */
+  --color-brand-primary: #2f6b4f;
+  --color-brand-primary-strong: #1e4a35;
+  --color-brand-primary-subtle: #e4f0e8;
+  --color-brand-accent: #d98e2b;
+  --color-brand-accent-strong: #b5711a;
+
+  /* Color: surfaces */
+  --color-surface-base: #fbfaf7;
+  --color-surface-raised: #ffffff;
+  --color-surface-sunken: #f1efe9;
+  --color-surface-overlay: rgba(20, 24, 21, 0.48);
+
+  /* Color: text */
+  --color-text-primary: #171a18;
+  --color-text-secondary: #4b564f;
+  --color-text-tertiary: #78837c;
+  --color-text-on-brand: #ffffff;
+  --color-text-on-accent: #20140a;
+  --color-text-disabled: #a9b0ab;
+  --color-text-link: #2f6b4f;
+
+  /* Color: borders */
+  --color-border-default: #dedad0;
+  --color-border-subtle: #ebe8e0;
+  --color-border-strong: #b7b0a1;
+  --color-border-focus: #2f6b4f;
+
+  /* Color: feedback */
+  --color-success: #2f6b4f;
+  --color-success-subtle: #e4f0e8;
+  --color-warning: #b5711a;
+  --color-warning-subtle: #fbedd9;
+  --color-danger: #b3402e;
+  --color-danger-subtle: #f7e2dd;
+  --color-info: #2e6c8e;
+  --color-info-subtle: #e1eef4;
+
+  /* Color: interactive */
+  --color-hover-overlay: rgba(23, 26, 24, 0.06);
+  --color-pressed-overlay: rgba(23, 26, 24, 0.12);
+  --color-selected-subtle: #e4f0e8;
+  --color-disabled-surface: #efede7;
+  --color-disabled-content: #a9b0ab;
+}
+
+[data-theme='dark'] {
+  --color-brand-primary: #5fa980;
+  --color-brand-primary-strong: #8ac7a5;
+  --color-brand-primary-subtle: #1b3226;
+  --color-brand-accent: #e4a64b;
+  --color-brand-accent-strong: #f0be71;
+
+  --color-surface-base: #14171a;
+  --color-surface-raised: #1c2023;
+  --color-surface-sunken: #0e1012;
+  --color-surface-overlay: rgba(0, 0, 0, 0.6);
+
+  --color-text-primary: #f3f4f1;
+  --color-text-secondary: #c2c8c3;
+  --color-text-tertiary: #8d948e;
+  --color-text-on-brand: #0e1712;
+  --color-text-on-accent: #20140a;
+  --color-text-disabled: #5c625d;
+  --color-text-link: #8ac7a5;
+
+  --color-border-default: #31363a;
+  --color-border-subtle: #24282b;
+  --color-border-strong: #484f53;
+  --color-border-focus: #5fa980;
+
+  --color-success: #5fa980;
+  --color-success-subtle: #1b3226;
+  --color-warning: #e4a64b;
+  --color-warning-subtle: #332512;
+  --color-danger: #e08571;
+  --color-danger-subtle: #3a2119;
+  --color-info: #7eb8da;
+  --color-info-subtle: #152a35;
+
+  --color-hover-overlay: rgba(255, 255, 255, 0.06);
+  --color-pressed-overlay: rgba(255, 255, 255, 0.12);
+  --color-selected-subtle: #1b3226;
+  --color-disabled-surface: #202427;
+  --color-disabled-content: #5c625d;
+}
+
+:root {
+  /* Typography */
+  --font-family-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-family-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-family-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-md: 15px;
+  --font-size-lg: 17px;
+  --font-size-xl: 20px;
+  --font-size-xxl: 24px;
+  --font-size-display1: 30px;
+  --font-size-display2: 38px;
+
+  --line-height-tight: 1.2;
+  --line-height-snug: 1.35;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.65;
+
+  --letter-spacing-tight: -0.01em;
+  --letter-spacing-normal: 0em;
+  --letter-spacing-wide: 0.02em;
+  --letter-spacing-caps: 0.06em;
+
+  /* Spacing */
+  --space-none: 0px;
+  --space-xxs: 2px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-xxl: 32px;
+  --space-xxxl: 48px;
+  --space-huge: 64px;
+
+  /* Radius */
+  --radius-none: 0px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 999px;
+
+  /* Borders */
+  --border-width-none: 0px;
+  --border-width-hairline: 1px;
+  --border-width-thick: 2px;
+
+  /* Shadows / Elevation */
+  --shadow-none: none;
+  --shadow-sm: 0 1px 2px rgba(15, 20, 17, 0.08);
+  --shadow-md: 0 4px 12px rgba(15, 20, 17, 0.1);
+  --shadow-lg: 0 12px 24px rgba(15, 20, 17, 0.14);
+  --shadow-xl: 0 24px 48px rgba(15, 20, 17, 0.18);
+
+  --elevation-0: var(--shadow-none);
+  --elevation-1: var(--shadow-sm);
+  --elevation-2: var(--shadow-md);
+  --elevation-3: var(--shadow-lg);
+  --elevation-4: var(--shadow-xl);
+
+  /* Z-index */
+  --z-base: 0;
+  --z-content: 1;
+  --z-sticky-header: 100;
+  --z-overlay: 800;
+  --z-bottom-sheet: 900;
+  --z-modal: 1000;
+  --z-dialog: 1100;
+  --z-snackbar: 1200;
+  --z-tooltip: 1300;
+
+  /* Motion */
+  --duration-instant: 80ms;
+  --duration-fast: 140ms;
+  --duration-normal: 220ms;
+  --duration-slow: 320ms;
+  --easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --easing-decelerate: cubic-bezier(0, 0, 0, 1);
+  --easing-accelerate: cubic-bezier(0.3, 0, 1, 1);
+
+  /* Breakpoints (referenced in JS via tokens/scales.ts; kept here for documentation) */
+  --breakpoint-tablet: 768px;
+  --breakpoint-desktop: 1120px;
+  --breakpoint-wide: 1440px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-instant: 0ms;
+    --duration-fast: 0ms;
+    --duration-normal: 0ms;
+    --duration-slow: 0ms;
+  }
+}

@@ -1,0 +1,38 @@
+/* ---------- Map UI: FAB "Моё местоположение" (нижний правый угол) ---------- */
+.gm-map-location {
+  position: relative;
+  display: inline-flex;
+}
+
+.gm-map-location__tooltip {
+  position: absolute;
+  top: 50%;
+  right: calc(100% + var(--space-sm));
+  transform: translateY(-50%);
+  z-index: var(--z-tooltip);
+  white-space: nowrap;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  background: var(--color-text-primary);
+  color: var(--color-surface-base);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  box-shadow: var(--elevation-3);
+  animation: gm-map-location-in var(--duration-normal) var(--easing-decelerate);
+}
+
+[data-theme='dark'] .gm-map-location__tooltip {
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+  border: var(--border-width-hairline) solid var(--color-border-default);
+}
+
+@keyframes gm-map-location-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

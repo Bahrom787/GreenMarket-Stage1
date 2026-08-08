@@ -1,0 +1,41 @@
+export interface ProductItem {
+  id: string;
+  name: string;
+  price: number;
+  imageUrl?: string;
+}
+
+export interface AvailableAction {
+  id: string;
+  actionType: string;
+  payload?: Record<string, any>;
+  label: string;
+  icon?: string;
+  variant: "primary" | "secondary" | "ghost";
+  disabled?: boolean;
+}
+
+export interface BusinessEvent {
+  type: string;
+  payload: Record<string, any>;
+  timestamp: number;
+}
+
+export interface SellerCardViewModel {
+  id: string;
+  name: string;
+  rating: number;
+  distance: string;
+  avatar?: string;
+}
+
+export interface MapController {
+  setMode(mode: string): void;
+  highlightSellers(ids: string[]): void;
+  showRoute(route: any): void;
+  focusSeller(id: string): void;
+  centerOn(coordinates: [number, number]): void;
+  zoomIn(): void;
+  zoomOut(): void;
+  reset(): void;
+}

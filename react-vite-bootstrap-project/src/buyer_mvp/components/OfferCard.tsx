@@ -1,0 +1,37 @@
+import { Card, Text, Divider } from '@/design-system/components';
+import { PhotoStrip } from './PhotoStrip';
+import { formatPrice, formatStock } from '../format';
+import type { SellerOffer } from '../types';
+
+interface OfferCardProps {
+  offer: SellerOffer;
+}
+
+/** Экран 3 (Карточка товара): продавец, цена, единица, остаток, фото (все, лентой), описание. */
+export function OfferCard({ offer }: OfferCardProps) {
+  return (
+    <Card className="gm-buyer-offer-card">
+      <PhotoStrip photos={offer.photos} label={offer.seller_name} />
+      <Text variant="bodyStrong" as="h3">
+        {offer.seller_name}
+      </Text>
+      <Text variant="title" as="p">
+        {formatPrice(offer.price)}{' '}
+        <Text as="span" variant="caption" tone="secondary">
+          / {offer.unit}
+        </Text>
+      </Text>
+      <Text variant="caption" tone="secondary">
+        Остаток: {formatStock(offer.stock, offer.unit)}
+      </Text>
+      {offer.description && (
+        <>
+          <Divider />
+          <Text variant="body" tone="secondary">
+            {offer.description}
+          </Text>
+        </>
+      )}
+    </Card>
+  );
+}

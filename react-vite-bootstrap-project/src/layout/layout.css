@@ -1,0 +1,97 @@
+/* Layout System. Governs structural composition of every screen. */
+
+.gm-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--color-surface-base);
+  color: var(--color-text-primary);
+}
+
+.gm-page {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+  max-width: var(--breakpoint-wide);
+  margin: 0 auto;
+  padding: 0 var(--space-lg);
+}
+@media (min-width: 768px) {
+  .gm-page {
+    padding: 0 var(--space-xxl);
+  }
+}
+@media (min-width: 1120px) {
+  .gm-page {
+    padding: 0 var(--space-xxxl);
+  }
+}
+
+.gm-header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky-header);
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  height: 56px;
+  padding: 0 var(--space-lg);
+  background: var(--color-surface-raised);
+  border-bottom: var(--border-width-hairline) solid var(--color-border-subtle);
+}
+
+.gm-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: var(--color-surface-raised);
+  border-top: var(--border-width-hairline) solid var(--color-border-subtle);
+}
+
+.gm-content {
+  flex: 1;
+  width: 100%;
+  padding: var(--space-lg) 0;
+}
+
+.gm-section {
+  padding: var(--space-xl) 0;
+}
+.gm-section + .gm-section {
+  border-top: var(--border-width-hairline) solid var(--color-border-subtle);
+}
+
+.gm-row {
+  display: flex;
+  flex-direction: row;
+}
+.gm-column {
+  display: flex;
+  flex-direction: column;
+}
+.gm-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.gm-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-lg);
+}
+@media (min-width: 768px) {
+  .gm-grid {
+    grid-template-columns: repeat(8, 1fr);
+  }
+}
+@media (min-width: 1120px) {
+  .gm-grid {
+    grid-template-columns: repeat(12, 1fr);
+  }
+}
+
+.gm-spacer {
+  flex: none;
+}
