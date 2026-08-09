@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { asSellerId, asProductId } from "../../contracts/Action";
+import { asSellerId, asProductId } from "../../../contracts/Action";
 import { createNavigationState, currentEntry, push, pop, reset, isAtRoot, ROOT_ENTRY } from "../NavigationStack";
 
 /** В проекте нет настроенного test runner'а (см. MockCatalogRepository.test.ts) —

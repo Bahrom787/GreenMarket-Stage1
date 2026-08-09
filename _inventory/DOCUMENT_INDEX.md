@@ -1,14 +1,19 @@
 # DOCUMENT_INDEX.md
 
-Полный список всех `.md`-документов репозитория (63 файла, без `node_modules`), полученный обходом дерева, плюс отдельно — содержимое вложенного архива `archive/*.zip` и файлы `examples/`.
+Полный список всех `.md`-документов репозитория (64 файла, без `node_modules`), полученный обходом дерева, плюс отдельно — содержимое вложенного архива `archive/*.zip` и файлы `examples/`.
+
+> Изменение против прежней инвентаризации: документ процесса «AI-first Engineering Process» переведён из `AI-first Engineering Process.docx` (удалён) в корневой `AI-first_Engineering_Process.md` — отсюда рост счётчика .md на 1.
 
 > Уточнение к предыдущей версии инвентаризации: README сам себя называет «19 ссылок ТЗ + 1 мета-ревью + 1 промпт + 1 ТЗ по FSM Engine + 2 детальные спецификации» в заголовке, а таблица «Список документов» в README содержит 29 строк — но это 29 *хронологических ссылок источника* (нумерация "1…29-я ссылка"), а не диапазон номеров ТЗ. Реальные номера ТЗ, встречающиеся в этой таблице: ТЗ-001…003, 005…011, 013…026 (24 уникальных номера; ТЗ-004, 012 отсутствуют, ТЗ-025 — 2 версии). Максимальный существующий в `docs/specifications/` номер — ТЗ-026. Номеров ТЗ-027…029 в файловой системе репозитория нет (при этом код ссылается на ТЗ-027 — см. TRACEABILITY.md).
 
-## 1. Корень репозитория (1 файл)
+## 1. Корень репозитория (2 .md-файла)
 
 | Файл | Роль |
 |---|---|
 | README.md | Главный индекс: хронология всех 29 ссылок источника, история переносов, известные разрывы нумерации, фактическое состояние кода |
+| AI-first_Engineering_Process.md | Документ процесса «AI-first Development Process MVP v1.0» (ранее — `AI-first Engineering Process.docx`, конвертирован в Markdown) |
+
+Плюс вспомогательный не-md-файл корня: `full_changes.diff` — сводный diff доработок экрана Map (для ревью изменений, не часть документации).
 
 ## 2. docs/ — документация репозитория (30 файлов)
 
@@ -71,7 +76,7 @@ GM-010_STAGE1_MODEL_MAPPING.md — маппинг Stage-1 моделей на э
 
 | Файл | Роль |
 |---|---|
-| react-vite-bootstrap-project/README.md | README исполняемого приложения Stage 1 (требует обновления под фактическое состояние — см. примечание в конце) |
+| react-vite-bootstrap-project/README.md | README исполняемого приложения Stage 1 (обновлён под фактическое состояние: Buyer MVP, домен Map, экраны Map/Seller List/Filter) |
 | — | В navigation-runtime-layer/ и в коде react-vite/src/platform-core/ .md-файлов нет |
 
 ## 5. tests_folder/ — документация тестирования (2 файла, вне серии ТЗ)
@@ -85,7 +90,7 @@ GM-010_STAGE1_MODEL_MAPPING.md — маппинг Stage-1 моделей на э
 
 | Файл | Роль |
 |---|---|
-| FILE_TREE.md | Полное дерево репозитория (281 файл без node_modules) |
+| FILE_TREE.md | Полное дерево репозитория (290 файлов без node_modules) |
 | DOCUMENT_INDEX.md | Этот документ: полный индекс всех .md-файлов |
 | CODE_INDEX.md | Индекс .ts/.tsx-кода (greenmarket + navigation-runtime-layer + react-vite) |
 | TRACEABILITY.md | Сверка ссылок из кода на ТЗ/GM-DOM/GM-UX/IMP-003 с фактическим наличием файлов |
@@ -113,10 +118,13 @@ GM-010_STAGE1_MODEL_MAPPING.md — маппинг Stage-1 моделей на э
 
 | Показатель | Было | Стало |
 |---|---|---|
-| Всего .md-файлов | 56 | **63** |
-| docs/ | 29 | 30 (README + 24 спецификации + 3 ревью + 2 архитектурных) |
-| greenmarket/GreenMarket/docs/ | 23 | 25 (в design-system учтён DS-002-Spacing.md) |
-| react-vite-bootstrap-project/README.md | не учитывался | 1 |
-| tests_folder/ | не учитывался | 2 |
-| _inventory/ | не учитывались | 4 |
-| Всего файлов (без node_modules) | 123 | **281** |
+| Всего .md-файлов | 63 | **64** |
+| docs/ | 30 | 30 (README + 24 спецификации + 3 ревью + 2 архитектурных) |
+| greenmarket/GreenMarket/docs/ | 25 | 25 (design-system 10 + ux 14 + architecture 1) |
+| Корень репозитория (.md) | 1 (README) | 2 (README + AI-first_Engineering_Process.md) |
+| react-vite-bootstrap-project/README.md | 1 | 1 |
+| tests_folder/ | 2 | 2 |
+| _inventory/ | 4 | 4 |
+| Всего файлов (без node_modules) | 281 | **290** |
+
+Основные изменения: (1) `AI-first Engineering Process.docx` удалён, документ процесса переведён в `AI-first_Engineering_Process.md` (+1 .md); (2) добавлен `full_changes.diff` (+1 файл); (3) домен Map расширен (filters/SellerFilters.ts + 3 автотеста, +4 .ts); (4) экраны: `MapLocationButton.tsx` → `MapFabButton.tsx`, добавлены `SellerListScreenView.tsx` и `SellerFilter.tsx` (+2 .tsx, +1 .css). Суммарный итог 281 → 290.

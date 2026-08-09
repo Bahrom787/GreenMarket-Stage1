@@ -1,10 +1,36 @@
-/* ---------- Map UI: FAB "Моё местоположение" (нижний правый угол) ---------- */
-.gm-map-location {
+/* Тайлы OSM — непрозрачные PNG; любое mix-blend-mode (в частности, патч
+ * plus-lighter в node_modules/leaflet) выжигает карту в серый/белый фон.
+ * Правило сделано специфичнее, чтобы побеждать даже если leaflet.css
+ * (содержащий этот патч) подключается после map.css в бандле. */
+.leaflet-container .leaflet-tile-pane img.leaflet-tile {
+  mix-blend-mode: normal;
+}
+
+/* ---------- Map UI: панель плавающих кнопок (нижний правый угол) ----------
+ * Белая поверхность (--color-surface-raised), чтобы иконки не сливались
+ * с картой; кнопки равноудалены друг от друга и от краёв панели
+ * (gap + padding = --space-sm). */
+.gm-map-fab-panel {
+  position: absolute;
+  right: var(--space-lg);
+  bottom: var(--space-xxl);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-raised);
+  border: var(--border-width-hairline) solid var(--color-border-default);
+  box-shadow: var(--elevation-3);
+}
+
+.gm-map-fab {
   position: relative;
   display: inline-flex;
 }
 
-.gm-map-location__tooltip {
+.gm-map-fab__tooltip {
   position: absolute;
   top: 50%;
   right: calc(100% + var(--space-sm));
@@ -19,20 +45,93 @@
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   box-shadow: var(--elevation-3);
-  animation: gm-map-location-in var(--duration-normal) var(--easing-decelerate);
+  animation: gm-map-fab-in var(--duration-normal) var(--easing-decelerate);
 }
 
-[data-theme='dark'] .gm-map-location__tooltip {
+[data-theme='dark'] .gm-map-fab__tooltip {
   background: var(--color-surface-raised);
   color: var(--color-text-primary);
   border: var(--border-width-hairline) solid var(--color-border-default);
 }
 
-@keyframes gm-map-location-in {
+@keyframes gm-map-fab-in {
   from {
     opacity: 0;
   }
   to {
     opacity: 1;
   }
+}
+
+/* ---------- Мастер «Поиск продавцов»: окно результатов (MAP-053/MAP-018)
+ * Список продавцов может быть длинным и выталкивать радиус-инпут и фильтр за
+ * экран. Окно ограничено по высоте (элементы управления всегда видны), а
+ * список скроллится в собственном блоке. ---------- */
+.gm-seller-search-results {
+  max-height: min(70vh, 560px);
+}
+
+.gm-seller-search-results__controls {
+  flex: none;
+}
+
+.gm-seller-search-results__list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: var(--space-xs);
+  overscroll-behavior: contain;
+}
+
+/* ---------- Кластеры продавцов (GM-UX-001) ----------
+ * Кластер = точка продавца (как отдельный маркер) + бейдж с количеством
+ * «слегка выше» точки. Все цвета из токенов темы (light/dark). */
+.gm-map-cluster {
+  position: relative;
+}
+
+.gm-map-cluster__dot {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--color-brand-primary-light);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35), 0 0 0 2px rgba(255, 255, 255, 0.25);
+}
+
+.gm-map-cluster__count {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--color-brand-primary-strong);
+  color: var(--color-text-on-brand);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
+}
+
+.gm-map-cluster__count::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 6px;
+  background: var(--color-brand-primary-strong);
 }

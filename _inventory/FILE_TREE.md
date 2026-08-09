@@ -2,15 +2,17 @@
 
 Полное дерево репозитория GreenMarket_CustomerUI-main по состоянию на обновление документации (2026-08).
 
-Метод получения: обход дерева без исключений, кроме `node_modules/` (папка `react-vite-bootstrap-project/node_modules`, 6222 файла, в подсчёт и дерево не входит).
+Метод получения: обход дерева без исключений, кроме `node_modules/` (папка `react-vite-bootstrap-project/node_modules`, 6222 файла, в подсчёт и дерево не входит) и `dist/` (см. примечание ниже — сборка считается одним блоком, её содержимое не расшифровывается). История счётчиков против предыдущей инвентаризации — в конце документа.
 
-Итоговый счётчик: **281 файл** (без `node_modules`). Внутри вложенного архива `archive/*.zip` (31 файл) — отдельный снимок, считается одним файлом; его содержимое описано в `DOCUMENT_INDEX.md` → «Архивный снимок».
+Итоговый счётчик: **290 файлов** (без `node_modules`; включая `dist/`). Без `dist/` — 286 файлов. Внутри вложенного архива `archive/*.zip` (31 файл) — отдельный снимок, считается одним файлом; его содержимое описано в `DOCUMENT_INDEX.md` → «Архивный снимок».
 
-Распределение по типам файлов (без `node_modules`): `.ts` — 138, `.md` — 63, `.tsx` — 49, `.css` — 8, `.json` — 5, `.log` — 3, `.html` — 2, `.jsx` — 2, по 1 файлу: `.gitignore`, `.prettierrc`, `.js`, `.map`, `.zip`, `.bat`, `.docx`, `.txt`, `.cjs`, `.example`, `.editorconfig`.
+Распределение по типам файлов (без `node_modules`): `.ts` — 142, `.md` — 64, `.tsx` — 51, `.css` — 9, `.json` — 5, `.log` — 3, `.html` — 2, `.gitignore` — 2, `.jsx` — 2, по 1 файлу: `.diff`, `.prettierrc`, `.js`, `.map`, `.zip`, `.bat`, `.txt`, `.cjs`, `.example`, `.editorconfig`.
 
 ```
 .
 ├── README.md
+├── AI-first_Engineering_Process.md
+├── full_changes.diff
 ├── docs/
 │   ├── README.md
 │   ├── architecture/
@@ -164,7 +166,7 @@
 │   ├── vite.config.ts / tsconfig.json / tsconfig.node.json
 │   ├── vercel.json
 │   ├── .editorconfig / .env.example / .eslintrc.cjs / .gitignore / .prettierrc
-│   ├── dist/                               (сборка: index.html + assets/)
+│   ├── dist/                               (сборка: index.html + assets/, в подсчёте блоком)
 │   ├── vite-dev.log                        (создаётся при запуске dev-сервера)
 │   ├── node_modules/                       (6222 файла — не входят в подсчёт/дерево)
 │   └── src/
@@ -179,7 +181,7 @@
 │       │                                   components/{Avatar,Button,ListItem,Loader,Overlays,States,Surface,Text,index}.tsx + components.css
 │       ├── layout/                         Flex.tsx, Structure.tsx, index.ts, layout.css
 │       ├── mocks/index.ts
-│       ├── platform-core/                  ← рабочая копия greenmarket/GreenMarket/ + домен Map + доп. файлы (75 .ts/.tsx)
+│       ├── platform-core/                  ← рабочая копия greenmarket/GreenMarket/ + домен Map + доп. файлы (79 .ts/.tsx)
 │       │   ├── adapters/SellerCardAdapter.ts
 │       │   ├── basket/                     (BasketScreen.tsx, adapters/, builders/, viewmodels/)
 │       │   ├── BottomSheetDeclarative.tsx
@@ -189,12 +191,13 @@
 │       │   ├── diagnostics/Diagnostics.ts
 │       │   ├── favorites/                  (FavoritesScreen.tsx, adapters/, builders/, viewmodels/)
 │       │   ├── formatting/                 (Distance, Price, Rating, Subtitle Formatter)
-│       │   ├── map/                        ← домен Map (нет в greenmarket/):
-│       │   │   ├── adapters/MapSheetAdapter.ts
+│       │   ├── map/                        ← домен Map (нет в greenmarket/), 16 файлов:
+│       │   │   ├── adapters/               MapSheetAdapter.ts, __tests__/MapSheetAdapter.test.ts
 │       │   │   ├── builders/MapBuilder.ts
+│       │   │   ├── filters/SellerFilters.ts
 │       │   │   ├── gis/                    GeoService.ts, LeafletAdapter.tsx, MapAdapter.tsx, MapAdapterTypes.ts, MapConfig.ts, TileProvider.ts
-│       │   │   ├── repository/             MockSellerRepository.ts, SellerRepository.ts
-│       │   │   ├── runtime/MapRuntime.ts
+│       │   │   ├── repository/             SellerRepository.ts, MockSellerRepository.ts, __tests__/MockSellerRepository.test.ts
+│       │   │   ├── runtime/                MapRuntime.ts, __tests__/MapRuntime.test.ts
 │       │   │   └── viewmodels/MapViewModel.ts
 │       │   ├── navigation-runtime-layer/   (hooks/, navigation/, runtime/ + __tests__ — копия navigation-runtime-layer/)
 │       │   ├── presentation/               (DistanceVm, PriceVm, RatingVm, SubtitleParts)
@@ -205,7 +208,10 @@
 │       │   ├── search/                     (SearchScreen.tsx, adapters/, builders/, viewmodels/)
 │       │   └── viewmodels/SellerCardViewModel.ts
 │       ├── repositories/index.ts
-│       ├── screens/                        PlaceholderScreen.tsx, map/{map.css, MapBottomSheetContent.tsx, MapLocationButton.tsx, MapScreenView.tsx}
+│       ├── screens/                        PlaceholderScreen.tsx,
+│       │                                   filter/{SellerFilter.tsx, filter.css},
+│       │                                   map/{map.css, MapBottomSheetContent.tsx, MapFabButton.tsx, MapScreenView.tsx},
+│       │                                   seller-list/SellerListScreenView.tsx
 │       └── shared/global.css
 ├── tests_folder/
 │   └── tests/
@@ -223,15 +229,16 @@
 ├── archive/
 │   └── GreenMarket_CustomerUI_v3_2026-07-08_2.zip   (31 файл внутри)
 ├── greenmarket-server.bat
-├── AI-first Engineering Process.docx
 ├── vite-dev.log
 └── vite-dev-err.log
 ```
 
-## Расхождения этого дерева с предыдущей редакцией FILE_TREE.md
+## Изменения против предыдущей редакции FILE_TREE.md
 
-1. **Папка `repo/` → `_inventory/`.** В предыдущей редакции инвентаризация лежала в `repo/` и включала `README.md`; фактически папка называется `_inventory/` и состоит из 4 файлов (без `README.md`).
-2. **`react-vite-bootstrap-project/`** — полностью отсутствовал в предыдущем дереве. Это исполняемое приложение (148 файлов без `node_modules`), включающее вторую копию кода платформы (`src/platform-core/`).
-3. **`tests_folder/`** — отсутствовал. Содержит 2 документа по тестированию Buyer MVP.
-4. **Корневые вспомогательные файлы** — `greenmarket-server.bat`, `AI-first Engineering Process.docx`, `vite-dev.log`, `vite-dev-err.log` — отсутствовали.
-5. **Счётчик 123 → 281** — предыдущая редакция не учитывала `react-vite-bootstrap-project/` (148), `tests_folder/` (2), `_inventory/` (переименована из `repo/`) и корневые служебные файлы.
+1. **`AI-first Engineering Process.docx` → `AI-first_Engineering_Process.md`.** Документ процесса (AI-first Development Process MVP v1.0) переведён из `.docx` в Markdown. Теперь это корневой `.md`-файл, учитывается в счётчике документов.
+2. **Добавлен `full_changes.diff`** — сводный diff недавних доработок экрана Map (крупные правки `MapScreenView.tsx`, `LeafletAdapter.tsx`, `MapRuntime.ts`, `MapSheetAdapter.ts` и др.). Вспомогательный файл для ревью изменений, не часть документации.
+3. **Домен Map расширен с 12 до 16 файлов**: добавлены `filters/SellerFilters.ts` (конфигурируемый фильтр продавцов) и три теста (`MapSheetAdapter.test.ts`, `MockSellerRepository.test.ts`, `MapRuntime.test.ts` в `__tests__/`).
+4. **Экраны Map: `MapLocationButton.tsx` удалён**, вместо него — `MapFabButton.tsx` (общий FAB-компонент для панели кнопок карты). `MapScreenView.tsx` вырос с 302 до 585 строк.
+5. **Добавлен экран `SellerListScreenView.tsx`** (`src/screens/seller-list/`) — полная реализация списка продавцов (ранее был только `SellerListScreen.ts`-ScreenDefinition-заглушка в `platform-core/screens/`).
+6. **Добавлен экран-компонент фильтра `SellerFilter.tsx` + `filter.css`** (`src/screens/filter/`) — общий выпадающий фильтр для карты, списка продавцов и результатов поиска.
+7. **Счётчик 281 → 290.** Разница: +1 `.md` (перевод docx), +1 `.diff`, +4 `.ts` (фильтр + 3 теста), +1 `.tsx` (SellerListScreenView, с учётом удаления MapLocationButton и добавления MapFabButton/SellerFilter), +1 `.css` (filter.css), +1 `.gitignore` (в react-vite-bootstrap-project), −1 `.docx`.

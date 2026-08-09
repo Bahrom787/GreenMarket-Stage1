@@ -37,7 +37,8 @@ npm run format    # форматирование Prettier
 | `/catalog` | Каталог (список, сортировка, пагинация) | реализован (buyer_mvp) |
 | `/product/:productId` | Карточка товара (офферы, лента фото) | реализован (buyer_mvp) |
 | `/map` | Карта продавцов (Leaflet) | реализован (screens/map + platform-core/map) |
-| `/cart`, `/profile`, `/seller-list`, `/seller/:sellerId` | Заглушки | заглушки |
+| `/seller-list` | Список продавцов с фильтром | реализован (screens/seller-list + SellerFilter) |
+| `/cart`, `/profile`, `/seller/:sellerId` | Заглушки | заглушки |
 
 ## Структура
 
@@ -49,8 +50,12 @@ src/
   design-system/   # Реализация Design System: токены (colors/typography/scales), тема, компоненты
   layout/          # Layout-примитивы (Flex, Structure)
   platform-core/   # Рабочая копия greenmarket/GreenMarket/ (домены + contracts + runtime-слой)
-                   # плюс домен Map (IMP-003.1) и дополнительные экраны
-  screens/         # Экраны приложения: map/ (MapScreenView и др.), PlaceholderScreen
+                   # плюс домен Map (IMP-003.1, включая filters/SellerFilters.ts и __tests__/) и доп. экраны
+  screens/         # Экраны приложения:
+                   #   map/         — MapScreenView (585), MapBottomSheetContent, MapFabButton, map.css
+                   #   seller-list/ — SellerListScreenView (296)
+                   #   filter/      — общий выпадающий фильтр SellerFilter (168) + filter.css
+                   #   PlaceholderScreen.tsx
   repositories/    # Резерв под существующие репозитории данных
   mocks/           # Резерв под тестовую инфраструктуру
   shared/          # Общие стили
@@ -85,11 +90,13 @@ main.tsx           # Точка входа
 
 ## Ограничения этапа
 
-- Реализованы продуктовые сценарии Buyer MVP (Главная/Каталог/Карточка товара) и экран Map.
-- Корзина, профиль, список продавцов и карточка продавца — заглушки (`PlaceholderScreen`
+- Реализованы продуктовые сценарии Buyer MVP (Главная/Каталог/Карточка товара), экран Map
+  и список продавцов с выпадающим фильтром.
+- Корзина, профиль и карточка продавца — заглушки (`PlaceholderScreen`
   или пустые ScreenDefinition в `src/platform-core/screens/`).
 - Backend в репозитории отсутствует: Buyer MVP работает против внешнего REST Catalog API
   (`/catalog/groups`, `/catalog/products`, `/catalog/products/{id}`), см. `src/buyer_mvp/api.ts`.
-- Автотесты: в `src/platform-core/navigation-runtime-layer/` есть 2 теста на `node:assert`
-  (запуск вручную `npx tsx`); Playwright-сценарии Buyer MVP не написаны
+- Автотесты: 2 теста в `src/platform-core/navigation-runtime-layer/` на `node:assert`
+  и 3 теста домена Map в `src/platform-core/map/__tests__/` (все запускаются вручную через
+  `npx tsx`, без jest/vitest и без CI); Playwright-сценарии Buyer MVP не написаны
   (см. `tests_folder/TZ_TESTING_BUYER_MVP.md` в корне репозитория).

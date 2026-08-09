@@ -1,6 +1,7 @@
 import { Routes, Route, NavLink, useLocation } from 'react-router-dom';
 import { PlaceholderScreen } from '@/screens/PlaceholderScreen';
 import { MapScreenView } from '@/screens/map/MapScreenView';
+import { SellerListScreenView } from '@/screens/seller-list/SellerListScreenView';
 import { Header, Page, Row } from '@/layout';
 import { Text } from '@/design-system/components';
 import '@/buyer_mvp/buyer_mvp.css';
@@ -42,20 +43,22 @@ function TopNav() {
 
 /**
  * Stage 1 routing scaffold, composed from the Design System's Layout
- * primitives. Map (IMP-003.1) is the first fully real screen — it defines
- * its own Header/FABs per its own UX spec, so it deliberately skips the
- * shared TopNav/Page chrome used by the remaining placeholders.
+ * primitives. Map (IMP-003.1) and Seller List (AR-003: Map → Seller List)
+ * are full-screen routes with their own Header/back button — they
+ * deliberately skip the shared TopNav/Page chrome used by the remaining
+ * placeholders.
  */
 export function NavigationContainer() {
   const location = useLocation();
-  const isMapRoute = location.pathname === '/map';
+  const isFullScreenRoute = location.pathname === '/map' || location.pathname === '/seller-list';
 
   return (
     <>
-      {!isMapRoute && <TopNav />}
-      {isMapRoute ? (
+      {!isFullScreenRoute && <TopNav />}
+      {isFullScreenRoute ? (
         <Routes>
           <Route path="/map" element={<MapScreenView />} />
+          <Route path="/seller-list" element={<SellerListScreenView />} />
         </Routes>
       ) : (
         <Page>
@@ -65,7 +68,6 @@ export function NavigationContainer() {
             <Route path="/product/:productId" element={<ProductScreen />} />
             <Route path="/cart" element={<PlaceholderScreen name="Корзина" />} />
             <Route path="/profile" element={<PlaceholderScreen name="Профиль" />} />
-            <Route path="/seller-list" element={<PlaceholderScreen name="Список продавцов" />} />
             <Route path="/seller/:sellerId" element={<PlaceholderScreen name="Карточка продавца" />} />
             <Route path="*" element={<PlaceholderScreen name="Страница не найдена" />} />
           </Routes>
