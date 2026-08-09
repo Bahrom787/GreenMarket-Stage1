@@ -11,8 +11,6 @@ module.exports = {
     'dist',
     '.eslintrc.cjs',
     'vite.config.ts',
-    'src/platform-core/BottomSheetDeclarative.tsx',
-    'src/platform-core/purchase_options/PurchaseOptionsScreen.tsx',
     '**/__tests__/**',
   ],
   parser: '@typescript-eslint/parser',

@@ -206,6 +206,125 @@ async function run() {
   assert.equal(s.sellerSearch.origin, null, "UNSELECT_SELLER сбрасывает точку поиска");
   assert.equal(s.sellerSearch.results.length, 0, "UNSELECT_SELLER сбрасывает результаты поиска");
 
+  // ---- Асинхронные методы runtime (вынесены из MapScreenView) ----
+
+  // Сбрасываем фильтры, чтобы поиск и видимая область считались без помех
+  // (ранние проверки могли их задать).
+  MapRuntime.dispatch({ type: "SET_FILTER_OPTIONS", groupId: "category", optionIds: [] });
+  MapRuntime.dispatch({ type: "SET_FILTER_OPTIONS", groupId: "state", optionIds: [] });
+
+  // requestSellerSearch: после выбора точки запускает запрос к Repository и
+  // кладёт сырые результаты в sellerSearch.rawResults.
+  MapRuntime.dispatch({ type: "SELLER_SEARCH_OPEN" });
+  MapRuntime.dispatch({
+    type: "SELLER_SEARCH_ORIGIN_PICKED",
+    origin: { lat: 50.11, lng: 8.68 },
+    label: "Моё местоположение",
+  });
+  assert.equal(MapRuntime.getState().sellerSearch.rawResults, null, "ORIGIN_PICKED: скелетон до ответа");
+  MapRuntime.requestSellerSearch();
+  await new Promise((resolve) => setTimeout(resolve, 600));
+  s = MapRuntime.getState();
+  assert.ok(s.sellerSearch.rawResults && s.sellerSearch.rawResults.length > 0, "requestSellerSearch заполняет rawResults");
+  assert.equal(s.sellerSearch.results.length, s.sellerSearch.rawResults?.length ?? 0, "без фильтра видны все результаты поиска");
+
+  // searchSellerByName: заполняет searchResult и возвращает найденного продавца.
+  const found = await MapRuntime.searchSellerByName("Медовый");
+  assert.ok(found !== null, "searchSellerByName находит продавца по имени");
+  assert.equal(
+    MapRuntime.getState().searchResult?.[0]?.sellerId,
+    found.sellerId,
+    "searchSellerByName заполняет searchResult",
+  );
+  const notFound = await MapRuntime.searchSellerByName("Такого продавца нет");
+  assert.equal(notFound, null, "searchSellerByName возвращает null при промахе");
+  assert.equal(MapRuntime.getState().searchResult?.length, 0, "searchSellerByName при промахе очищает searchResult");
+
+  // requestVisibleSellers: после debounce помечает загрузку и наполняет
+  // видимый список (debounce 500ms + имитация задержки Repository 250ms).
+  MapRuntime.requestVisibleSellers({ north: 51, south: 50, east: 9, west: 8 });
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  s = MapRuntime.getState();
+  assert.equal(s.loading, false, "requestVisibleSellers завершает загрузку");
+  assert.ok(s.visibleSellers.length > 0, "requestVisibleSellers наполняет видимый список");
+
+  // retryVisibleSellers: принудительный перезапрос последних границ (обход
+  // дедупликации — повторный вызов с теми же границами всё равно грузит).
+  MapRuntime.retryVisibleSellers();
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  s = MapRuntime.getState();
+  assert.equal(s.loading, false, "retryVisibleSellers завершает загрузку");
+  assert.ok(s.visibleSellers.length > 0, "retryVisibleSellers перезагружает видимый список");
+
+  // scheduleSellerSearch: радиус применяется сразу, перезапрос — после дебаунса.
+  MapRuntime.dispatch({ type: "SELLER_SEARCH_BACK" });
+  MapRuntime.dispatch({
+    type: "SELLER_SEARCH_ORIGIN_PICKED",
+    origin: { lat: 50.11, lng: 8.68 },
+    label: "Моё местоположение",
+  });
+  MapRuntime.scheduleSellerSearch(2500);
+  assert.equal(MapRuntime.getState().sellerSearch.radiusMeters, 2500, "scheduleSellerSearch применяет радиус сразу");
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  s = MapRuntime.getState();
+  assert.ok(s.sellerSearch.rawResults && s.sellerSearch.rawResults.length > 0, "scheduleSellerSearch перезапрашивает после дебаунса");
+
+  // cancelPendingSellerSearch: отменяет отложенный перезапрос.
+  MapRuntime.dispatch({ type: "SELLER_SEARCH_BACK" });
+  MapRuntime.dispatch({
+    type: "SELLER_SEARCH_ORIGIN_PICKED",
+    origin: { lat: 50.11, lng: 8.68 },
+    label: "Моё местоположение",
+  });
+  MapRuntime.scheduleSellerSearch(2500);
+  MapRuntime.cancelPendingSellerSearch();
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  assert.equal(
+    MapRuntime.getState().sellerSearch.rawResults,
+    null,
+    "cancelPendingSellerSearch отменяет отложенный перезапрос",
+  );
+
+  // ---- Чистка «мёртвых» категорий (MAP-053: сервер обновил каталог) ----
+
+  // Выбираем категорию, затем перезагружаем каталог БЕЗ неё — выбранный id
+  // должен исчезнуть из selectedFilters, а не «залипнуть» мёртвым.
+  MapRuntime.dispatch({ type: "SET_FILTER_OPTIONS", groupId: "category", optionIds: [veg] });
+  assert.equal(MapRuntime.getState().selectedFilters.category?.includes(veg), true, "категория выбрана до перезагрузки");
+  MapRuntime.dispatch({
+    type: "CATEGORIES_LOADED",
+    categories: [dairy, meat].map((categoryId) => ({
+      categoryId,
+      name: categoryId === dairy ? "Молочные продукты" : "Мясо и птица",
+    })),
+  });
+  s = MapRuntime.getState();
+  assert.ok(
+    !(s.selectedFilters.category ?? []).includes(veg),
+    "исчезнувшая категория удаляется из selectedFilters",
+  );
+  assert.equal(
+    s.selectedFilters.category?.length ?? 0,
+    0,
+    "выбор «мёртвой» категории очищен",
+  );
+
+  // Выбранная категория, оставшаяся в каталоге, переживает перезагрузку.
+  MapRuntime.dispatch({ type: "SET_FILTER_OPTIONS", groupId: "category", optionIds: [dairy] });
+  MapRuntime.dispatch({
+    type: "CATEGORIES_LOADED",
+    categories: [veg, dairy, meat].map((categoryId) => ({
+      categoryId,
+      name: `Категория ${categoryId}`,
+    })),
+  });
+  s = MapRuntime.getState();
+  assert.deepEqual(
+    s.selectedFilters.category,
+    [dairy],
+    "существующая категория сохраняется после перезагрузки",
+  );
+
   console.log("MapRuntime: все проверки пройдены");
 }
 

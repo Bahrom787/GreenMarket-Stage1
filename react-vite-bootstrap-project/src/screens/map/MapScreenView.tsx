@@ -4,7 +4,6 @@ import { Text, IconButton, Icon, BottomSheetSurface, Snackbar } from '@/design-s
 import { BottomSheetContainer, SnackbarContainer } from '@/containers';
 import { useGreenMarketRuntime } from '@/platform-core/navigation-runtime-layer/hooks/useGreenMarketRuntime';
 import type { Action, SellerId } from '@/platform-core/contracts/Action';
-import { MockSellerRepository } from '@/platform-core/map/repository/MockSellerRepository';
 import { GeoService } from '@/platform-core/map/gis/GeoService';
 import { MapAdapter } from '@/platform-core/map/gis/MapAdapter';
 import type { CameraChangeReason } from '@/platform-core/map/gis/MapAdapterTypes';
@@ -16,9 +15,6 @@ import { MapBottomSheetContent } from '@/screens/map/MapBottomSheetContent';
 import { MapFabButton } from '@/screens/map/MapFabButton';
 import { SellerFilter } from '@/screens/filter/SellerFilter';
 
-/** Дебаунс на ввод радиуса «Поиска продавцов» (MAP-053/MAP-018): перезапрос
- *  запускается после паузы в наборе, а не на каждый символ. */
-const SELLER_SEARCH_DEBOUNCE_MS = 500;
 /** Зум при центрировании на конкретного продавца (поиск / выбор из списка). */
 const ZOOM_ON_SELLER = 15;
 
@@ -38,12 +34,16 @@ function parseRadiusKmToMeters(value: string): number | null {
  *   Mock Repository → Runtime → MapViewModel → Builder → Layout → Design System.
  *
  * §8 IMP-003.1.2: единственный источник состояния экрана — MapRuntime (см.
- * platform-core/map/runtime/MapRuntime.ts). Этот компонент подписан на него
+ *  platform-core/map/runtime/MapRuntime.ts). Этот компонент подписан на него
  *  через useSyncExternalStore и является чистым отображением — сам не хранит
- *  ни выбранного продавца, ни камеру, ни Bottom Sheet, ни результаты поиска;
- *  локальное состояние — только поля ввода пользователя (поиск и радиус
- *  мастера «Поиск продавцов») и технические refs (таймеры/дебаунсы), но не
- *  производное доменное состояние из §9 ViewModel.
+ *  ни выбранного продавца, ни камеру, ни Bottom Sheet, ни результаты поиска.
+ *  Асинхронные потоки (загрузка продавцов, геокодирование, поиск/радиус
+ *  мастера) с debounce и защитой от гонок живут в MapRuntime (методы
+ *  requestVisibleSellers / scheduleSellerSearch и т.д.); геолокация — в
+ *  GeoService#resolveUserLocation.
+ *  Локальное состояние — только поля ввода пользователя (поиск и радиус
+ *  мастера «Поиск продавцов»), токен центрирования карты и snackbar об
+ *  ошибке геолокации, но не производное доменное состояние из §9 ViewModel.
  *
  * Навигационные действия (OPEN_SELLER, OPEN_SELLER_LIST, OPEN_CATALOG,
  * MAP_LOADED и т.д.) по-прежнему проходят через общий GreenMarketRuntime —
@@ -55,12 +55,9 @@ export function MapScreenView() {
 
   const [centerRequestToken, setCenterRequestToken] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
-  const [lastBounds, setLastBounds] = useState<MapBounds | null>(null);
   const [locationNotice, setLocationNotice] = useState<'unavailable' | 'no-permission' | null>(null);
   const locationNoticeTimerRef = useRef<number | null>(null);
   const [searchRadiusKm, setSearchRadiusKm] = useState('5');
-  const sellerSearchTimerRef = useRef<number | null>(null);
-  const sellerSearchSeqRef = useRef(0);
 
   /** Показывает snackbar об ошибке геолокации (MAP-005 §4) и автоматически
    *  скрывает его через несколько секунд. Повторное нажатие кнопки
@@ -71,74 +68,20 @@ export function MapScreenView() {
     locationNoticeTimerRef.current = window.setTimeout(() => setLocationNotice(null), 4000);
   }, []);
 
-  /** Запрос геолокации с общей обработкой ошибок для всех кнопок карты
-   *  (кнопка «Моё местоположение» и выбор точки «Моё местоположение» в
-   *  мастере «Поиск продавцов»).
-   *  Возвращает координаты либо null (при этом пользователь уже получил
+  /** Геолокация с общей обработкой ошибок для кнопки «Моё местоположение» и
+   *  выбора точки «Моё местоположение» в мастере «Поиск продавцов». Сам поток
+   *  (проверка разрешения, вызов navigator.geolocation, обработка ошибок) — в
+   *  GeoService#resolveUserLocation; здесь только сопоставление результата со
+   *  snackbar. Возвращает координаты либо null (пользователь уже получил
    *  snackbar, положение карты не меняется). */
-  const resolveUserLocation = useCallback(async (): Promise<GeoPoint | null> => {
-    // Если браузер явно запретил доступ — повторный промпт из JS невозможен,
-    // поэтому не дёргаем API впустую и сразу показываем «Нет доступа».
-    const permission = await GeoService.getPermissionState();
-    if (permission === 'denied') {
-      showLocationNotice('no-permission');
+  const resolveLocationOrNotify = useCallback(async (): Promise<GeoPoint | null> => {
+    const resolution = await GeoService.resolveUserLocation();
+    if (resolution.status !== 'ok') {
+      showLocationNotice(resolution.status === 'no-permission' ? 'no-permission' : 'unavailable');
       return null;
     }
-    try {
-      return await GeoService.getCurrentLocation();
-    } catch {
-      // IMP-003.1.1 §5 / IMP-003.1.2 §7: нет разрешения/недоступна
-      // геолокация — экран продолжает работать без ошибок.
-      showLocationNotice('unavailable');
-      return null;
-    }
+    return resolution.location;
   }, [showLocationNotice]);
-
-  const areaLabelTimerRef = useRef<number | null>(null);
-  const areaLabelRequestSeqRef = useRef(0);
-
-  const sellersLoadTimerRef = useRef<number | null>(null);
-  const sellersLoadRequestSeqRef = useRef(0);
-
-  /** Обратное геокодирование центра текущего просмотра (GM-UX-001 «Область
-   *  текущего района»). Номинативный запрос к Nominatim — дебаунс, чтобы не
-   *  дёргать сеть на каждый moveend/zoomend (например, при flyTo срабатывают
-   *  оба события сразу). Результат кладётся в MapRuntime (единственный
-   *  источник состояния экрана); reverseGeocode не бросает и возвращает null,
-   *  если район определить нельзя — область при этом скрывается.
-   *  Защита от гонки состояний: каждый новый запрос увеличивает
-   *  areaLabelRequestSeqRef; устаревший ответ (запрос уже не последний) —
-   *  игнорируется, чтобы более поздний запрос не был перетёрт. */
-  const requestAreaLabel = useCallback((center: GeoPoint) => {
-    if (areaLabelTimerRef.current !== null) window.clearTimeout(areaLabelTimerRef.current);
-    const seq = ++areaLabelRequestSeqRef.current;
-    areaLabelTimerRef.current = window.setTimeout(() => {
-      void GeoService.reverseGeocode(center).then((label) => {
-        if (seq === areaLabelRequestSeqRef.current) {
-          MapRuntime.dispatch({ type: 'AREA_LABEL_UPDATED', label });
-        }
-      });
-    }, 500);
-  }, []);
-
-  /** Загрузка продавцов через Repository (MAP-011). Защита от гонки
-   *  состояний: каждый вызов увеличивает sellersLoadRequestSeqRef, а ответ
-   *  применяется, только если загрузка всё ещё последняя — поздний ответ
-   *  устаревшей загрузки (перекрытой новой) не перетирает свежий. */
-  const loadVisibleSellers = useCallback(async (bounds: MapBounds) => {
-    const seq = ++sellersLoadRequestSeqRef.current;
-    MapRuntime.dispatch({ type: 'SELLERS_LOADING' });
-    try {
-      const visible = await MockSellerRepository.getVisibleSellers(bounds);
-      if (seq === sellersLoadRequestSeqRef.current) {
-        MapRuntime.dispatch({ type: 'SELLERS_LOADED', sellers: visible });
-      }
-    } catch {
-      if (seq === sellersLoadRequestSeqRef.current) {
-        MapRuntime.dispatch({ type: 'SELLERS_LOAD_FAILED' });
-      }
-    }
-  }, []);
 
   useEffect(() => {
     dispatch({ type: 'MAP_LOADED' });
@@ -151,47 +94,23 @@ export function MapScreenView() {
   // Загрузка каталога категорий для выпадающего фильтра (MapRuntime хранит
   // их как источник для UI; singleton переживает уход/возврат на экран).
   useEffect(() => {
-    void MockSellerRepository.getCategories().then((cats) => {
-      MapRuntime.dispatch({ type: 'CATEGORIES_LOADED', categories: cats });
-    });
+    MapRuntime.loadCategories();
   }, []);
 
-  // Сброс таймеров (snackbar об ошибке геолокации, дебаунсы района, загрузки
-  // продавцов и радиуса «Поиска продавцов») при размонтировании экрана.
+  // Сброс таймера snackbar об ошибке геолокации при размонтировании экрана
+  // (остальные таймеры/дебаунсы принадлежат MapRuntime).
   useEffect(
     () => () => {
       if (locationNoticeTimerRef.current !== null) window.clearTimeout(locationNoticeTimerRef.current);
-      if (areaLabelTimerRef.current !== null) window.clearTimeout(areaLabelTimerRef.current);
-      if (sellersLoadTimerRef.current !== null) window.clearTimeout(sellersLoadTimerRef.current);
-      if (sellerSearchTimerRef.current !== null) window.clearTimeout(sellerSearchTimerRef.current);
     },
     [],
   );
 
-  const handleVisibleBoundsChange = useCallback(
-    (bounds: MapBounds) => {
-      // §5/§13: не перезапрашивать Repository, если границы почти не
-      // изменились (например, повторный moveend с теми же координатами).
-      if (
-        lastBounds &&
-        Math.abs(lastBounds.north - bounds.north) < 0.0001 &&
-        Math.abs(lastBounds.south - bounds.south) < 0.0001 &&
-        Math.abs(lastBounds.east - bounds.east) < 0.0001 &&
-        Math.abs(lastBounds.west - bounds.west) < 0.0001
-      ) {
-        return;
-      }
-      setLastBounds(bounds);
-      // MAP-011: настоящий debounce на onVisibleBoundsChange — при
-      // непрерывном движении/зуме карты серия moveend/zoomend схлопывается
-      // в один запрос к Repository после паузы, а не на каждый кадр.
-      if (sellersLoadTimerRef.current !== null) window.clearTimeout(sellersLoadTimerRef.current);
-      sellersLoadTimerRef.current = window.setTimeout(() => {
-        void loadVisibleSellers(bounds);
-      }, 500);
-    },
-    [lastBounds, loadVisibleSellers],
-  );
+  const handleVisibleBoundsChange = useCallback((bounds: MapBounds) => {
+    // §5/§13 (дедупликация почти не изменившихся границ) и MAP-011 (debounce)
+    // живут в MapRuntime#requestVisibleSellers — здесь только проброс события.
+    MapRuntime.requestVisibleSellers(bounds);
+  }, []);
 
   const handleCameraChange = useCallback(
     (next: CameraParams, reason: CameraChangeReason) => {
@@ -202,9 +121,9 @@ export function MapScreenView() {
         MapRuntime.dispatch({ type: 'MOVE_MAP', center: next.center, zoom: next.zoom });
         dispatch({ type: 'MOVE_MAP', payload: next });
       }
-      requestAreaLabel(next.center);
+      MapRuntime.requestAreaLabel(next.center);
     },
-    [dispatch, requestAreaLabel],
+    [dispatch],
   );
 
   const handleSellerSelect = useCallback(
@@ -222,12 +141,12 @@ export function MapScreenView() {
 
   const handleCenterOnUser = useCallback(async () => {
     dispatch({ type: 'CENTER_ON_USER' });
-    const location = await resolveUserLocation();
+    const location = await resolveLocationOrNotify();
     if (!location) return;
     MapRuntime.dispatch({ type: 'CENTER_ON_USER_SUCCESS', location });
     setCenterRequestToken((t) => t + 1);
-    requestAreaLabel(location);
-  }, [dispatch, resolveUserLocation, requestAreaLabel]);
+    MapRuntime.requestAreaLabel(location);
+  }, [dispatch, resolveLocationOrNotify]);
 
   const handleOpenSellerList = useCallback(() => dispatch({ type: 'OPEN_SELLER_LIST' }), [dispatch]);
   const handleOpenCatalog = useCallback(() => dispatch({ type: 'OPEN_CATALOG' }), [dispatch]);
@@ -237,23 +156,7 @@ export function MapScreenView() {
    *  кнопки «Моё местоположение») или «Положение на карте» (центр текущего
    *  просмотра), затем ввод радиуса и результаты, отсортированные по
    *  расстоянию. Состояние шага/точки/радиуса/результатов живёт в MapRuntime
-   *  (reducer-кейсы SELLER_SEARCH_*). */
-  const runSellerSearch = useCallback(async () => {
-    const search = MapRuntime.getState().sellerSearch;
-    if (!search.origin) return;
-    const seq = ++sellerSearchSeqRef.current;
-    const sellers = await MockSellerRepository.searchSellersNear({
-      origin: search.origin,
-      radiusMeters: search.radiusMeters,
-      sort: { key: 'distance' },
-    });
-    if (seq === sellerSearchSeqRef.current) {
-      MapRuntime.dispatch({ type: 'SELLER_SEARCH_RESULT', sellers });
-    }
-  }, []);
-
-  /** Открытие мастера «Поиск продавцов»: новый поиск всегда начинается с
-   *  выбора точки и сбрасывает радиус на значение по умолчанию. */
+   *  (reducer-кейсы SELLER_SEARCH_*), поиск запускается MapRuntime#requestSellerSearch. */
   const handleOpenSellerSearch = useCallback(() => {
     setSearchRadiusKm(String(DEFAULT_SELLER_SEARCH_RADIUS_METERS / 1000));
     MapRuntime.dispatch({ type: 'SELLER_SEARCH_OPEN' });
@@ -263,14 +166,14 @@ export function MapScreenView() {
    *  обработкой ошибок; при успехе свежая позиция становится «Моё
    *  местоположение» (📍 центрируется на неё) и сразу запускается поиск. */
   const handleSearchOriginMyLocation = useCallback(async () => {
-    const location = await resolveUserLocation();
+    const location = await resolveLocationOrNotify();
     if (!location) return;
     MapRuntime.dispatch({ type: 'CENTER_ON_USER_SUCCESS', location });
     setCenterRequestToken((t) => t + 1);
-    requestAreaLabel(location);
+    MapRuntime.requestAreaLabel(location);
     MapRuntime.dispatch({ type: 'SELLER_SEARCH_ORIGIN_PICKED', origin: location, label: 'Моё местоположение' });
-    void runSellerSearch();
-  }, [resolveUserLocation, requestAreaLabel, runSellerSearch]);
+    MapRuntime.requestSellerSearch();
+  }, [resolveLocationOrNotify]);
 
   /** Шаг «Выбрать точку» → «Положение на карте»: точка = центр текущего
    *  просмотра (карта при этом не двигается). */
@@ -280,30 +183,24 @@ export function MapScreenView() {
       origin: MapRuntime.getState().mapCenter,
       label: 'Положение на карте',
     });
-    void runSellerSearch();
-  }, [runSellerSearch]);
+    MapRuntime.requestSellerSearch();
+  }, []);
 
   /** Ввод радиуса в окне результатов: значение сразу применяется к текущим
    *  результатам (SELLER_SEARCH_RADIUS_CHANGED), а перезапрос к Repository
-   *  дебаунсится — на каждый символ сеть не дёргаем. */
-  const handleSearchRadiusInput = useCallback(
-    (value: string) => {
-      setSearchRadiusKm(value);
-      const radiusMeters = parseRadiusKmToMeters(value);
-      if (!radiusMeters) return;
-      MapRuntime.dispatch({ type: 'SELLER_SEARCH_RADIUS_CHANGED', radiusMeters });
-      if (sellerSearchTimerRef.current !== null) window.clearTimeout(sellerSearchTimerRef.current);
-      sellerSearchTimerRef.current = window.setTimeout(() => {
-        void runSellerSearch();
-      }, SELLER_SEARCH_DEBOUNCE_MS);
-    },
-    [runSellerSearch],
-  );
+   *  дебаунсится в MapRuntime#scheduleSellerSearch — на каждый символ сеть
+   *  не дёргаем. */
+  const handleSearchRadiusInput = useCallback((value: string) => {
+    setSearchRadiusKm(value);
+    const radiusMeters = parseRadiusKmToMeters(value);
+    if (!radiusMeters) return;
+    MapRuntime.scheduleSellerSearch(radiusMeters);
+  }, []);
 
   /** «Назад» из окна результатов: возврат к выбору точки (введённый радиус
    *  сохраняется) и отмена отложенного перезапроса. */
   const handleSearchBack = useCallback(() => {
-    if (sellerSearchTimerRef.current !== null) window.clearTimeout(sellerSearchTimerRef.current);
+    MapRuntime.cancelPendingSellerSearch();
     MapRuntime.dispatch({ type: 'SELLER_SEARCH_BACK' });
   }, []);
 
@@ -366,8 +263,7 @@ export function MapScreenView() {
       event.preventDefault();
       const query = searchQuery.trim();
       if (!query) return;
-      const found = await MockSellerRepository.findSeller(query);
-      MapRuntime.dispatch({ type: 'SEARCH_RESULT', sellers: found ? [found] : [] });
+      const found = await MapRuntime.searchSellerByName(query);
       if (found) {
         // §6: центрирование карты + автоматическое открытие Bottom Sheet.
         MapRuntime.dispatch({ type: 'MOVE_MAP', center: found.location, zoom: ZOOM_ON_SELLER });
@@ -501,7 +397,7 @@ export function MapScreenView() {
                 </Text>
                 <MapBottomSheetContent
                   blocks={bottomSheetBlocks}
-                  onRetry={() => lastBounds && void loadVisibleSellers(lastBounds)}
+                  onRetry={() => MapRuntime.retryVisibleSellers()}
                   onAction={handleBlockAction}
                 />
               </Stack>
@@ -557,7 +453,7 @@ export function MapScreenView() {
                 <div className="gm-seller-search-results__list">
                   <MapBottomSheetContent
                     blocks={bottomSheetBlocks}
-                    onRetry={() => lastBounds && void loadVisibleSellers(lastBounds)}
+                    onRetry={() => MapRuntime.retryVisibleSellers()}
                     onAction={handleBlockAction}
                   />
                 </div>
@@ -565,7 +461,7 @@ export function MapScreenView() {
             ) : (
               <MapBottomSheetContent
                 blocks={bottomSheetBlocks}
-                onRetry={() => lastBounds && void loadVisibleSellers(lastBounds)}
+                onRetry={() => MapRuntime.retryVisibleSellers()}
                 onAction={handleBlockAction}
               />
             )}

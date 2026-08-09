@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Content, Header, Row, Stack } from '@/layout';
 import {
   Text,
@@ -77,6 +77,11 @@ export function SellerListScreenView() {
   const [sellers, setSellers] = useState<SellerMapRecord[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SellerMapRecord[] | null>(null);
+  /** Защита от гонки поиска (тот же приём, что у продавцов на карте): каждый
+   *  реально отправленный запрос увеличивает счётчик; ответ применяется, только
+   *  если запрос всё ещё последний — поздний ответ более раннего запроса
+   *  (например, «мор» завершился после «морк») не перетирает свежий. */
+  const searchSeqRef = useRef(0);
 
   const loadSellers = useCallback(async () => {
     setLoadState('loading');
@@ -103,15 +108,22 @@ export function SellerListScreenView() {
   }, [mapState.categories.length]);
 
   // Поиск по названию с дебаунсом: на каждый символ перезапускаем таймер,
-  // в Repository уходит один запрос после паузы ввода.
+  // в Repository уходит один запрос после паузы ввода. seq-защита — на случай,
+  // если новый запрос стартовал, пока предыдущий ещё в полёте (см. searchSeqRef).
   useEffect(() => {
     const q = searchQuery.trim();
     if (!q) {
+      // Инкремент инвалидирует в полёте незавершённый запрос: поздний ответ
+      // не вернёт результаты при очищенном поле поиска.
+      searchSeqRef.current += 1;
       setSearchResults(null);
       return;
     }
     const timer = window.setTimeout(() => {
-      void MockSellerRepository.searchSellers(q).then((results) => setSearchResults(results));
+      const seq = ++searchSeqRef.current;
+      void MockSellerRepository.searchSellers(q).then((results) => {
+        if (seq === searchSeqRef.current) setSearchResults(results);
+      });
     }, SEARCH_DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
   }, [searchQuery]);
