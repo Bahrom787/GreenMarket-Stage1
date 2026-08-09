@@ -3,7 +3,6 @@ import { PlaceholderScreen } from '@/screens/PlaceholderScreen';
 import { MapScreenView } from '@/screens/map/MapScreenView';
 import { SellerListScreenView } from '@/screens/seller-list/SellerListScreenView';
 import { Header, Page, Row } from '@/layout';
-import { Text } from '@/design-system/components';
 import '@/buyer_mvp/buyer_mvp.css';
 import { HomeScreen } from '@/buyer_mvp/screens/HomeScreen';
 import { CatalogScreen } from '@/buyer_mvp/screens/CatalogScreen';
@@ -12,44 +11,31 @@ import { ProductScreen } from '@/buyer_mvp/screens/ProductScreen';
 const navItems = [
   { to: '/catalog', label: 'Каталог' },
   { to: '/map', label: 'Карта' },
-  { to: '/cart', label: 'Корзина' },
-  { to: '/profile', label: 'Профиль' },
+  { to: '/seller-list', label: 'Продавцы' },
 ];
 
 const FULL_SCREEN_ROUTES = new Set(['/map', '/seller-list']);
 
 function TopNav() {
   return (
-    <Header>
+    <Header className="gm-site-header">
       <Page style={{ padding: 0 }}>
-        <Row gap="lg" align="center" style={{ height: '100%' }}>
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              style={({ isActive }) => ({
-                textDecoration: 'none',
-                opacity: isActive ? 1 : 0.7,
-              })}
-            >
-              <Text variant="bodyStrong" as="span">
+        <Row gap="lg" align="center" style={{ height: '100%', justifyContent: 'space-between' }}>
+          <NavLink to="/" className="gm-site-brand" aria-label="GreenMarket, на главную"><span>G</span> GreenMarket</NavLink>
+          <nav className="gm-site-nav" aria-label="Основная навигация">
+            {navItems.map((item) => (
+              <NavLink key={item.to} to={item.to} className={({ isActive }) => `gm-site-nav__link${isActive ? ' gm-site-nav__link--active' : ''}`}>
                 {item.label}
-              </Text>
-            </NavLink>
-          ))}
+              </NavLink>
+            ))}
+          </nav>
+          <NavLink to="/profile" className="gm-site-profile" aria-label="Профиль">П</NavLink>
         </Row>
       </Page>
     </Header>
   );
 }
 
-/**
- * Stage 1 routing scaffold, composed from the Design System's Layout
- * primitives. Map (IMP-003.1) and Seller List (AR-003: Map → Seller List)
- * are full-screen routes with their own Header/back button — they
- * deliberately skip the shared TopNav/Page chrome used by the remaining
- * placeholders.
- */
 export function NavigationContainer() {
   const location = useLocation();
   const isFullScreenRoute = FULL_SCREEN_ROUTES.has(location.pathname);
