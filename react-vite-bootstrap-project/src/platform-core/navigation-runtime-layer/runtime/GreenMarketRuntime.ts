@@ -65,6 +65,14 @@ export interface GreenMarketRuntime {
    *  ровно одним местом — мостом Runtime↔React Router на уровне App Shell
    *  (см. src/app/RuntimeRouteSync.tsx), не самими экранами. */
   forceNavigate(entry: NavigationEntry): void;
+  /** Как forceNavigate, но сбрасывает стек ровно в один экран вместо push —
+   *  для прямого входа по ссылке (deep-link), когда у пользователя ещё нет
+   *  хронологии переходов. Стек обязан отражать реальные действия
+   *  пользователя: если пользователь сразу попал на /seller-list или
+   *  /seller/:id, под ним не должно быть синтетического корневого Catalog,
+   *  иначе BACK "отмотал" бы то, чего пользователь не делал (см.
+   *  SellerListScreenView — кнопка «назад» прячется, когда isAtRoot). */
+  forceReset(entry: NavigationEntry): void;
   subscribe(listener: (state: RuntimeState) => void): () => void;
   onBusinessEvent(listener: (event: BusinessEvent) => void): () => void;
 }
@@ -139,6 +147,11 @@ export function createGreenMarketRuntime(
 
     forceNavigate(entry: NavigationEntry): void {
       state = { navigation: push(state.navigation, entry) };
+      stateListeners.forEach((fn) => fn(state));
+    },
+
+    forceReset(entry: NavigationEntry): void {
+      state = { navigation: { stack: [entry] } };
       stateListeners.forEach((fn) => fn(state));
     },
 

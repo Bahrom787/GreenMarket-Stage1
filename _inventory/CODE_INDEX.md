@@ -1,10 +1,10 @@
 # CODE_INDEX.md
 
-Индекс всех файлов .ts/.tsx репозитория (без `node_modules`): **187 файлов** (138 .ts + 49 .tsx), суммарно ~9 760 строк. Часть из них — копии (см. ниже), поэтому суммы по копиям не складываются в «уникальный» объём кода.
+Индекс всех файлов .ts/.tsx репозитория (без `node_modules`): **193 файла** (142 .ts + 51 .tsx), суммарно ~11 579 строк. Часть из них — копии (см. ниже), поэтому суммы по копиям не складываются в «уникальный» объём кода.
 
 Репозиторий содержит **две копии** кода платформы:
-- `greenmarket/GreenMarket/` — эталонная библиотека доменов (63 файла, 3174 строки) — разделы 1–11 ниже;
-- `react-vite-bootstrap-project/src/platform-core/` — рабочая копия той же библиотеки внутри исполняемого приложения + домен Map и доп. файлы (75 файлов, 3910 строк) — раздел 12.
+- `greenmarket/GreenMarket/` — эталонная библиотека доменов (52 файла, 2518 строк) — разделы 1–11 ниже;
+- `react-vite-bootstrap-project/src/platform-core/` — рабочая копия той же библиотеки внутри исполняемого приложения + домен Map и доп. файлы (79 файлов, 4934 строки) — раздел 12.
 
 Счётчик строк в этом файле соответствует `(Get-Content ...).Count` (считает и пустые строки); это «сырой» подсчёт, из-за чего строки файлов могут не совпадать с тем, что показывает редактор без учёта пустых строк.
 
@@ -123,7 +123,7 @@
 | presentation/RatingVm.ts | 4 |
 | presentation/SubtitleParts.ts | 3 |
 
-## 11. navigation-runtime-layer/ — отдельный runtime-слой (11 файлов, единственное место с тестами вне react-vite)
+## 11. navigation-runtime-layer/ — отдельный runtime-слой (11 файлов, 656 строк; единственное место с тестами вне react-vite)
 
 > Тесты есть также в рабочей копии этого слоя: `react-vite-bootstrap-project/src/platform-core/navigation-runtime-layer/` (2 файла). В остальном коде приложения автотестов нет.
 
@@ -143,18 +143,18 @@
 
 Тесты (вне react-vite — единственная работоспособная проверка в репозитории) запускаются вручную через npx tsx, без jest/vitest-конфигурации и без CI.
 
-## 12. react-vite-bootstrap-project/ — исполняемое приложение Stage 1 (123 файла .ts/.tsx в src/, 6554 строки)
+## 12. react-vite-bootstrap-project/ — исполняемое приложение Stage 1 (129 файлов .ts/.tsx в src/, 8375 строк)
 
 Приложение-сборка (React 18 + Vite 5 + TypeScript strict, запуск `greenmarket-server.bat start`). Код разделён на инфраструктуру приложения и рабочую копию платформы.
 
-### 12.1 src/app/ — App Shell (4 файла, 235 строк)
+### 12.1 src/app/ — App Shell (4 файла, 250 строк)
 
 | Файл | Строк | Назначение |
 |---|---|---|
 | App.tsx | 29 | Композиция: ErrorBoundary → ThemeProvider → GreenMarketRuntimeProvider → Router → Screen |
 | ErrorBoundary.tsx | 36 | Фолбэк при ошибке рендера |
-| NavigationContainer.tsx | 76 | Маршруты роутера: `/` Главная, `/catalog`, `/product/:productId`, `/map`, `/cart`, `/profile` и заглушки |
-| RuntimeRouteSync.tsx | 94 | Синхронизация React Router и runtime-стека навигации |
+| NavigationContainer.tsx | 78 | Маршруты роутера: `/` Главная, `/catalog`, `/product/:productId`, `/map`, `/cart`, `/profile` и заглушки |
+| RuntimeRouteSync.tsx | 107 | Синхронизация React Router и runtime-стека навигации |
 
 ### 12.2 src/buyer_mvp/ — Buyer MVP Stage 1 (12 файлов .ts/.tsx, 648 строк; контракт — Catalog API)
 
@@ -175,30 +175,32 @@
 | components/ProductCard.tsx | 42 | Карточка товара в списке |
 | components/SearchBar.tsx | 33 | Поле поиска |
 
-### 12.3 src/platform-core/ — рабочая копия greenmarket/GreenMarket/ + новые модули (75 файлов .ts/.tsx, 3910 строк)
+### 12.3 src/platform-core/ — рабочая копия greenmarket/GreenMarket/ + новые модули (79 файлов .ts/.tsx, 4934 строки)
 
 Повторяет всю структуру разделов 1–10 (домены basket, catalog, favorites, product_card, purchase_options, search, seller_card; contracts; screens; formatting/presentation; BottomSheetDeclarative.tsx) и добавляет то, чего в `greenmarket/` нет:
 
 | Файл | Строк | Назначение |
 |---|---|---|
-| map/ (12 файлов, 746 строк) | — | **Домен Map** (ссылается на IMP-003.1 / IMP-003.1.1 / IMP-003.1.2 / AR-003 — документов нет): MapRuntime (147), LeafletAdapter (145), MockSellerRepository (115), GeoService (93), MapSheetAdapter (62), MapViewModel (52), MapConfig (33), MapAdapterTypes (29), SellerRepository (25), TileProvider (22), MapBuilder (12), MapAdapter (11) |
+| map/ (16 файлов, 1717 строк) | — | **Домен Map** (ссылается на IMP-003.1 / IMP-003.1.1 / IMP-003.1.2 / AR-003 — документов нет): MapRuntime (326), LeafletAdapter (206), MapSheetAdapter (168), MockSellerRepository (142), GeoService (105), SellerFilters (88), MapViewModel (76), SellerRepository (51), MapConfig (33), MapAdapterTypes (29), TileProvider (22), MapBuilder (12), MapAdapter (11) + тесты: MapRuntime.test (212), MapSheetAdapter.test (161), MockSellerRepository.test (75) |
+| map/filters/SellerFilters.ts | 88 | Конфигурируемый фильтр продавцов (диапазоны цены/рейтинга, категории, опции); используется экранами Map, Seller List, поиском |
+| map/__tests__/ | 3 файла | Первые автотесты в кодовой базе приложения (node:assert, npx tsx) |
 | contracts/BusinessEvent.ts | 17 | Тип бизнес-событий (вынесен из BottomSheetDeclarative.tsx) |
 | diagnostics/Diagnostics.ts | 43 | Логирование по IMP-003.1.2 §14 |
 | screens/MapScreen.ts | 26 | ScreenDefinition экрана Map (12 действий из IMP-003.1 §9) |
 | screens/SellerCatalogScreen.ts | 20 | ПАТЧ при интеграции Map (импорт каталога продавца в навигацию) |
-| screens/SellerListScreen.ts | 24 | Заглушка Seller List (не входит в объём IMP-003.1) |
-| navigation-runtime-layer/ (6 файлов) | 500 | Копия runtime-слоя из раздела 11: GreenMarketRuntime (155), NavigationStack (103), useGreenMarketRuntime (91), ScreenRegistry (48), + 2 теста (65 + 38) |
+| screens/SellerListScreen.ts | 33 | ScreenDefinition списка продавцов (не входит в объём IMP-003.1; наполнен в ходе доработки экрана) |
+| navigation-runtime-layer/ (6 файлов) | 536 | Копия runtime-слоя из раздела 11: GreenMarketRuntime (168), NavigationStack (103), useGreenMarketRuntime (91), ScreenRegistry (48), + 2 теста (88 + 38) |
 
 Сверка копий: `BottomSheetDeclarative.tsx`, `viewmodels/SellerCardViewModel.ts`, `purchase_options/*` идентичны оригиналам в `greenmarket/`; `contracts/Action.ts`, `screens/CatalogScreen.ts`, `runtime/GreenMarketRuntime.ts` и др. разошлись (проверено хэшированием).
 
-### 12.4 src/design-system/, containers/, layout/, screens/, repositories/, mocks/ — реализация UI (32 файла .ts/.tsx)
+### 12.4 src/design-system/, containers/, layout/, screens/, repositories/, mocks/ — реализация UI (34 файла .ts/.tsx)
 
 | Подсистема | Файлов | Строк | Назначение |
 |---|---|---|---|
-| design-system/ | 16 | 942 | Реализация Design System: tokens/ (colors 140, typography 102, scales 79), ThemeProvider/ThemeContext/useTheme, компоненты (Button 84, Text 80, Overlays 82, Avatar 76, ListItem 69, Surface 67, States 37, Loader 15) |
+| design-system/ | 16 | 945 | Реализация Design System: tokens/ (colors 143, typography 102, scales 79), ThemeProvider/ThemeContext/useTheme, компоненты (Button 84, Text 80, Overlays 82, Avatar 76, ListItem 69, Surface 67, States 37, Loader 15) |
 | containers/ | 5 | 130 | BottomSheet (32), Modal (38), Overlay (41), Snackbar (10), index |
 | layout/ | 3 | 196 | Flex (120), Structure (71), index |
-| screens/ (вне platform-core) | 4 | 477 | MapScreenView (302 — реализация экрана Map), MapBottomSheetContent (92), MapLocationButton (64), PlaceholderScreen (19) |
+| screens/ (вне platform-core) | 6 | 1256 | MapScreenView (585 — реализация экрана Map), SellerListScreenView (296 — реализация списка продавцов), SellerFilter (168 — общий выпадающий фильтр), MapBottomSheetContent (119), MapFabButton (69 — общая FAB-кнопка карты), PlaceholderScreen (19) |
 | repositories/ | 1 | 3 | index.ts (заглушка резерва под репозитории) |
 | mocks/ | 1 | 2 | index.ts (заглушка резерва под тестовую инфраструктуру) |
 | прочее | 2 | 11 | main.tsx (10), vite-env.d.ts (1) |

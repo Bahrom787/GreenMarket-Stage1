@@ -37,7 +37,28 @@ export interface CameraParams {
   zoom: number;
 }
 
-export type BottomSheetState = "hidden" | "sellerSummary";
+/** Состояние мастера «Поиск продавцов» (MAP-053/MAP-018). Пользователь
+ *  выбирает точку поиска (своё местоположение или центр экрана), вводит
+ *  радиус (дебаунс на ввод), и получает результат, отсортированный по
+ *  расстоянию. К результатам применяется тот же глобальный фильтр, что на
+ *  карте и в списке продавцов (единая сущность — MapRuntime.selectedFilters). */
+export interface SellerSearchState {
+  /** null — точка ещё не выбрана (экран выбора точки). */
+  origin: GeoPoint | null;
+  /** Подпись точки для заголовков/пустых состояний («Моё местоположение» /
+   *  «Положение на карте»). */
+  originLabel: string | null;
+  /** Текущий радиус в метрах (пользователь вводит его в км). */
+  radiusMeters: number;
+  /** Сырые результаты из Repository (в радиусе, отсортированы по запросу) —
+   *  БЕЗ глобального фильтра. null = поиск ещё не выполнялся (скелетон), имя
+   *  подчёркивает, что перезапрос не трогает UI-фильтр. */
+  rawResults: SellerMapRecord[] | null;
+  /** Видимые результаты = rawResults, пропущенные через глобальный фильтр. */
+  results: SellerMapRecord[];
+}
+
+export type BottomSheetState = "hidden" | "sellerSummary" | "sellerSearchOrigin" | "sellerSearchResults";
 
 /** Доменный контракт экрана Map (IMP-003.1 §10 "ViewModel"). Ничего не знает
  *  про Leaflet/react-leaflet — та часть инкапсулирована в map/gis/. */
@@ -48,5 +69,8 @@ export interface MapViewModel {
   userLocation: GeoPoint | null;
   camera: CameraParams;
   bottomSheet: BottomSheetState;
+  /** Мастер «Поиск продавцов» (MAP-053/MAP-018). Всегда актуален; активен,
+   *  когда bottomSheet = sellerSearchOrigin/sellerSearchResults. */
+  sellerSearch: SellerSearchState;
   currentAreaLabel: string | null;
 }

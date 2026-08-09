@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Marker, CircleMarker, useMap, useMapEvents } from "react-leaflet";
+import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
 import type { MapAdapterProps } from "@/platform-core/map/gis/MapAdapterTypes";
 import { defaultMapConfig } from "@/platform-core/map/gis/MapConfig";
@@ -44,6 +45,20 @@ function sellerDivIcon(selected: boolean, available: boolean, sellerId: string, 
     html: `<span data-testid="seller-marker" data-seller-id="${sellerId}" style="display:block;width:${selected ? 20 : 14}px;height:${selected ? 20 : 14}px;border-radius:999px;background:${bg};border:2px solid white;box-shadow:${glow};"></span>`,
     iconSize: [selected ? 24 : 18, selected ? 24 : 18],
     iconAnchor: [selected ? 12 : 9, selected ? 12 : 9],
+  });
+}
+
+function clusterDivIcon(cluster: L.MarkerCluster): L.DivIcon {
+  // Кластер = та же «точка продавца», но над ней «слегка выше» висит бейдж
+  // с количеством продавцов (GM-UX-001). Стили .gm-map-cluster* живут в
+  // src/screens/map/map.css и используют токены темы (цвета следуют
+  // light/dark без отдельного токена).
+  const count = cluster.getChildCount();
+  return L.divIcon({
+    className: "gm-map-cluster",
+    html: `<span data-testid="seller-cluster" class="gm-map-cluster__count">${count}</span><span class="gm-map-cluster__dot"></span>`,
+    iconSize: [28, 34],
+    iconAnchor: [14, 25],
   });
 }
 
@@ -160,14 +175,31 @@ export function LeafletAdapter({
           />
         )}
 
-        {sellers.map((seller) => (
-          <Marker
-            key={seller.sellerId}
-            position={[seller.location.lat, seller.location.lng]}
-            icon={sellerDivIcon(seller.sellerId === selectedSellerId, seller.isAvailable, seller.sellerId, camera.zoom)}
-            eventHandlers={{ click: () => onSellerSelect(seller.sellerId) }}
-          />
-        ))}
+        {/* Кластеризация точек продавцов (GM-UX-001): на маленьком зуме близкие
+         *  продавцы накладываются друг на друга — MarkerClusterGroup объединяет
+         *  их в один кластер (иконка = точка + количество чуть выше), а по
+         *  клику/приближении кластер распадается на отдельных продавцов.
+         *  maxClusterRadius = 20px — кластеризация намеренно «неагрессивная»:
+         *  объединяются только почти перекрывающиеся точки, чуть отдалённые
+         *  продавцы остаются отдельными маркерами; spiderfyOnMaxZoom на
+         *  предельном зуме разводит перекрывающиеся точки веером, чтобы каждую
+         *  можно было выбрать. */}
+        <MarkerClusterGroup
+          maxClusterRadius={20}
+          showCoverageOnHover={false}
+          spiderfyOnMaxZoom={true}
+          zoomToBoundsOnClick={true}
+          iconCreateFunction={clusterDivIcon}
+        >
+          {sellers.map((seller) => (
+            <Marker
+              key={seller.sellerId}
+              position={[seller.location.lat, seller.location.lng]}
+              icon={sellerDivIcon(seller.sellerId === selectedSellerId, seller.isAvailable, seller.sellerId, camera.zoom)}
+              eventHandlers={{ click: () => onSellerSelect(seller.sellerId) }}
+            />
+          ))}
+        </MarkerClusterGroup>
       </MapContainer>
     </div>
   );

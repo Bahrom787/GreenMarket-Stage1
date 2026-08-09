@@ -71,6 +71,14 @@ export type Action =
   | { type: "SELECT_SELLER"; payload: { sellerId: SellerId } }
   | { type: "UNSELECT_SELLER" }
   | { type: "OPEN_SELLER_LIST" }
-  | { type: "OPEN_CATALOG" };
+  | { type: "OPEN_CATALOG" }
+  /* --------------------------------------------------------------------
+   * «Поиск продавцов» (MAP-053/MAP-018): действия шага выбора точки поиска
+   * в окне Bottom Sheet. Возникают как ContentBlock-действия строк «Моё
+   * местоположение» / «Положение на карте» и обрабатываются экраном Map
+   * (MapScreenView.handleBlockAction) — глобальный Runtime их не трогает.
+   * -------------------------------------------------------------------- */
+  | { type: "SEARCH_ORIGIN_MY_LOCATION" }
+  | { type: "SEARCH_ORIGIN_MAP_CENTER" };
 
 export type ActionType = Action["type"];

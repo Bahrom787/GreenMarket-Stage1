@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { asSellerId, asProductId } from "../../contracts/Action";
-import type { Action } from "../../contracts/Action";
+import { asSellerId, asProductId } from "../../../contracts/Action";
+import type { Action } from "../../../contracts/Action";
 import { createGreenMarketRuntime, type ActionHandlers } from "../GreenMarketRuntime";
 import { currentEntry } from "../../navigation/NavigationStack";
 
@@ -58,6 +58,29 @@ function run() {
   unsubscribe();
   runtime6.dispatch({ type: "BACK" });
   assert.equal(notifications, 1, "subscribe: вызывается на каждое принятое изменение состояния, но не после unsubscribe");
+
+  // 6. forceReset (deep-link): стек ровно в один экран, без синтетической
+  //    хронологии — BACK не отматывает то, чего пользователь не делал.
+  const runtime7 = createGreenMarketRuntime();
+  runtime7.forceReset({ screen: "SellerList", params: {} });
+  assert.equal(runtime7.getState().navigation.stack.length, 1, "forceReset: стек содержит ровно один экран");
+  assert.equal(
+    currentEntry(runtime7.getState().navigation).screen,
+    "SellerList",
+    "forceReset: текущий экран — целевой (deep-link)"
+  );
+  runtime7.dispatch({ type: "BACK" });
+  assert.equal(
+    currentEntry(runtime7.getState().navigation).screen,
+    "SellerList",
+    "forceReset + BACK: кнопка «назад» при прямом входе по ссылке не возвращает на синтетический Catalog"
+  );
+
+  // 7. forceNavigate после forceReset: обычные переходы пользователя push'ятся.
+  const runtime8 = createGreenMarketRuntime();
+  runtime8.forceReset({ screen: "SellerList", params: {} });
+  runtime8.forceNavigate({ screen: "Map", params: {} });
+  assert.equal(runtime8.getState().navigation.stack.length, 2, "forceNavigate после forceReset: переход пользователя кладётся поверх");
 
   console.log("GreenMarketRuntime: все проверки пройдены");
 }

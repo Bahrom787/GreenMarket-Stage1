@@ -61,9 +61,18 @@ export function RuntimeRouteSync() {
   const navigate = useNavigate();
   const params = useParams();
   const isSyncingFromUrl = useRef(false);
+  /** Первый прогон эффекта URL → Runtime — это «точка входа» (загрузка
+   *  страницы по текущему URL, в том числе deep-link). В этот момент у
+   *  пользователя ещё нет хронологии переходов, поэтому стек сбрасывается
+   *  ровно в один экран (forceReset), а не push'ится поверх синтетического
+   *  корневого Catalog. Все последующие синхронизации — реальные переходы
+   *  пользователя, их надо push'ить (forceNavigate). */
+  const isEntryPointSync = useRef(true);
 
   // URL → Runtime
   useEffect(() => {
+    const isEntryPoint = isEntryPointSync.current;
+    isEntryPointSync.current = false;
     const desired = entryFromPath(location.pathname, params.sellerId);
     if (!desired) return;
     const active = currentEntry(runtime.getState().navigation);
@@ -71,7 +80,11 @@ export function RuntimeRouteSync() {
       active.screen === desired.screen && JSON.stringify(active.params) === JSON.stringify(desired.params);
     if (!alreadyThere) {
       isSyncingFromUrl.current = true;
-      runtime.forceNavigate(desired);
+      if (isEntryPoint) {
+        runtime.forceReset(desired);
+      } else {
+        runtime.forceNavigate(desired);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- намеренно реагирует только на смену пути
   }, [location.pathname, params.sellerId]);
