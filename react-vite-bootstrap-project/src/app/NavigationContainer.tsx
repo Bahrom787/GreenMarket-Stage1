@@ -16,6 +16,8 @@ const navItems = [
   { to: '/profile', label: 'Профиль' },
 ];
 
+const FULL_SCREEN_ROUTES = new Set(['/map', '/seller-list']);
+
 function TopNav() {
   return (
     <Header>
@@ -50,7 +52,7 @@ function TopNav() {
  */
 export function NavigationContainer() {
   const location = useLocation();
-  const isFullScreenRoute = location.pathname === '/map' || location.pathname === '/seller-list';
+  const isFullScreenRoute = FULL_SCREEN_ROUTES.has(location.pathname);
 
   return (
     <>

@@ -18,6 +18,15 @@ export interface GeocodeResult {
   displayName: string;
 }
 
+/** Исход определения местоположения через GeoService#resolveUserLocation:
+ *  "no-permission" — браузер явно запретил доступ (повторный промпт из JS
+ *  невозможен), "unavailable" — геолокация недоступна/ошибка. Экран по этому
+ *  результату показывает snackbar и не меняет положение карты. */
+export type UserLocationResolution =
+  | { status: "ok"; location: GeoPoint }
+  | { status: "no-permission" }
+  | { status: "unavailable" };
+
 export const GeoService = {
   /** Haversine — расстояние по большому кругу между двумя точками WGS84. */
   distanceMeters(a: GeoPoint, b: GeoPoint): number {
@@ -69,6 +78,20 @@ export const GeoService = {
         { enableHighAccuracy: true, timeout: 8000, maximumAge: 30_000 },
       );
     });
+  },
+
+  /** Результат определения местоположения: успех с координатами либо причина
+   *  отказа/недоступности (для snackbar экрана). */
+  resolveUserLocation(): Promise<UserLocationResolution> {
+    return (async () => {
+      const permission = await this.getPermissionState();
+      if (permission === "denied") return { status: "no-permission" };
+      try {
+        return { status: "ok", location: await this.getCurrentLocation() };
+      } catch {
+        return { status: "unavailable" };
+      }
+    })();
   },
 
   /** Геокодирование адреса через Nominatim. Сетевой вызов — при недоступности

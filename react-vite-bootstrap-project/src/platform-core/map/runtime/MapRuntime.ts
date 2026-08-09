@@ -1,11 +1,14 @@
 import type { SellerId } from "@/platform-core/contracts/Action";
-import type { BottomSheetState, GeoPoint, SellerMapRecord, SellerSearchState } from "@/platform-core/map/viewmodels/MapViewModel";
+import type { BottomSheetState, GeoPoint, MapBounds, SellerMapRecord, SellerSearchState } from "@/platform-core/map/viewmodels/MapViewModel";
 import type { CategoryOption } from "@/platform-core/map/repository/SellerRepository";
 import { defaultMapConfig } from "@/platform-core/map/gis/MapConfig";
+import { GeoService } from "@/platform-core/map/gis/GeoService";
+import { MockSellerRepository } from "@/platform-core/map/repository/MockSellerRepository";
 import { Diagnostics } from "@/platform-core/diagnostics/Diagnostics";
 import {
   applySellerFilters,
   buildSellerFilters,
+  type SellerFilterGroup,
   type SellerFiltersState,
 } from "@/platform-core/map/filters/SellerFilters";
 
@@ -14,6 +17,9 @@ import {
  * состояния" (выбранный продавец, положение карты, масштаб, состояние
  * Bottom Sheet, результаты поиска, фильтр). React-компоненты только
  * отображают это состояние и вызывают dispatch() — сами его не меняют.
+ * Асинхронные потоки с debounce (загрузка продавцов, геокодирование,
+ * поиск/радиус мастера) тоже запускаются методами runtime (request*),
+ * а не компонентами, — см. низ этого файла.
  *
  * Общий GreenMarketRuntime (navigation-runtime-layer) хранит ТОЛЬКО стек
  * навигации (RuntimeState = { navigation }) — это общий контракт для всех
@@ -42,6 +48,22 @@ import {
 /** Радиус поиска продавцов по умолчанию (метры) — стартовое значение мастера
  *  «Поиск продавцов» (MAP-053/MAP-018); пользователь может его изменить. */
 export const DEFAULT_SELLER_SEARCH_RADIUS_METERS = 5000;
+
+/* Дебаунс асинхронных запросов runtime (методы request* ниже): запрос к
+ * Repository/геокодированию запускается после паузы в событиях (moveend/zoomend,
+ * ввод радиуса), а не на каждый кадр/символ (MAP-011, MAP-053/MAP-018). */
+const VISIBLE_SELLERS_DEBOUNCE_MS = 500;
+const AREA_LABEL_DEBOUNCE_MS = 500;
+const SELLER_SEARCH_DEBOUNCE_MS = 500;
+
+function boundsNearlyEqual(a: MapBounds, b: MapBounds): boolean {
+  return (
+    Math.abs(a.north - b.north) < 0.0001 &&
+    Math.abs(a.south - b.south) < 0.0001 &&
+    Math.abs(a.east - b.east) < 0.0001 &&
+    Math.abs(a.west - b.west) < 0.0001
+  );
+}
 
 export interface MapRuntimeState {
   /** Продавцы, прошедшие фильтр (то, что реально рисуется на карте). Ниже в
@@ -167,6 +189,25 @@ function withSearchResults(state: MapRuntimeState): MapRuntimeState {
   };
 }
 
+/** Убирает из selectedFilters опции, которых больше нет в конфиге фильтра
+ *  (например, выбранная категория исчезла из каталога после CATEGORIES_LOADED).
+ *  Возвращает исходный объект, если менять нечего — чтобы не плодить новые
+ *  ссылки и лишние перерисовки. */
+function pruneSelectedFilters(
+  selectedFilters: SellerFiltersState,
+  groups: SellerFilterGroup[],
+): SellerFiltersState {
+  let changed = false;
+  const pruned: SellerFiltersState = {};
+  for (const group of groups) {
+    const optionIds = group.options.map((o) => o.id);
+    const kept = (selectedFilters[group.id] ?? []).filter((id) => optionIds.includes(id));
+    if (kept.length !== (selectedFilters[group.id] ?? []).length) changed = true;
+    if (kept.length > 0) pruned[group.id] = kept;
+  }
+  return changed ? pruned : selectedFilters;
+}
+
 function reducer(state: MapRuntimeState, action: MapRuntimeAction): MapRuntimeState {
   switch (action.type) {
     case "MAP_LOADED":
@@ -181,12 +222,17 @@ function reducer(state: MapRuntimeState, action: MapRuntimeAction): MapRuntimeSt
     case "SELLERS_LOAD_FAILED":
       return { ...state, loading: false, error: false };
     case "CATEGORIES_LOADED": {
-      const next = { ...state, categories: action.categories };
-      // Категории — источник опций группы «Категория»: после их загрузки
-      // пересчитываем видимый список и результаты поиска (фильтр единая
-      // сущность), чтобы выбор по id применился к данным.
+      // Категории — источник опций группы «Категория». Если какая-то
+      // выбранная категория исчезла из нового каталога, её id в selectedFilters
+      // становится «мёртвым»: фильтрация его уже игнорирует, но сводка на
+      // кнопке и чекбокс «Все» показывали бы рассинхрон. Поэтому чистим выбор
+      // по свежему конфигу, затем пересчитываем видимый список и результаты
+      // поиска (фильтр единая сущность).
+      const groups = buildSellerFilters(action.categories);
+      const selectedFilters = pruneSelectedFilters(state.selectedFilters, groups);
+      const next = { ...state, categories: action.categories, selectedFilters };
       return withSearchResults(
-        withVisibleSellers(next, applySellerFilters(next.loadedSellers, buildSellerFilters(action.categories), next.selectedFilters)),
+        withVisibleSellers(next, applySellerFilters(next.loadedSellers, groups, selectedFilters)),
       );
     }
     case "SET_FILTER_OPTIONS": {
@@ -308,17 +354,126 @@ function createMapRuntime() {
   let state = initialState;
   const listeners = new Set<() => void>();
 
+  function dispatch(action: MapRuntimeAction): void {
+    state = reducer(state, action);
+    diagnosticsFor(action);
+    listeners.forEach((listener) => listener());
+  }
+
+  /* Асинхронные потоки экрана живут в runtime, а не в React-компонентах
+   * (IMP-003.1.2 §8): компоненты только диспатчат и отображают состояние.
+   * Таймеры и seq-счётчики принадлежат runtime (singleton переживает
+   * unmount/remount экрана) — защита от гонок состояний: ответ устаревшего
+   * запроса, перекрытого новым, не применяется. setTimeout вместо window —
+   * чтобы те же методы работали и под npx tsx (Node, без DOM). */
+  let visibleSellersTimer: ReturnType<typeof setTimeout> | null = null;
+  let visibleSellersSeq = 0;
+  let lastRequestedBounds: MapBounds | null = null;
+  let areaLabelTimer: ReturnType<typeof setTimeout> | null = null;
+  let areaLabelSeq = 0;
+  let sellerSearchTimer: ReturnType<typeof setTimeout> | null = null;
+  let sellerSearchSeq = 0;
+
+  /** Фактическая загрузка продавцов (MAP-011): запрос Repository и применение
+   *  ответа только если загрузка всё ещё последняя. */
+  function loadVisibleSellersNow(bounds: MapBounds): void {
+    const seq = ++visibleSellersSeq;
+    dispatch({ type: "SELLERS_LOADING" });
+    void MockSellerRepository.getVisibleSellers(bounds)
+      .then((visible) => {
+        if (seq === visibleSellersSeq) dispatch({ type: "SELLERS_LOADED", sellers: visible });
+      })
+      .catch(() => {
+        if (seq === visibleSellersSeq) dispatch({ type: "SELLERS_LOAD_FAILED" });
+      });
+  }
+
+  /** Загрузка видимых продавцов с дебаунсом: серия moveend/zoomend схлопывается
+   *  в один запрос, почти не изменившиеся границы не перезапрашиваются. */
+  function requestVisibleSellers(bounds: MapBounds): void {
+    if (lastRequestedBounds && boundsNearlyEqual(lastRequestedBounds, bounds)) return;
+    lastRequestedBounds = bounds;
+    if (visibleSellersTimer !== null) clearTimeout(visibleSellersTimer);
+    visibleSellersTimer = setTimeout(() => loadVisibleSellersNow(bounds), VISIBLE_SELLERS_DEBOUNCE_MS);
+  }
+
+  /** Повторная загрузка видимой области (кнопка «Повторить» в Bottom Sheet):
+   *  обходит дебаунс и дедупликацию — принудительный перезапрос. */
+  function retryVisibleSellers(): void {
+    if (lastRequestedBounds) loadVisibleSellersNow(lastRequestedBounds);
+  }
+
+  /** Обратное геокодирование центра текущего просмотра (GM-UX-001 «Область
+   *  текущего района») с дебаунсом — не дёргает Nominatim на каждый
+   *  moveend/zoomend (например, при flyTo оба события приходят сразу). */
+  function requestAreaLabel(center: GeoPoint): void {
+    if (areaLabelTimer !== null) clearTimeout(areaLabelTimer);
+    const seq = ++areaLabelSeq;
+    areaLabelTimer = setTimeout(() => {
+      void GeoService.reverseGeocode(center).then((label) => {
+        if (seq === areaLabelSeq) dispatch({ type: "AREA_LABEL_UPDATED", label });
+      });
+    }, AREA_LABEL_DEBOUNCE_MS);
+  }
+
+  /** Поиск продавцов из мастера (MAP-053/MAP-018): запрос Repository по текущей
+   *  точке и радиусу из состояния; перекрытый запрос не перетирает свежий. */
+  function requestSellerSearch(): void {
+    const search = state.sellerSearch;
+    if (!search.origin) return;
+    const seq = ++sellerSearchSeq;
+    void MockSellerRepository.searchSellersNear({
+      origin: search.origin,
+      radiusMeters: search.radiusMeters,
+      sort: { key: "distance" },
+    }).then((sellers) => {
+      if (seq === sellerSearchSeq) dispatch({ type: "SELLER_SEARCH_RESULT", sellers });
+    });
+  }
+
+  /** Смена радиуса мастера: применяется сразу, перезапрос — после дебаунса
+   *  на ввод (на каждый символ сеть не дёргаем). */
+  function scheduleSellerSearch(radiusMeters: number): void {
+    dispatch({ type: "SELLER_SEARCH_RADIUS_CHANGED", radiusMeters });
+    if (sellerSearchTimer !== null) clearTimeout(sellerSearchTimer);
+    sellerSearchTimer = setTimeout(() => requestSellerSearch(), SELLER_SEARCH_DEBOUNCE_MS);
+  }
+
+  /** Отмена отложенного перезапроса (возврат из результатов к выбору точки). */
+  function cancelPendingSellerSearch(): void {
+    if (sellerSearchTimer !== null) clearTimeout(sellerSearchTimer);
+  }
+
+  /** Поиск продавца по имени из строки поиска (MAP-053). Кладёт результат в
+   *  state.searchResult и возвращает найденного продавца (null — не найден). */
+  async function searchSellerByName(query: string): Promise<SellerMapRecord | null> {
+    const found = await MockSellerRepository.findSeller(query);
+    dispatch({ type: "SEARCH_RESULT", sellers: found ? [found] : [] });
+    return found;
+  }
+
+  /** Загрузка категорий для фильтра — источник опций группы «Категория». */
+  function loadCategories(): void {
+    void MockSellerRepository.getCategories().then((categories) => {
+      dispatch({ type: "CATEGORIES_LOADED", categories });
+    });
+  }
+
   return {
     getState: (): MapRuntimeState => state,
-    dispatch(action: MapRuntimeAction): void {
-      state = reducer(state, action);
-      diagnosticsFor(action);
-      listeners.forEach((listener) => listener());
-    },
+    dispatch,
     subscribe(listener: () => void): () => void {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
+    requestVisibleSellers,
+    retryVisibleSellers,
+    requestAreaLabel,
+    requestSellerSearch,
+    scheduleSellerSearch,
+    cancelPendingSellerSearch,
+    searchSellerByName,
+    loadCategories,
   };
 }
 
