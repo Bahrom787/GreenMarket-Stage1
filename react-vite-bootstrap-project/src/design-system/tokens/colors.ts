@@ -10,6 +10,7 @@ export interface ColorTokens {
   brandPrimary: string;
   brandPrimaryStrong: string;
   brandPrimarySubtle: string;
+  brandPrimaryLight: string;
   brandAccent: string;
   brandAccentStrong: string;
 
@@ -56,6 +57,7 @@ const lightColors: ColorTokens = {
   brandPrimary: '#2F6B4F',
   brandPrimaryStrong: '#1E4A35',
   brandPrimarySubtle: '#E4F0E8',
+  brandPrimaryLight: '#5FA980',
   brandAccent: '#D98E2B',
   brandAccentStrong: '#B5711A',
 
@@ -97,6 +99,7 @@ const darkColors: ColorTokens = {
   brandPrimary: '#5FA980',
   brandPrimaryStrong: '#8AC7A5',
   brandPrimarySubtle: '#1B3226',
+  brandPrimaryLight: '#8AC7A5',
   brandAccent: '#E4A64B',
   brandAccentStrong: '#F0BE71',
 
