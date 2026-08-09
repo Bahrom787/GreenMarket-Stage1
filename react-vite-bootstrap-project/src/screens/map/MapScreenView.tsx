@@ -11,7 +11,7 @@ import type { CameraChangeReason } from '@/platform-core/map/gis/MapAdapterTypes
 import { MapBuilder } from '@/platform-core/map/builders/MapBuilder';
 import { MapRuntime } from '@/platform-core/map/runtime/MapRuntime';
 import { Diagnostics } from '@/platform-core/diagnostics/Diagnostics';
-import type { CameraParams, MapBounds, MapViewModel } from '@/platform-core/map/viewmodels/MapViewModel';
+import type { CameraParams, GeoPoint, MapBounds, MapViewModel } from '@/platform-core/map/viewmodels/MapViewModel';
 import { MapBottomSheetContent } from '@/screens/map/MapBottomSheetContent';
 import { MapLocationButton } from '@/screens/map/MapLocationButton';
 
@@ -37,16 +37,33 @@ export function MapScreenView() {
   const [centerRequestToken, setCenterRequestToken] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [lastBounds, setLastBounds] = useState<MapBounds | null>(null);
-  const [locationError, setLocationError] = useState(false);
-  const locationErrorTimerRef = useRef<number | null>(null);
+  const [locationNotice, setLocationNotice] = useState<'unavailable' | 'no-permission' | null>(null);
+  const locationNoticeTimerRef = useRef<number | null>(null);
 
-  /** Показывает snackbar «Не удалось определить местоположение» (MAP-005 §4) и
-   *  автоматически скрывает его через несколько секунд. Повторное нажатие
-   *  кнопки перезапускает таймер скрытия. */
-  const showLocationError = useCallback(() => {
-    setLocationError(true);
-    if (locationErrorTimerRef.current !== null) window.clearTimeout(locationErrorTimerRef.current);
-    locationErrorTimerRef.current = window.setTimeout(() => setLocationError(false), 4000);
+  /** Показывает snackbar об ошибке геолокации (MAP-005 §4) и автоматически
+   *  скрывает его через несколько секунд. Повторное нажатие кнопки
+   *  перезапускает таймер скрытия. */
+  const showLocationNotice = useCallback((kind: 'unavailable' | 'no-permission') => {
+    setLocationNotice(kind);
+    if (locationNoticeTimerRef.current !== null) window.clearTimeout(locationNoticeTimerRef.current);
+    locationNoticeTimerRef.current = window.setTimeout(() => setLocationNotice(null), 4000);
+  }, []);
+
+  const areaLabelTimerRef = useRef<number | null>(null);
+
+  /** Обратное геокодирование центра текущего просмотра (GM-UX-001 «Область
+   *  текущего района»). Номинативный запрос к Nominatim — дебаунс, чтобы не
+   *  дёргать сеть на каждый moveend/zoomend (например, при flyTo срабатывают
+   *  оба события сразу). Результат кладётся в MapRuntime (единственный
+   *  источник состояния экрана); reverseGeocode не бросает и возвращает null,
+   *  если район определить нельзя — область при этом скрывается. */
+  const requestAreaLabel = useCallback((center: GeoPoint) => {
+    if (areaLabelTimerRef.current !== null) window.clearTimeout(areaLabelTimerRef.current);
+    areaLabelTimerRef.current = window.setTimeout(() => {
+      void GeoService.reverseGeocode(center).then((label) => {
+        MapRuntime.dispatch({ type: 'AREA_LABEL_UPDATED', label });
+      });
+    }, 500);
   }, []);
 
   const loadVisibleSellers = useCallback(async (bounds: MapBounds) => {
@@ -67,10 +84,11 @@ export function MapScreenView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- один раз при монтировании экрана
   }, []);
 
-  // Сброс таймера скрытия snackbar об ошибке геолокации при размонтировании экрана.
+  // Сброс таймеров (snackbar об ошибке геолокации, дебаунс района) при размонтировании экрана.
   useEffect(
     () => () => {
-      if (locationErrorTimerRef.current !== null) window.clearTimeout(locationErrorTimerRef.current);
+      if (locationNoticeTimerRef.current !== null) window.clearTimeout(locationNoticeTimerRef.current);
+      if (areaLabelTimerRef.current !== null) window.clearTimeout(areaLabelTimerRef.current);
     },
     [],
   );
@@ -103,8 +121,9 @@ export function MapScreenView() {
         MapRuntime.dispatch({ type: 'MOVE_MAP', center: next.center, zoom: next.zoom });
         dispatch({ type: 'MOVE_MAP', payload: next });
       }
+      requestAreaLabel(next.center);
     },
-    [dispatch],
+    [dispatch, requestAreaLabel],
   );
 
   const handleSellerSelect = useCallback(
@@ -122,14 +141,24 @@ export function MapScreenView() {
 
   const handleCenterOnUser = useCallback(async () => {
     dispatch({ type: 'CENTER_ON_USER' });
+    // Перед запросом проверяем состояние разрешения (Permissions API). Если
+    // браузер явно запретил доступ — из JS повторный промпт невозможен:
+    // после отказа браузер не спросит снова, пока пользователь вручную не
+    // разрешит геолокацию в настройках сайта. Поэтому сразу показываем
+    // «Нет доступа к геолокации» и не дёргаем API впустую.
+    const permission = await GeoService.getPermissionState();
+    if (permission === 'denied') {
+      showLocationNotice('no-permission');
+      return;
+    }
     try {
       const location = await GeoService.getCurrentLocation();
       MapRuntime.dispatch({ type: 'CENTER_ON_USER_SUCCESS', location });
       setCenterRequestToken((t) => t + 1);
+      requestAreaLabel(location);
     } catch {
       // IMP-003.1.1 §5 / IMP-003.1.2 §7: нет разрешения/недоступна
-      // геолокация — экран продолжает работать без ошибок. Показываем
-      // пользователю сообщение об ошибке (MAP-005 §4); положение карты
+      // геолокация — экран продолжает работать без ошибок; положение карты
       // при этом не меняется.
       //
       // TODO (логирование): в будущем сюда нужно добавить логирование
@@ -138,9 +167,9 @@ export function MapScreenView() {
       // platform-core/diagnostics/Diagnostics.ts. Для этого в catch нужно
       // принимать сам объект ошибки (catch (error: unknown)) и передавать
       // его в track(), а не глотать молча, как сейчас.
-      showLocationError();
+      showLocationNotice('unavailable');
     }
-  }, [dispatch, showLocationError]);
+  }, [dispatch, showLocationNotice, requestAreaLabel]);
 
   const handleOpenSellerList = useCallback(() => dispatch({ type: 'OPEN_SELLER_LIST' }), [dispatch]);
   const handleOpenCatalog = useCallback(() => dispatch({ type: 'OPEN_CATALOG' }), [dispatch]);
@@ -182,7 +211,7 @@ export function MapScreenView() {
       userLocation: mapState.userLocation,
       camera,
       bottomSheet: mapState.bottomSheet,
-      currentAreaLabel: null,
+      currentAreaLabel: mapState.currentAreaLabel,
     }),
     [mapState, camera],
   );
@@ -192,11 +221,14 @@ export function MapScreenView() {
   return (
     <div data-testid="map-screen" style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       <Header>
-        <Row gap="md" align="center" justify="between" style={{ width: '100%' }}>
+        <Row gap="md" align="center" justify="between" style={{ position: 'relative', width: '100%' }}>
           <Text variant="title" as="span">
             🌿 GreenMarket
           </Text>
-          <form onSubmit={(e) => void handleSearchSubmit(e)} style={{ flex: 1, maxWidth: 360 }}>
+          <form
+            onSubmit={(e) => void handleSearchSubmit(e)}
+            style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 360 }}
+          >
             <input
               type="search"
               value={searchQuery}
@@ -218,19 +250,20 @@ export function MapScreenView() {
             />
           </form>
           <Row gap="sm">
-            <IconButton
-              label="Определить местоположение"
-              onClick={() => void handleCenterOnUser()}
-              data-testid="my-location"
-            >
-              <Icon label="Локация">📍</Icon>
-            </IconButton>
             <IconButton label="Список продавцов" onClick={handleOpenSellerList}>
               <Icon label="Список">📋</Icon>
             </IconButton>
           </Row>
         </Row>
       </Header>
+
+      {mapState.currentAreaLabel && (
+        <div data-testid="current-area-label" style={{ padding: 'var(--space-xs) var(--space-lg)' }}>
+          <Text variant="caption" tone="secondary">
+            📍 {mapState.currentAreaLabel}
+          </Text>
+        </div>
+      )}
 
       <Content style={{ position: 'relative', flex: 1, padding: 0 }}>
         <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
@@ -252,9 +285,6 @@ export function MapScreenView() {
           gap="sm"
           style={{ position: 'absolute', right: 'var(--space-lg)', bottom: 'var(--space-xxl)', zIndex: 10 }}
         >
-          <IconButton label="Центрировать карту" onClick={() => void handleCenterOnUser()}>
-            <Icon label="Центр">🎯</Icon>
-          </IconButton>
           <IconButton label="Открыть каталог" onClick={handleOpenCatalog} data-testid="open-catalog">
             <Icon label="Каталог">🛒</Icon>
           </IconButton>
@@ -290,10 +320,10 @@ export function MapScreenView() {
         </BottomSheetContainer>
       )}
 
-      {locationError && (
+      {locationNotice && (
         <SnackbarContainer>
           <Snackbar tone="error" data-testid="location-error-snackbar">
-            Не удалось определить местоположение
+            {locationNotice === 'no-permission' ? 'Нет доступа к геолокации' : 'Не удалось определить местоположение'}
           </Snackbar>
         </SnackbarContainer>
       )}

@@ -43,6 +43,18 @@ export const GeoService = {
     };
   },
 
+  /** Состояние разрешения на геолокацию через Permissions API:
+   *  'granted' | 'prompt' | 'denied'. null — если API недоступен. */
+  async getPermissionState(): Promise<'granted' | 'prompt' | 'denied' | null> {
+    if (typeof navigator === 'undefined' || !navigator.permissions?.query) return null;
+    try {
+      const result = await navigator.permissions.query({ name: 'geolocation' });
+      return result.state;
+    } catch {
+      return null;
+    }
+  },
+
   /** Текущее местоположение пользователя. Единственное место в приложении,
    *  вызывающее navigator.geolocation — экран Map об этом API не знает. */
   getCurrentLocation(): Promise<GeoPoint> {

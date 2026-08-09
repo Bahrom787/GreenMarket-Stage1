@@ -35,6 +35,9 @@ export interface MapRuntimeState {
   searchResult: SellerMapRecord[] | null;
   loading: boolean;
   error: boolean;
+  /** Название района/населённого пункта текущего просмотра (GM-UX-001
+   *  "Область текущего района"); null — район не определён. */
+  currentAreaLabel: string | null;
 }
 
 export type MapRuntimeAction =
@@ -52,7 +55,8 @@ export type MapRuntimeAction =
   | { type: "SELECT_SELLER"; sellerId: SellerId }
   | { type: "UNSELECT_SELLER" }
   | { type: "SEARCH_RESULT"; sellers: SellerMapRecord[] }
-  | { type: "SEARCH_CLEARED" };
+  | { type: "SEARCH_CLEARED" }
+  | { type: "AREA_LABEL_UPDATED"; label: string | null };
 
 const initialState: MapRuntimeState = {
   visibleSellers: [],
@@ -64,6 +68,7 @@ const initialState: MapRuntimeState = {
   searchResult: null,
   loading: false,
   error: false,
+  currentAreaLabel: null,
 };
 
 function reducer(state: MapRuntimeState, action: MapRuntimeAction): MapRuntimeState {
@@ -81,7 +86,7 @@ function reducer(state: MapRuntimeState, action: MapRuntimeAction): MapRuntimeSt
     case "ZOOM_MAP":
       return { ...state, zoom: action.zoom };
     case "CENTER_ON_USER_SUCCESS":
-      return { ...state, userLocation: action.location, mapCenter: action.location, zoom: 15 };
+      return { ...state, userLocation: action.location, mapCenter: action.location };
     case "SELECT_SELLER":
       return { ...state, selectedSellerId: action.sellerId, bottomSheet: "sellerSummary" };
     case "UNSELECT_SELLER":
@@ -90,6 +95,8 @@ function reducer(state: MapRuntimeState, action: MapRuntimeAction): MapRuntimeSt
       return { ...state, searchResult: action.sellers };
     case "SEARCH_CLEARED":
       return { ...state, searchResult: null };
+    case "AREA_LABEL_UPDATED":
+      return { ...state, currentAreaLabel: action.label };
     default:
       return state;
   }
