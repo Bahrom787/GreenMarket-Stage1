@@ -1,6 +1,8 @@
 # GreenMarket — Stage 1 Screen Delivery
 
-Доработан главный экран покупателя GreenMarket в рамках Stage 1 и AI-first Engineering Process MVP v1.0.
+Доработана стартовая React-страница Buyer MVP (`/`) в рамках Stage 1 и AI-first Engineering Process MVP v1.0.
+
+Это не map-based «Главный экран» Customer UI из ТЗ-001/ТЗ-023. В тех документах главным рабочим пространством являются карта и Bottom Sheet; здесь изменена существующая точка входа Buyer MVP с каталогом и поиском.
 
 ## Результат
 
@@ -11,7 +13,7 @@
 - обновлённая desktop/mobile навигация;
 - исправленный контраст светлой и тёмной темы;
 - сохранённые loading/error-состояния;
-- отсутствие изменений Domain Model, Repository Contract и Platform Core.
+- отсутствие изменений Domain Model, Repository Contract и Runtime Platform Core: задача ограничена существующим React UI, Catalog API и React Router.
 
 ## Скриншоты
 

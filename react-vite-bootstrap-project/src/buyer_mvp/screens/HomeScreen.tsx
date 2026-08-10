@@ -9,6 +9,14 @@ type LoadState = { status: 'loading' } | { status: 'error'; message: string } | 
 
 const categoryArt = ['🍎', '🥬', '🥛', '🥩', '🐟', '🥖', '🍯', '🫐'];
 
+function productCountLabel(count: number) {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod10 === 1 && mod100 !== 11) return `${count} товар`;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return `${count} товара`;
+  return `${count} товаров`;
+}
+
 /** Stage 1 buyer entry point: discovery, search and direct access to the catalog. */
 export function HomeScreen() {
   const navigate = useNavigate();
@@ -76,15 +84,21 @@ export function HomeScreen() {
           </div>
         )}
         {state.status === 'ready' && (
-          <div className="gm-home-categories">
-            {roots.map((group, index) => (
-              <button key={group.id} type="button" className="gm-home-category" onClick={() => openGroup(group.id)}>
-                <span className={`gm-home-category__art gm-home-category__art--${(index % 4) + 1}`}>{categoryArt[index % categoryArt.length]}</span>
-                <span className="gm-home-category__name">{group.name}</span>
-                <span className="gm-home-category__meta">{group.product_count || 'Смотреть'} {group.product_count ? 'товаров' : ''}</span>
-              </button>
-            ))}
-          </div>
+          roots.length > 0 ? (
+            <div className="gm-home-categories">
+              {roots.map((group, index) => (
+                <button key={group.id} type="button" className="gm-home-category" onClick={() => openGroup(group.id)}>
+                  <span className={`gm-home-category__art gm-home-category__art--${(index % 4) + 1}`} aria-hidden="true">{categoryArt[index % categoryArt.length]}</span>
+                  <span className="gm-home-category__name">{group.name}</span>
+                  <span className="gm-home-category__meta">{group.product_count > 0 ? productCountLabel(group.product_count) : 'Смотреть категорию'}</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="gm-home-state" role="status">
+              <p>Категории пока не добавлены. Можно воспользоваться поиском выше.</p>
+            </div>
+          )
         )}
       </section>
 
