@@ -94,7 +94,7 @@
 
 :root {
   /* Typography */
-  --font-family-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-family-display: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-family-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-family-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
 
@@ -117,7 +117,7 @@
   --line-height-normal: 1.5;
   --line-height-relaxed: 1.65;
 
-  --letter-spacing-tight: -0.01em;
+  --letter-spacing-tight: 0em;
   --letter-spacing-normal: 0em;
   --letter-spacing-wide: 0.02em;
   --letter-spacing-caps: 0.06em;

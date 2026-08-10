@@ -6,7 +6,10 @@ import {
 } from '@/platform-core/navigation-runtime-layer/hooks/useGreenMarketRuntime';
 import { currentEntry } from '@/platform-core/navigation-runtime-layer/navigation/NavigationStack';
 import { asSellerId } from '@/platform-core/contracts/Action';
-import type { NavigationEntry, ScreenId } from '@/platform-core/navigation-runtime-layer/navigation/NavigationStack';
+import type {
+  NavigationEntry,
+  ScreenId,
+} from '@/platform-core/navigation-runtime-layer/navigation/NavigationStack';
 
 /**
  * Мост между реальным GreenMarketRuntime (стек экранов Platform Core) и
@@ -24,7 +27,6 @@ import type { NavigationEntry, ScreenId } from '@/platform-core/navigation-runti
  *    компонент переносит изменение в URL, чтобы адресная строка не отставала.
  */
 const PATH_TO_SCREEN: Record<string, ScreenId> = {
-  '/': 'Catalog',
   '/catalog': 'Catalog',
   '/map': 'Map',
   '/seller-list': 'SellerList',
@@ -71,13 +73,15 @@ export function RuntimeRouteSync() {
 
   // URL → Runtime
   useEffect(() => {
+    if (location.pathname === '/') return;
     const isEntryPoint = isEntryPointSync.current;
     isEntryPointSync.current = false;
     const desired = entryFromPath(location.pathname, params.sellerId);
     if (!desired) return;
     const active = currentEntry(runtime.getState().navigation);
     const alreadyThere =
-      active.screen === desired.screen && JSON.stringify(active.params) === JSON.stringify(desired.params);
+      active.screen === desired.screen &&
+      JSON.stringify(active.params) === JSON.stringify(desired.params);
     if (!alreadyThere) {
       isSyncingFromUrl.current = true;
       if (isEntryPoint) {
@@ -91,6 +95,7 @@ export function RuntimeRouteSync() {
 
   // Runtime → URL
   useEffect(() => {
+    if (location.pathname === '/') return;
     if (isSyncingFromUrl.current) {
       isSyncingFromUrl.current = false;
       return;
