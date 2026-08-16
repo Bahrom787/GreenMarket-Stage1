@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
+import { it } from "vitest";
 import { MockSellerRepository } from "../MockSellerRepository";
 
 /** Формат — как в MockSellerProductPhotoRepository.test.ts: node:assert, без test runner'а.
  *  Запуск: npx tsx src/platform-core/map/repository/__tests__/MockSellerRepository.test.ts */
 
-async function run() {
+it("runs MockSellerRepository contract checks", async () => {
   const all = await MockSellerRepository.getAllSellers();
 
   assert.ok(all.length >= 20, "getAllSellers: каталог содержит не менее 20 продавцов (IMP-003.1 §14)");
@@ -70,6 +71,4 @@ async function run() {
   assert.ok(wide.every((s) => s.distanceMeters <= 10000), "searchSellersNear: все продавцы в радиусе поиска");
 
   console.log("MockSellerRepository: все проверки пройдены");
-}
-
-run();
+});

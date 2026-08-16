@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { it } from "vitest";
 import { asSellerId } from "../../../contracts/Action";
 import { asCategoryId } from "../../../contracts/DomainTypes";
 import type { ContentBlock } from "../../../contracts/ContentBlock";
@@ -72,7 +73,7 @@ function summary(blocks: ContentBlock[]): unknown[] {
   });
 }
 
-async function run() {
+it("runs MapSheetAdapter contract checks", async () => {
   // Шаг 1 мастера — выбор точки: заголовок и две строки (📍 геолокация,
   // 🧭 центр экрана). Рендерится независимо от состояния карты.
   const originStep = MapSheetAdapter.toBlocks(viewModel({ bottomSheet: "sellerSearchOrigin" }));
@@ -156,6 +157,4 @@ async function run() {
   );
 
   console.log("MapSheetAdapter: все проверки пройдены");
-}
-
-run();
+});

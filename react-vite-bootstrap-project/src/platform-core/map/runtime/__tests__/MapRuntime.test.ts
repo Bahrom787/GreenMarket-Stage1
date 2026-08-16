@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { it } from "vitest";
 import { asSellerId } from "../../../contracts/Action";
 import { asCategoryId, type CategoryId } from "../../../contracts/DomainTypes";
 import type { SellerMapRecord } from "../../viewmodels/MapViewModel";
@@ -24,7 +25,7 @@ function seller(id: number, categories: CategoryId[], isOpenNow = true, isAvaila
   };
 }
 
-async function run() {
+it("runs MapRuntime contract checks", async () => {
   const veg = asCategoryId("vegetables");
   const dairy = asCategoryId("dairy");
   const meat = asCategoryId("meat");
@@ -326,6 +327,4 @@ async function run() {
   );
 
   console.log("MapRuntime: все проверки пройдены");
-}
-
-run();
+});

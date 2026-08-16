@@ -64,3 +64,12 @@ npm run dev
 ## Статус
 
 Реализация обновлена по замечаниям и готова к Human Review заказчиком или назначенным ревьюером. Human Review Checklist намеренно не отмечается выполненным автором реализации.
+## Review delta 2026-08-17
+
+- `index.html`: Google Fonts now loads Inter only; Fraunces is not requested.
+- Search has a token-based focus state via `.gm-buyer-search:focus-within`.
+- `npm test` now runs the full Vitest suite; the narrow HomeScreen check is available as `npm run test:home`.
+- Legacy Platform Core assert checks are registered as Vitest tests.
+- `groupsWithMoreProducts()` is root-only, matching the main category grid semantics.
+- Desktop/mobile screenshots were recaptured from the current code. Mobile 390 px and desktop 1440 px both had `scrollWidth === innerWidth`.
+- Verification: `npm test` passed 6 files / 10 tests; `npm run lint` passed; `npm run build` passed.

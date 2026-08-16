@@ -86,3 +86,13 @@ L1: изменяется существующая React-страница и ее
 - [ ] Итоговые desktop/mobile скриншоты приложены к передаче.
 
 Human Review не может быть отмечен выполненным самим автором реализации. Чек-лист должен подтвердить заказчик или назначенный ревьюер.
+## Review delta 2026-08-17
+
+- Removed remaining Fraunces load from `index.html`; Inter is the only requested Google Font.
+- Added token-based search focus state with `.gm-buyer-search:focus-within`.
+- Changed `npm test` to `vitest run`; kept the previous narrow command as `npm run test:home`.
+- Wrapped existing Platform Core assert files in minimal Vitest `it(...)` blocks so the full suite is real, not a false script claim.
+- Limited `groupsWithMoreProducts()` to root categories to avoid mixing parent and child semantics in quick links.
+- Recaptured `docs/screenshots/greenmarket-desktop.png` and `docs/screenshots/greenmarket-mobile.png` from the current local app.
+- Browser QA: desktop 1440 and mobile 390 both reported `scrollWidth === innerWidth`.
+- Verification: `npm test` passed 6 files / 10 tests; `npm run lint` passed; `npm run build` passed.

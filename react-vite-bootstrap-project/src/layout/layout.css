@@ -9,6 +9,7 @@
 }
 
 .gm-page {
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -125,7 +126,7 @@
     height: 64px;
   }
   .gm-site-nav {
-    gap: var(--space-lg);
+    gap: var(--space-md);
   }
   .gm-site-nav__link {
     font-size: var(--font-size-xs);

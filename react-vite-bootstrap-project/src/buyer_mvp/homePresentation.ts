@@ -38,7 +38,7 @@ export function rootGroups(groups: ProductGroup[]) {
 
 export function groupsWithMoreProducts(groups: ProductGroup[]) {
   return [...groups]
-    .filter((group) => group.product_count > 0)
+    .filter((group) => group.parent_id === null && group.product_count > 0)
     .sort((a, b) => b.product_count - a.product_count)
     .slice(0, 5);
 }

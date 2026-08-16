@@ -23,7 +23,7 @@ describe('homePresentation', () => {
   });
 
   it('names quantity-based shortcuts without claiming popularity', () => {
-    expect(groupsWithMoreProducts(groups).map((group) => group.id)).toEqual([1, 4, 2, 3]);
+    expect(groupsWithMoreProducts(groups).map((group) => group.id)).toEqual([1, 2, 3]);
   });
 
   it('builds stable catalog routes', () => {

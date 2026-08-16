@@ -90,6 +90,11 @@
   font: inherit;
 }
 
+.gm-buyer-search:focus-within {
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px var(--color-selected-subtle), var(--shadow-md);
+}
+
 .gm-buyer-search__icon {
   position: absolute;
   left: var(--space-xl);
@@ -116,6 +121,8 @@
   border-radius: var(--radius-full);
   color: var(--color-text-on-brand);
   background: var(--color-brand-primary);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
   cursor: pointer;
   transition:
@@ -195,6 +202,8 @@
   border-bottom: var(--border-width-hairline) solid currentColor;
   color: var(--color-brand-primary);
   background: transparent;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-sm);
   cursor: pointer;
 }
 
@@ -279,6 +288,8 @@
   border: var(--border-width-none);
   color: var(--color-brand-primary);
   background: transparent;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
   cursor: pointer;
 }
