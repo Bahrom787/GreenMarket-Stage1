@@ -4,10 +4,12 @@
 
 html {
   color-scheme: light dark;
+  overflow-x: hidden;
 }
 
 body {
   margin: 0;
+  overflow-x: hidden;
   background: var(--color-surface-base);
   color: var(--color-text-primary);
   font-family: var(--font-family-body);
