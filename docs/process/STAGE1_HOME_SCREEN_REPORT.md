@@ -97,3 +97,11 @@ Human Review не может быть отмечен выполненным са
 - Browser QA: desktop 1440 and mobile 390 both reported `scrollWidth === innerWidth`.
 - Verification: `npm test` passed 6 files / 10 tests; `npm run lint` passed; `npm run build` passed.
 - Added `RuntimeRouteSync` regression coverage for `/`, `/catalog`, `/map`, `/seller-list`, seller deep links, and `/ -> /catalog -> /` consistency. Verification now passes: `npm test` 7 files / 14 tests, `npm run lint`, `npm run build`.
+
+## Accepted Stage 1 HomeScreen definition
+
+For this PR, `HomeScreen` means the existing Buyer MVP React entry route `/`: a catalog/search landing screen backed by the current Catalog API and React Router.
+
+This PR does not claim to implement the map-based "Главный экран Customer UI" from ТЗ-001/ТЗ-023. Those specifications define the future Customer UI main workspace around Map and Bottom Sheet. They are architectural context, not acceptance criteria for this Buyer MVP `/` screen.
+
+Acceptance for this PR is therefore limited to: `/` stays available as HomeScreen, catalog/search/category navigation works, unsupported product promises are not shown, and Platform Core routes remain synchronized through `RuntimeRouteSync`.
