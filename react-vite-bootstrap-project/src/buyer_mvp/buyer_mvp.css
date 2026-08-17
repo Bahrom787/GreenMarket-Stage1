@@ -62,6 +62,11 @@
   text-align: left;
 }
 
+.gm-buyer-product-card {
+  grid-column: span 4;
+  min-width: 0;
+}
+
 .gm-buyer-offer-card {
   cursor: default;
 }
@@ -432,6 +437,12 @@
 
   .gm-home-hero__copy {
     padding: var(--space-xxxl);
+  }
+}
+
+@media (min-width: 1120px) {
+  .gm-buyer-product-card {
+    grid-column: span 3;
   }
 }
 
