@@ -96,3 +96,4 @@ Human Review не может быть отмечен выполненным са
 - Recaptured `docs/screenshots/greenmarket-desktop.png` and `docs/screenshots/greenmarket-mobile.png` from the current local app.
 - Browser QA: desktop 1440 and mobile 390 both reported `scrollWidth === innerWidth`.
 - Verification: `npm test` passed 6 files / 10 tests; `npm run lint` passed; `npm run build` passed.
+- Added `RuntimeRouteSync` regression coverage for `/`, `/catalog`, `/map`, `/seller-list`, and seller deep links. Verification now passes: `npm test` 7 files / 13 tests, `npm run lint`, `npm run build`.
