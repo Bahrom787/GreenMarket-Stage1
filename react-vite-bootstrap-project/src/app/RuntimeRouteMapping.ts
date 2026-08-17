@@ -31,3 +31,9 @@ export function pathFromEntry(entry: NavigationEntry): string | null {
   }
   return SCREEN_TO_PATH[entry.screen] ?? null;
 }
+
+export function nextPathFromRuntime(pathname: string, entry: NavigationEntry): string | null {
+  if (pathname === '/') return null;
+  const path = pathFromEntry(entry);
+  return path && path !== pathname ? path : null;
+}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { asSellerId } from '@/platform-core/contracts/Action';
-import { entryFromPath, pathFromEntry } from '@/app/RuntimeRouteMapping';
+import { entryFromPath, nextPathFromRuntime, pathFromEntry } from '@/app/RuntimeRouteMapping';
 
 describe('RuntimeRouteSync route mapping', () => {
   it('does not sync the Buyer MVP home route into Platform Core Catalog', () => {
@@ -24,5 +24,17 @@ describe('RuntimeRouteSync route mapping', () => {
     expect(pathFromEntry({ screen: 'SellerCard', params: { sellerId: asSellerId('seller-1') } })).toBe(
       '/seller/seller-1',
     );
+  });
+
+  it('does not leave the URL inconsistent during / -> /catalog -> / navigation', () => {
+    const catalogEntry = { screen: 'Catalog' as const, params: {} };
+
+    expect(entryFromPath('/')).toBeNull();
+    expect(entryFromPath('/catalog')).toEqual(catalogEntry);
+    expect(entryFromPath('/')).toBeNull();
+
+    expect(nextPathFromRuntime('/', catalogEntry)).toBeNull();
+    expect(nextPathFromRuntime('/catalog', catalogEntry)).toBeNull();
+    expect(nextPathFromRuntime('/map', catalogEntry)).toBe('/catalog');
   });
 });

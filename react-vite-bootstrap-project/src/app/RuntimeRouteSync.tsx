@@ -5,7 +5,7 @@ import {
   useRuntimeInstance,
 } from '@/platform-core/navigation-runtime-layer/hooks/useGreenMarketRuntime';
 import { currentEntry } from '@/platform-core/navigation-runtime-layer/navigation/NavigationStack';
-import { entryFromPath, pathFromEntry } from '@/app/RuntimeRouteMapping';
+import { entryFromPath, nextPathFromRuntime } from '@/app/RuntimeRouteMapping';
 
 /**
  * Мост между реальным GreenMarketRuntime (стек экранов Platform Core) и
@@ -68,9 +68,8 @@ export function RuntimeRouteSync() {
       isSyncingFromUrl.current = false;
       return;
     }
-    const entry = currentEntry(state.navigation);
-    const path = pathFromEntry(entry);
-    if (path && path !== location.pathname) {
+    const path = nextPathFromRuntime(location.pathname, currentEntry(state.navigation));
+    if (path) {
       navigate(path);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- намеренно реагирует только на смену состояния Runtime

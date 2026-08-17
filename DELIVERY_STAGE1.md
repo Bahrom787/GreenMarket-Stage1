@@ -73,4 +73,4 @@ npm run dev
 - `groupsWithMoreProducts()` is root-only, matching the main category grid semantics.
 - Desktop/mobile screenshots were recaptured from the current code. Mobile 390 px and desktop 1440 px both had `scrollWidth === innerWidth`.
 - Verification: `npm test` passed 6 files / 10 tests; `npm run lint` passed; `npm run build` passed.
-- Added `RuntimeRouteSync` regression coverage for `/`, `/catalog`, `/map`, `/seller-list`, and seller deep links. Verification now passes: `npm test` 7 files / 13 tests, `npm run lint`, `npm run build`.
+- Added `RuntimeRouteSync` regression coverage for `/`, `/catalog`, `/map`, `/seller-list`, seller deep links, and `/ -> /catalog -> /` consistency. Verification now passes: `npm test` 7 files / 14 tests, `npm run lint`, `npm run build`.
