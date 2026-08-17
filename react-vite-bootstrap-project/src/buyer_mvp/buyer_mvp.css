@@ -447,6 +447,10 @@
 }
 
 @media (max-width: 767px) {
+  .gm-buyer-product-card {
+    grid-column: span 1;
+  }
+
   .gm-home {
     padding-top: var(--space-lg);
   }
