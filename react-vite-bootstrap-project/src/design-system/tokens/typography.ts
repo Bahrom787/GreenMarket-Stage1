@@ -1,9 +1,9 @@
 /**
- * Typography tokens. A grounded grotesque for UI text paired with a warmer
- * serif reserved for display moments (screen titles, empty-state headlines).
+ * Typography tokens. Customer UI uses the approved Web stack from DS-002:
+ * Inter with system fallbacks, without decorative display faces.
  */
 export const fontFamily = {
-  display: "'Fraunces', Georgia, 'Times New Roman', serif",
+  display: "'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif",
   body: "'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif",
   mono: "'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace",
 };
@@ -34,7 +34,7 @@ export const lineHeight = {
 };
 
 export const letterSpacing = {
-  tight: '-0.01em',
+  tight: '0em',
   normal: '0em',
   wide: '0.02em',
   caps: '0.06em',

@@ -6,11 +6,12 @@ import type {
   ProductListResponse,
 } from './types';
 
-// Открытый вопрос из брифа (раздел 10, CORS/домен) пока не решён. В деве
-// используем относительный путь — его обслуживает прокси в vite.config.ts.
-// В проде обязательно задать VITE_API_BASE (иначе запросы уйдут на сам
-// фронтовый origin и 404-нутся) — как только CORS/домен согласуют с Романом.
-const API_BASE = import.meta.env.VITE_API_BASE ?? '/api/v1/catalog';
+const DEV_API_BASE = '/api/v1/catalog';
+const configuredApiBase = import.meta.env.VITE_API_BASE as string | undefined;
+
+// In production the backend origin must be configured explicitly. Falling back to
+// the frontend origin hides deployment errors and makes API connectivity unverifiable.
+const API_BASE = configuredApiBase ?? (import.meta.env.DEV ? DEV_API_BASE : '');
 
 export class CatalogApiError extends Error {
   constructor(
@@ -24,12 +25,18 @@ export class CatalogApiError extends Error {
 }
 
 async function request<T>(path: string): Promise<T> {
+  if (!API_BASE) {
+    throw new CatalogApiError(
+      'Production API не настроен: задайте VITE_API_BASE для Catalog API.',
+      0,
+      'API_BASE_MISSING',
+    );
+  }
+
   let response: Response;
   try {
     response = await fetch(`${API_BASE}${path}`);
   } catch {
-    // fetch сам бросает исключение только на сетевую ошибку (не 4xx/5xx) —
-    // сюда же попадёт и CORS-блокировка браузером (см. открытый вопрос в брифе).
     throw new CatalogApiError('Не удалось связаться с сервером. Проверьте подключение.', 0);
   }
 

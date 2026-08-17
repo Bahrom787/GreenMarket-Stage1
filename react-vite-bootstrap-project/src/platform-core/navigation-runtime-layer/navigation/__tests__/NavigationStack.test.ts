@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { it } from "vitest";
 import { asSellerId, asProductId } from "../../../contracts/Action";
 import { createNavigationState, currentEntry, push, pop, reset, isAtRoot, ROOT_ENTRY } from "../NavigationStack";
 
@@ -6,7 +7,7 @@ import { createNavigationState, currentEntry, push, pop, reset, isAtRoot, ROOT_E
  *  тот же формат: простой скрипт на node:assert.
  *  Запуск: npx tsx navigation/__tests__/NavigationStack.test.ts */
 
-function run() {
+it("runs NavigationStack contract checks", () => {
   const initial = createNavigationState();
   assert.deepEqual(currentEntry(initial), ROOT_ENTRY, "createNavigationState: стартовый экран — корневой (Catalog)");
   assert.ok(isAtRoot(initial), "isAtRoot: истинно для только что созданного состояния");
@@ -33,6 +34,4 @@ function run() {
   assert.equal(afterReset.stack.length, 1, "reset: стек после сброса содержит только корневой экран");
 
   console.log("NavigationStack: все проверки пройдены");
-}
-
-run();
+});

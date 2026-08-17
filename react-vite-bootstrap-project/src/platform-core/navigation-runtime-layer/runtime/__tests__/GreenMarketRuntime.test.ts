@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { it } from "vitest";
 import { asSellerId, asProductId } from "../../../contracts/Action";
 import type { Action } from "../../../contracts/Action";
 import { createGreenMarketRuntime, type ActionHandlers } from "../GreenMarketRuntime";
@@ -7,7 +8,7 @@ import { currentEntry } from "../../navigation/NavigationStack";
 /** Формат — как в MockCatalogRepository.test.ts: node:assert без test runner'а.
  *  Запуск: npx tsx runtime/__tests__/GreenMarketRuntime.test.ts */
 
-function run() {
+it("runs GreenMarketRuntime contract checks", () => {
   // 1. Разрешённый на экране Action проходит и меняет навигацию.
   const runtime1 = createGreenMarketRuntime();
   const sellerId = asSellerId("s1");
@@ -83,6 +84,4 @@ function run() {
   assert.equal(runtime8.getState().navigation.stack.length, 2, "forceNavigate после forceReset: переход пользователя кладётся поверх");
 
   console.log("GreenMarketRuntime: все проверки пройдены");
-}
-
-run();
+});
