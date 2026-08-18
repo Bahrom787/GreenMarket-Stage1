@@ -18,9 +18,11 @@ export function ProductScreen({ context = globalCatalogContext }: ProductScreenP
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
   const [state, setState] = useState<LoadState>({ status: 'loading' });
+  const isStore = isStoreContext(context);
+  const storeId = isStore ? context.storeId : undefined;
 
   function load() {
-    if (isStoreContext(context)) {
+    if (isStore) {
       setState({
         status: 'error',
         message: 'Store Product API scope is not available yet.',
@@ -44,7 +46,7 @@ export function ProductScreen({ context = globalCatalogContext }: ProductScreenP
       });
   }
 
-  useEffect(load, [productId, context]);
+  useEffect(load, [productId, isStore, storeId]);
 
   return (
     <Stack gap="lg">

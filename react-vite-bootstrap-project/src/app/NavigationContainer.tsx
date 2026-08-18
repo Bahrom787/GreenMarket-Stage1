@@ -1,10 +1,10 @@
+import { useMemo } from 'react';
 import { Navigate, Routes, Route, NavLink, useLocation, useParams } from 'react-router-dom';
 import { PlaceholderScreen } from '@/screens/PlaceholderScreen';
 import { MapScreenView } from '@/screens/map/MapScreenView';
 import { SellerListScreenView } from '@/screens/seller-list/SellerListScreenView';
 import { Header, Page, Row } from '@/layout';
 import '@/buyer_mvp/buyer_mvp.css';
-import { HomeScreen } from '@/buyer_mvp/screens/HomeScreen';
 import { CatalogScreen } from '@/buyer_mvp/screens/CatalogScreen';
 import { ProductScreen } from '@/buyer_mvp/screens/ProductScreen';
 import { globalCatalogContext, storeCatalogContext } from '@/buyer_mvp/catalogContext';
@@ -24,12 +24,14 @@ function LegacyCatalogRedirect() {
 
 function StoreCatalogRoute() {
   const { storeId } = useParams<{ storeId: string }>();
-  return <CatalogScreen context={storeCatalogContext(storeId ?? '')} />;
+  const context = useMemo(() => storeCatalogContext(storeId ?? ''), [storeId]);
+  return <CatalogScreen context={context} />;
 }
 
 function StoreProductRoute() {
   const { storeId } = useParams<{ storeId: string }>();
-  return <ProductScreen context={storeCatalogContext(storeId ?? '')} />;
+  const context = useMemo(() => storeCatalogContext(storeId ?? ''), [storeId]);
+  return <ProductScreen context={context} />;
 }
 
 function TopNav() {
@@ -68,7 +70,7 @@ export function NavigationContainer() {
         <Page>
           <Routes>
             <Route path="/" element={<CatalogScreen context={globalCatalogContext} />} />
-            <Route path="/home" element={<HomeScreen />} />
+            <Route path="/home" element={<Navigate to="/" replace />} />
             <Route path="/catalog" element={<LegacyCatalogRedirect />} />
             <Route path="/product/:productId" element={<ProductScreen context={globalCatalogContext} />} />
             <Route path="/store/:storeId/catalog" element={<StoreCatalogRoute />} />

@@ -27,9 +27,11 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
   const groupId = searchParams.get('group_id');
   const sort = (searchParams.get('sort') as SortOrder | null) ?? 'name';
   const page = Number(searchParams.get('page') ?? '1');
+  const isStore = isStoreContext(context);
+  const storeId = isStore ? context.storeId : undefined;
 
   function load() {
-    if (isStoreContext(context)) {
+    if (isStore) {
       setState({
         status: 'error',
         message: 'Store Catalog API scope is not available yet.',
@@ -52,7 +54,7 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
       });
   }
 
-  useEffect(load, [search, groupId, sort, page, context]);
+  useEffect(load, [search, groupId, sort, page, isStore, storeId]);
 
   function updateParam(key: string, value: string | null) {
     const next = new URLSearchParams(searchParams);
@@ -68,9 +70,11 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
         <Text variant="headline" as="h1">
           Каталог
         </Text>
-        <Button variant="secondary" size="sm" onClick={() => navigate('/')}>
-          На главную
-        </Button>
+        {isStore && (
+          <Button variant="secondary" size="sm" onClick={() => navigate('/')}>
+            В общий каталог
+          </Button>
+        )}
       </Row>
 
       <SearchBar initialValue={search} onSearch={(value) => updateParam('search', value || null)} />
