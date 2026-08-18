@@ -45,7 +45,7 @@ export function HomeScreen() {
     <main className="gm-home">
       <section className="gm-home-hero">
         <div className="gm-home-hero__copy">
-          <span className="gm-home-eyebrow">Каталог GreenMarket</span>
+          <span className="gm-home-eyebrow">Каталог Green Board</span>
           <h1>Продукты в удобном каталоге</h1>
           <p>
             Ищите товары по названию или переходите в нужную категорию. Экран использует только
@@ -86,7 +86,7 @@ export function HomeScreen() {
             <span className="gm-home-eyebrow">Выбирайте раздел</span>
             <h2 id="categories-title">Категории</h2>
           </div>
-          <button className="gm-home-link" type="button" onClick={() => navigate('/catalog')}>
+          <button className="gm-home-link" type="button" onClick={() => navigate('/')}>
             Весь каталог <span>→</span>
           </button>
         </div>

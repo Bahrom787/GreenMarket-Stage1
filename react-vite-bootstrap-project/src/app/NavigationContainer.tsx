@@ -1,27 +1,45 @@
-import { Routes, Route, NavLink, useLocation } from 'react-router-dom';
+import { useMemo } from 'react';
+import { Navigate, Routes, Route, NavLink, useLocation, useParams } from 'react-router-dom';
 import { PlaceholderScreen } from '@/screens/PlaceholderScreen';
 import { MapScreenView } from '@/screens/map/MapScreenView';
 import { SellerListScreenView } from '@/screens/seller-list/SellerListScreenView';
 import { Header, Page, Row } from '@/layout';
 import '@/buyer_mvp/buyer_mvp.css';
-import { HomeScreen } from '@/buyer_mvp/screens/HomeScreen';
 import { CatalogScreen } from '@/buyer_mvp/screens/CatalogScreen';
 import { ProductScreen } from '@/buyer_mvp/screens/ProductScreen';
+import { globalCatalogContext, storeCatalogContext } from '@/buyer_mvp/catalogContext';
 
 const navItems = [
-  { to: '/catalog', label: 'Каталог' },
+  { to: '/', label: 'Каталог' },
   { to: '/map', label: 'Карта' },
   { to: '/seller-list', label: 'Продавцы' },
 ];
 
 const FULL_SCREEN_ROUTES = new Set(['/map', '/seller-list']);
 
+function LegacyCatalogRedirect() {
+  const location = useLocation();
+  return <Navigate to={`/${location.search}`} replace />;
+}
+
+function StoreCatalogRoute() {
+  const { storeId } = useParams<{ storeId: string }>();
+  const context = useMemo(() => storeCatalogContext(storeId ?? ''), [storeId]);
+  return <CatalogScreen context={context} />;
+}
+
+function StoreProductRoute() {
+  const { storeId } = useParams<{ storeId: string }>();
+  const context = useMemo(() => storeCatalogContext(storeId ?? ''), [storeId]);
+  return <ProductScreen context={context} />;
+}
+
 function TopNav() {
   return (
     <Header className="gm-site-header">
       <Page style={{ padding: 0 }}>
         <Row gap="lg" align="center" style={{ height: '100%', justifyContent: 'space-between' }}>
-          <NavLink to="/" className="gm-site-brand" aria-label="GreenMarket, на главную"><span>G</span> GreenMarket</NavLink>
+          <NavLink to="/" className="gm-site-brand" aria-label="Green Board, на главную"><span>G</span> Green Board</NavLink>
           <nav className="gm-site-nav" aria-label="Основная навигация">
             {navItems.map((item) => (
               <NavLink key={item.to} to={item.to} className={({ isActive }) => `gm-site-nav__link${isActive ? ' gm-site-nav__link--active' : ''}`}>
@@ -51,9 +69,12 @@ export function NavigationContainer() {
       ) : (
         <Page>
           <Routes>
-            <Route path="/" element={<HomeScreen />} />
-            <Route path="/catalog" element={<CatalogScreen />} />
-            <Route path="/product/:productId" element={<ProductScreen />} />
+            <Route path="/" element={<CatalogScreen context={globalCatalogContext} />} />
+            <Route path="/home" element={<Navigate to="/" replace />} />
+            <Route path="/catalog" element={<LegacyCatalogRedirect />} />
+            <Route path="/product/:productId" element={<ProductScreen context={globalCatalogContext} />} />
+            <Route path="/store/:storeId/catalog" element={<StoreCatalogRoute />} />
+            <Route path="/store/:storeId/product/:productId" element={<StoreProductRoute />} />
             <Route path="/cart" element={<PlaceholderScreen name="Корзина" />} />
             <Route path="/profile" element={<PlaceholderScreen name="Профиль" />} />
             <Route path="/seller/:sellerId" element={<PlaceholderScreen name="Карточка продавца" />} />

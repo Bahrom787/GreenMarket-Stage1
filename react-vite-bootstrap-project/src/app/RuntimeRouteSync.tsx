@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   useGreenMarketRuntime,
   useRuntimeInstance,
@@ -29,8 +29,8 @@ export function RuntimeRouteSync() {
   const { state } = useGreenMarketRuntime();
   const location = useLocation();
   const navigate = useNavigate();
-  const params = useParams();
   const isSyncingFromUrl = useRef(false);
+  const skipFirstRuntimeSync = useRef(true);
   /** Первый прогон эффекта URL → Runtime — это «точка входа» (загрузка
    *  страницы по текущему URL, в том числе deep-link). В этот момент у
    *  пользователя ещё нет хронологии переходов, поэтому стек сбрасывается
@@ -41,10 +41,9 @@ export function RuntimeRouteSync() {
 
   // URL → Runtime
   useEffect(() => {
-    if (location.pathname === '/') return;
     const isEntryPoint = isEntryPointSync.current;
     isEntryPointSync.current = false;
-    const desired = entryFromPath(location.pathname, params.sellerId);
+    const desired = entryFromPath(location.pathname);
     if (!desired) return;
     const active = currentEntry(runtime.getState().navigation);
     const alreadyThere =
@@ -59,11 +58,14 @@ export function RuntimeRouteSync() {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- намеренно реагирует только на смену пути
-  }, [location.pathname, params.sellerId]);
+  }, [location.pathname]);
 
   // Runtime → URL
   useEffect(() => {
-    if (location.pathname === '/') return;
+    if (skipFirstRuntimeSync.current) {
+      skipFirstRuntimeSync.current = false;
+      return;
+    }
     if (isSyncingFromUrl.current) {
       isSyncingFromUrl.current = false;
       return;
