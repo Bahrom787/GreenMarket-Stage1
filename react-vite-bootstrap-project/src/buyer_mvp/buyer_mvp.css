@@ -63,8 +63,23 @@
 }
 
 .gm-buyer-product-card {
-  grid-column: span 4;
+  grid-column: span 2;
   min-width: 0;
+  overflow: hidden;
+}
+
+.gm-buyer-product-card__title {
+  display: -webkit-box;
+  min-height: calc(var(--font-size-md) * 2 * 1.25);
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.gm-buyer-product-card__price,
+.gm-buyer-product-card__meta {
+  overflow-wrap: anywhere;
 }
 
 .gm-buyer-offer-card {
@@ -446,9 +461,15 @@
   }
 }
 
+@media (min-width: 768px) and (max-width: 1119px) {
+  .gm-buyer-product-card {
+    grid-column: span 4;
+  }
+}
+
 @media (max-width: 767px) {
   .gm-buyer-product-card {
-    grid-column: span 1;
+    grid-column: span 2;
   }
 
   .gm-home {
