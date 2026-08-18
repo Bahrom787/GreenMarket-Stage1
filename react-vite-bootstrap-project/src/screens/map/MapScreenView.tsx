@@ -301,7 +301,7 @@ export function MapScreenView() {
       <Header>
         <Row gap="md" align="center" justify="between" style={{ position: 'relative', width: '100%' }}>
           <Text variant="title" as="span">
-            🌿 GreenMarket
+            🌿 Green Board
           </Text>
           <form
             onSubmit={(e) => void handleSearchSubmit(e)}

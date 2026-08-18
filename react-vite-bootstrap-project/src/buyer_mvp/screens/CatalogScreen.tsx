@@ -5,6 +5,7 @@ import { Grid, Stack, Row } from '@/layout';
 import { fetchProducts, CatalogApiError } from '../api';
 import { SearchBar } from '../components/SearchBar';
 import { ProductCard } from '../components/ProductCard';
+import { globalCatalogContext, isStoreContext, productPath, type CatalogContext } from '../catalogContext';
 import type { ProductListItem, SortOrder } from '../types';
 
 type LoadState =
@@ -13,7 +14,11 @@ type LoadState =
   | { status: 'ready'; products: ProductListItem[]; page: number; limit: number; total: number };
 
 /** Экран 2 (Buyer_MVP.md): список товаров, поиск, фильтр по категории. */
-export function CatalogScreen() {
+interface CatalogScreenProps {
+  context?: CatalogContext;
+}
+
+export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenProps) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [state, setState] = useState<LoadState>({ status: 'loading' });
@@ -24,6 +29,13 @@ export function CatalogScreen() {
   const page = Number(searchParams.get('page') ?? '1');
 
   function load() {
+    if (isStoreContext(context)) {
+      setState({
+        status: 'error',
+        message: 'Store Catalog API scope is not available yet.',
+      });
+      return;
+    }
     setState({ status: 'loading' });
     fetchProducts({
       search: search || undefined,
@@ -40,7 +52,7 @@ export function CatalogScreen() {
       });
   }
 
-  useEffect(load, [search, groupId, sort, page]);
+  useEffect(load, [search, groupId, sort, page, context]);
 
   function updateParam(key: string, value: string | null) {
     const next = new URLSearchParams(searchParams);
@@ -91,7 +103,7 @@ export function CatalogScreen() {
         <>
           <Grid gap="md">
             {state.products.map((p) => (
-              <ProductCard key={p.id} product={p} onOpen={(id) => navigate(`/product/${id}`)} />
+              <ProductCard key={p.id} product={p} onOpen={(id) => navigate(productPath(context, id))} />
             ))}
           </Grid>
 

@@ -27,11 +27,11 @@ describe('homePresentation', () => {
   });
 
   it('builds stable catalog routes', () => {
-    expect(catalogGroupPath(42)).toBe('/catalog?group_id=42');
+    expect(catalogGroupPath(42)).toBe('/?group_id=42');
     expect(catalogSearchPath(' молоко 2% ')).toBe(
-      '/catalog?search=%D0%BC%D0%BE%D0%BB%D0%BE%D0%BA%D0%BE%202%25',
+      '/?search=%D0%BC%D0%BE%D0%BB%D0%BE%D0%BA%D0%BE%202%25',
     );
-    expect(catalogSearchPath('   ')).toBe('/catalog');
+    expect(catalogSearchPath('   ')).toBe('/');
   });
 
   it('formats Russian product count labels', () => {

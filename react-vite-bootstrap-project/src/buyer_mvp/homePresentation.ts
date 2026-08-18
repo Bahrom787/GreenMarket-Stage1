@@ -44,12 +44,12 @@ export function groupsWithMoreProducts(groups: ProductGroup[]) {
 }
 
 export function catalogGroupPath(groupId: number) {
-  return `/catalog?group_id=${groupId}`;
+  return `/?group_id=${groupId}`;
 }
 
 export function catalogSearchPath(value: string) {
   const query = value.trim();
-  return `/catalog${query ? `?search=${encodeURIComponent(query)}` : ''}`;
+  return `/${query ? `?search=${encodeURIComponent(query)}` : ''}`;
 }
 
 export function categoryPresentation(group: ProductGroup): CategoryPresentation {

@@ -4,17 +4,30 @@ import { Text, Loader, ErrorState, Button } from '@/design-system/components';
 import { Stack, Row } from '@/layout';
 import { fetchProduct, CatalogApiError } from '../api';
 import { OfferCard } from '../components/OfferCard';
+import { globalCatalogContext, isStoreContext, type CatalogContext } from '../catalogContext';
 import type { ProductDetail } from '../types';
 
 type LoadState = { status: 'loading' } | { status: 'error'; message: string; notFound: boolean } | { status: 'ready'; product: ProductDetail };
 
 /** Экран 3 (Buyer_MVP.md): карточка товара, список предложений продавцов. */
-export function ProductScreen() {
+interface ProductScreenProps {
+  context?: CatalogContext;
+}
+
+export function ProductScreen({ context = globalCatalogContext }: ProductScreenProps) {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
   const [state, setState] = useState<LoadState>({ status: 'loading' });
 
   function load() {
+    if (isStoreContext(context)) {
+      setState({
+        status: 'error',
+        message: 'Store Product API scope is not available yet.',
+        notFound: false,
+      });
+      return;
+    }
     const id = Number(productId);
     if (!productId || Number.isNaN(id)) {
       setState({ status: 'error', message: 'Некорректный идентификатор товара.', notFound: true });
@@ -31,7 +44,7 @@ export function ProductScreen() {
       });
   }
 
-  useEffect(load, [productId]);
+  useEffect(load, [productId, context]);
 
   return (
     <Stack gap="lg">
