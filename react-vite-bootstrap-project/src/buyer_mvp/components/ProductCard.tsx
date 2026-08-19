@@ -7,7 +7,7 @@ interface ProductCardProps {
   onOpen: (id: number) => void;
 }
 
-/** Экран 2 (Каталог товаров): фото, название, минимальная цена, кол-во продавцов. */
+/** Prepared catalog card. Context and pricing semantics are resolved before JSX. */
 export function ProductCard({ product, onOpen }: ProductCardProps) {
   const photo = product.photos[0];
   const accessibleName = [product.name, product.priceText, product.metaText].filter(Boolean).join('. ');
@@ -15,6 +15,7 @@ export function ProductCard({ product, onOpen }: ProductCardProps) {
   return (
     <Card
       className="gm-buyer-product-card gm-focusable"
+      data-context={product.context}
       role="button"
       tabIndex={0}
       aria-label={accessibleName}
@@ -42,6 +43,18 @@ export function ProductCard({ product, onOpen }: ProductCardProps) {
           {product.metaText}
         </Text>
       )}
+    </Card>
+  );
+}
+
+export function ProductCardSkeleton() {
+  return (
+    <Card className="gm-buyer-product-card gm-buyer-product-card--skeleton" aria-hidden="true">
+      <div className="gm-buyer-photo gm-buyer-card-skeleton__media" />
+      <div className="gm-buyer-card-skeleton__line gm-buyer-card-skeleton__line--title" />
+      <div className="gm-buyer-card-skeleton__line gm-buyer-card-skeleton__line--title-short" />
+      <div className="gm-buyer-card-skeleton__line gm-buyer-card-skeleton__line--price" />
+      <div className="gm-buyer-card-skeleton__line gm-buyer-card-skeleton__line--meta" />
     </Card>
   );
 }

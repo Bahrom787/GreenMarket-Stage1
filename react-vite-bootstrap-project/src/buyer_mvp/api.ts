@@ -8,12 +8,35 @@ import type {
   SellerCatalogResponse,
 } from './types';
 
-const DEV_API_BASE = '/api/v1/catalog';
+const CATALOG_API_SCOPE = '/api/v1/catalog';
 const configuredApiBase = import.meta.env.VITE_API_BASE as string | undefined;
 
 // In production the backend origin must be configured explicitly. Falling back to
 // the frontend origin hides deployment errors and makes API connectivity unverifiable.
-const API_BASE = configuredApiBase ?? (import.meta.env.DEV ? DEV_API_BASE : '');
+let apiBaseConfigError: string | undefined;
+const API_BASE = (() => {
+  try {
+    return normalizeCatalogApiBase(configuredApiBase) ?? (import.meta.env.DEV ? CATALOG_API_SCOPE : '');
+  } catch (err) {
+    apiBaseConfigError = err instanceof Error ? err.message : 'VITE_API_BASE is invalid.';
+    return '';
+  }
+})();
+
+export function normalizeCatalogApiBase(value?: string) {
+  const base = value?.trim().replace(/\/+$/, '');
+  if (!base) return undefined;
+  if (base === CATALOG_API_SCOPE) return base;
+
+  const url = new URL(base);
+  if (url.search || url.hash) throw new Error('VITE_API_BASE must not include query or hash.');
+
+  const path = url.pathname.replace(/\/+$/, '');
+  if (!path) return `${url.origin}${CATALOG_API_SCOPE}`;
+  if (path === CATALOG_API_SCOPE) return `${url.origin}${CATALOG_API_SCOPE}`;
+
+  throw new Error('VITE_API_BASE must be backend origin or /api/v1/catalog.');
+}
 
 export class CatalogApiError extends Error {
   constructor(
@@ -27,6 +50,10 @@ export class CatalogApiError extends Error {
 }
 
 async function request<T>(path: string): Promise<T> {
+  if (apiBaseConfigError) {
+    throw new CatalogApiError(apiBaseConfigError, 0, 'API_BASE_INVALID');
+  }
+
   if (!API_BASE) {
     throw new CatalogApiError(
       'Production API не настроен: задайте VITE_API_BASE для Catalog API.',
