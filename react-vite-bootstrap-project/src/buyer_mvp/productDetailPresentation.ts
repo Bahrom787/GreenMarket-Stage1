@@ -17,7 +17,6 @@ export interface ProductDetailViewModel {
   title: string;
   subtitle?: string;
   description?: string | null;
-  photos: string[];
   offersTitle: string;
   emptyText?: string;
   offers: ProductDetailOfferViewModel[];
@@ -29,10 +28,6 @@ function hasValue(value: string | null | undefined): value is string {
 
 function cleanPhotos(photos: string[] | undefined) {
   return (photos ?? []).filter(hasValue);
-}
-
-function uniquePhotos(photos: string[]) {
-  return Array.from(new Set(photos));
 }
 
 function formatUnitPrice(price: string | null | undefined, unit: string | null | undefined) {
@@ -59,7 +54,6 @@ export function toGlobalProductDetail(product: ProductDetail): ProductDetailView
     context: 'GLOBAL',
     title: product.name,
     description: product.description,
-    photos: uniquePhotos(offers.flatMap((offer) => offer.photos)),
     offersTitle: `Предложения продавцов (${offers.length})`,
     emptyText: 'Сейчас нет доступных предложений.',
     offers,
@@ -77,8 +71,6 @@ export function toStoreProductDetail(
     context: 'STORE',
     title,
     subtitle: seller.name,
-    description: product.description,
-    photos,
     offersTitle: 'Предложение магазина',
     offers: [
       {
@@ -86,6 +78,7 @@ export function toStoreProductDetail(
         photos,
         priceText: formatUnitPrice(product.price, product.unit),
         stockText: toStockText(product.stock, product.unit),
+        description: product.description,
       },
     ],
   };

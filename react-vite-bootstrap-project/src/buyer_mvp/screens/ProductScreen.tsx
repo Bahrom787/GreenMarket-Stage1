@@ -4,7 +4,6 @@ import { Text, Loader, ErrorState, Button } from '@/design-system/components';
 import { Stack, Row } from '@/layout';
 import { fetchProduct, fetchSeller, fetchSellerProduct, CatalogApiError } from '../api';
 import { OfferCard } from '../components/OfferCard';
-import { PhotoStrip } from '../components/PhotoStrip';
 import {
   catalogPath,
   globalCatalogContext,
@@ -128,41 +127,35 @@ export function ProductScreen({ context = globalCatalogContext }: ProductScreenP
       )}
 
       {state.status === 'ready' && (
-        <div className="gm-buyer-product-detail" data-context={state.product.context}>
-          <div className="gm-buyer-product-detail__gallery">
-            <PhotoStrip photos={state.product.photos} label={state.product.title} />
-          </div>
-          <Stack gap="md" className="gm-buyer-product-detail__content">
-            <Text variant="headline" as="h1">
-              {state.product.title}
+        <Stack gap="md" className="gm-buyer-product-detail" data-context={state.product.context}>
+          <Text variant="headline" as="h1">
+            {state.product.title}
+          </Text>
+          {state.product.subtitle && <Text tone="secondary">{state.product.subtitle}</Text>}
+          {state.product.description && (
+            <Text variant="body" tone="secondary">
+              {state.product.description}
             </Text>
-            {state.product.subtitle && <Text tone="secondary">{state.product.subtitle}</Text>}
-            {state.product.description && (
-              <Text variant="body" tone="secondary">
-                {state.product.description}
-              </Text>
-            )}
+          )}
 
-            <Text variant="title" as="h2">
-              {state.product.offersTitle}
-            </Text>
+          <Text variant="title" as="h2">
+            {state.product.offersTitle}
+          </Text>
 
-            {state.product.offers.length === 0 ? (
-              <Text tone="secondary">{state.product.emptyText}</Text>
-            ) : (
-              <Stack gap="md">
-                {state.product.offers.map((offer) => (
-                  <OfferCard
-                    key={offer.key}
-                    offer={offer}
-                    showPhotos={false}
-                    showSellerName={state.product.context === 'GLOBAL'}
-                  />
-                ))}
-              </Stack>
-            )}
-          </Stack>
-        </div>
+          {state.product.offers.length === 0 ? (
+            <Text tone="secondary">{state.product.emptyText}</Text>
+          ) : (
+            <Stack gap="md">
+              {state.product.offers.map((offer) => (
+                <OfferCard
+                  key={offer.key}
+                  offer={offer}
+                  showSellerName={state.product.context === 'GLOBAL'}
+                />
+              ))}
+            </Stack>
+          )}
+        </Stack>
       )}
     </Stack>
   );
