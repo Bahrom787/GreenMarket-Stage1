@@ -1,13 +1,26 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Text, Loader, ErrorState, Button } from '@/design-system/components';
 import { Stack, Row } from '@/layout';
-import { fetchProduct, CatalogApiError } from '../api';
+import { fetchProduct, fetchSeller, fetchSellerProduct, CatalogApiError } from '../api';
 import { OfferCard } from '../components/OfferCard';
-import { globalCatalogContext, isStoreContext, type CatalogContext } from '../catalogContext';
-import type { ProductDetail } from '../types';
+import { PhotoStrip } from '../components/PhotoStrip';
+import {
+  catalogPath,
+  globalCatalogContext,
+  isStoreContext,
+  type CatalogContext,
+} from '../catalogContext';
+import {
+  toGlobalProductDetail,
+  toStoreProductDetail,
+  type ProductDetailViewModel,
+} from '../productDetailPresentation';
 
-type LoadState = { status: 'loading' } | { status: 'error'; message: string; notFound: boolean } | { status: 'ready'; product: ProductDetail };
+type LoadState =
+  | { status: 'loading' }
+  | { status: 'error'; title: string; message: string; retryable: boolean }
+  | { status: 'ready'; product: ProductDetailViewModel };
 
 /** Экран 3 (Buyer_MVP.md): карточка товара, список предложений продавцов. */
 interface ProductScreenProps {
@@ -17,41 +30,89 @@ interface ProductScreenProps {
 export function ProductScreen({ context = globalCatalogContext }: ProductScreenProps) {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const isStore = isStoreContext(context);
   const storeId = isStore ? context.storeId : undefined;
+  const detailParams = new URLSearchParams(location.search);
+  const sellerProductIdParam = detailParams.get('seller_product_id');
+  const sellerProductId = sellerProductIdParam ? Number(sellerProductIdParam) : undefined;
 
-  function load() {
-    if (isStore) {
+  const load = useCallback(() => {
+    const id = Number(productId);
+    if (!productId || Number.isNaN(id)) {
       setState({
         status: 'error',
-        message: 'Store Product API scope is not available yet.',
-        notFound: false,
+        title: 'Товар не найден',
+        message: 'Некорректный идентификатор товара.',
+        retryable: false,
       });
       return;
     }
-    const id = Number(productId);
-    if (!productId || Number.isNaN(id)) {
-      setState({ status: 'error', message: 'Некорректный идентификатор товара.', notFound: true });
+    if (isStore && !storeId) {
+      setState({
+        status: 'error',
+        title: 'Товар не найден',
+        message: 'Некорректный идентификатор магазина.',
+        retryable: false,
+      });
       return;
     }
+    if (isStore && sellerProductIdParam && Number.isNaN(sellerProductId)) {
+      setState({
+        status: 'error',
+        title: 'Предложение недоступно',
+        message: 'Некорректный идентификатор предложения.',
+        retryable: false,
+      });
+      return;
+    }
+
     setState({ status: 'loading' });
-    fetchProduct(id)
+    const request: Promise<ProductDetailViewModel> =
+      isStore && storeId
+        ? Promise.all([
+            fetchSeller(storeId),
+            fetchSellerProduct(storeId, id, sellerProductId),
+          ]).then(([seller, product]) => toStoreProductDetail(product, seller))
+        : fetchProduct(id).then(toGlobalProductDetail);
+
+    request
       .then((product) => setState({ status: 'ready', product }))
       .catch((err: unknown) => {
         const notFound = err instanceof CatalogApiError && err.status === 404;
+        const unavailable =
+          err instanceof CatalogApiError && err.code === 'SELLER_PRODUCT_NOT_FOUND';
         const message =
           err instanceof CatalogApiError ? err.message : 'Не удалось загрузить карточку товара.';
-        setState({ status: 'error', message, notFound });
+        setState({
+          status: 'error',
+          title: unavailable
+            ? 'Предложение недоступно'
+            : notFound
+              ? 'Товар не найден'
+              : 'Не удалось загрузить товар',
+          message,
+          retryable: !notFound,
+        });
       });
-  }
+  }, [productId, isStore, storeId, sellerProductId, sellerProductIdParam]);
 
-  useEffect(load, [productId, isStore, storeId]);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  function backToCatalog() {
+    const params = new URLSearchParams(location.search);
+    params.delete('seller_product_id');
+    const search = params.toString();
+    navigate(catalogPath(context, search ? `?${search}` : ''));
+  }
 
   return (
     <Stack gap="lg">
       <Row align="center" justify="between">
-        <Button variant="secondary" size="sm" onClick={() => navigate(-1)}>
+        <Button variant="secondary" size="sm" onClick={backToCatalog}>
           Назад
         </Button>
       </Row>
@@ -60,37 +121,48 @@ export function ProductScreen({ context = globalCatalogContext }: ProductScreenP
 
       {state.status === 'error' && (
         <ErrorState
-          title={state.notFound ? 'Товар не найден' : 'Не удалось загрузить товар'}
+          title={state.title}
           description={state.message}
-          action={!state.notFound ? <Button onClick={load}>Повторить</Button> : undefined}
+          action={state.retryable ? <Button onClick={load}>Повторить</Button> : undefined}
         />
       )}
 
       {state.status === 'ready' && (
-        <>
-          <Text variant="headline" as="h1">
-            {state.product.name}
-          </Text>
-          {state.product.description && (
-            <Text variant="body" tone="secondary">
-              {state.product.description}
+        <div className="gm-buyer-product-detail" data-context={state.product.context}>
+          <div className="gm-buyer-product-detail__gallery">
+            <PhotoStrip photos={state.product.photos} label={state.product.title} />
+          </div>
+          <Stack gap="md" className="gm-buyer-product-detail__content">
+            <Text variant="headline" as="h1">
+              {state.product.title}
             </Text>
-          )}
+            {state.product.subtitle && <Text tone="secondary">{state.product.subtitle}</Text>}
+            {state.product.description && (
+              <Text variant="body" tone="secondary">
+                {state.product.description}
+              </Text>
+            )}
 
-          <Text variant="title" as="h2">
-            Предложения продавцов ({state.product.offers.length})
-          </Text>
+            <Text variant="title" as="h2">
+              {state.product.offersTitle}
+            </Text>
 
-          {state.product.offers.length === 0 ? (
-            <Text tone="secondary">Сейчас нет доступных предложений.</Text>
-          ) : (
-            <Stack gap="md">
-              {state.product.offers.map((offer) => (
-                <OfferCard key={offer.seller_product_id} offer={offer} />
-              ))}
-            </Stack>
-          )}
-        </>
+            {state.product.offers.length === 0 ? (
+              <Text tone="secondary">{state.product.emptyText}</Text>
+            ) : (
+              <Stack gap="md">
+                {state.product.offers.map((offer) => (
+                  <OfferCard
+                    key={offer.key}
+                    offer={offer}
+                    showPhotos={false}
+                    showSellerName={state.product.context === 'GLOBAL'}
+                  />
+                ))}
+              </Stack>
+            )}
+          </Stack>
+        </div>
       )}
     </Stack>
   );

@@ -4,13 +4,15 @@ import type { CatalogProductCardViewModel } from '../catalogPresentation';
 
 interface ProductCardProps {
   product: CatalogProductCardViewModel;
-  onOpen: (id: number) => void;
+  onOpen: (product: CatalogProductCardViewModel) => void;
 }
 
 /** Prepared catalog card. Context and pricing semantics are resolved before JSX. */
 export function ProductCard({ product, onOpen }: ProductCardProps) {
   const photo = product.photos[0];
-  const accessibleName = [product.name, product.priceText, product.metaText].filter(Boolean).join('. ');
+  const accessibleName = [product.name, product.priceText, product.metaText]
+    .filter(Boolean)
+    .join('. ');
 
   return (
     <Card
@@ -19,11 +21,11 @@ export function ProductCard({ product, onOpen }: ProductCardProps) {
       role="button"
       tabIndex={0}
       aria-label={accessibleName}
-      onClick={() => onOpen(product.id)}
+      onClick={() => onOpen(product)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          onOpen(product.id);
+          onOpen(product);
         }
       }}
     >

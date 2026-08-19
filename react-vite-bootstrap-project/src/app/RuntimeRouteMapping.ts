@@ -17,6 +17,10 @@ const SCREEN_TO_PATH: Partial<Record<ScreenId, string>> = {
   SellerList: '/seller-list',
 };
 
+function isGlobalProductPath(pathname: string) {
+  return /^\/product\/[^/]+$/.test(pathname);
+}
+
 export function entryFromPath(pathname: string): NavigationEntry | null {
   const sellerId = pathname.match(/^\/seller\/([^/]+)$/)?.[1];
   if (sellerId) {
@@ -53,6 +57,8 @@ export function pathFromEntry(entry: NavigationEntry): string | null {
 }
 
 export function nextPathFromRuntime(pathname: string, entry: NavigationEntry): string | null {
+  if (entry.screen === 'Catalog' && isGlobalProductPath(pathname)) return null;
+
   const path = pathFromEntry(entry);
   return path && path !== pathname ? path : null;
 }

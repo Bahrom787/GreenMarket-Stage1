@@ -84,7 +84,7 @@ export interface SellerOffer {
   seller_name: string;
   price: string;
   unit: string;
-  stock: string;
+  stock?: string | null;
   description: string | null;
   photos: string[];
 }

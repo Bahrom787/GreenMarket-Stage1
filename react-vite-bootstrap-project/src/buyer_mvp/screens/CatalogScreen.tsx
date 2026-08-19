@@ -5,8 +5,17 @@ import { Grid, Stack, Row } from '@/layout';
 import { fetchProducts, fetchSeller, fetchSellerProducts, CatalogApiError } from '../api';
 import { SearchBar } from '../components/SearchBar';
 import { ProductCard, ProductCardSkeleton } from '../components/ProductCard';
-import { globalCatalogContext, isStoreContext, productPath, type CatalogContext } from '../catalogContext';
-import { toGlobalProductCard, toStoreProductCard, type CatalogProductCardViewModel } from '../catalogPresentation';
+import {
+  globalCatalogContext,
+  isStoreContext,
+  productPath,
+  type CatalogContext,
+} from '../catalogContext';
+import {
+  toGlobalProductCard,
+  toStoreProductCard,
+  type CatalogProductCardViewModel,
+} from '../catalogPresentation';
 import type { CatalogQuery, SortOrder } from '../types';
 
 type LoadState =
@@ -50,14 +59,16 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
 
     setState({ status: 'loading' });
     const request: Promise<ReadyPayload> = isStore
-      ? Promise.all([fetchSeller(storeId ?? ''), fetchSellerProducts(storeId ?? '', query)]).then(([seller, res]) => ({
-          title: seller.name,
-          subtitle: seller.market?.name,
-          products: res.products.map(toStoreProductCard),
-          page: res.page,
-          limit: res.limit,
-          total: res.total,
-        }))
+      ? Promise.all([fetchSeller(storeId ?? ''), fetchSellerProducts(storeId ?? '', query)]).then(
+          ([seller, res]) => ({
+            title: seller.name,
+            subtitle: seller.market?.name,
+            products: res.products.map(toStoreProductCard),
+            page: res.page,
+            limit: res.limit,
+            total: res.total,
+          }),
+        )
       : fetchProducts(query).then((res) => ({
           title: 'Каталог',
           products: res.products.map(toGlobalProductCard),
@@ -79,7 +90,8 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
         }),
       )
       .catch((err: unknown) => {
-        const message = err instanceof CatalogApiError ? err.message : 'Не удалось загрузить товары.';
+        const message =
+          err instanceof CatalogApiError ? err.message : 'Не удалось загрузить товары.';
         setState({ status: 'error', message });
       });
   }
@@ -94,6 +106,17 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
     setSearchParams(next);
   }
 
+  function productRoute(product: CatalogProductCardViewModel) {
+    const next = new URLSearchParams(searchParams);
+    if (isStore && product.sellerProductId != null) {
+      next.set('seller_product_id', String(product.sellerProductId));
+    } else {
+      next.delete('seller_product_id');
+    }
+    const routeSearch = next.toString();
+    return productPath(context, product.id, routeSearch ? `?${routeSearch}` : '');
+  }
+
   return (
     <Stack gap="lg">
       <Row align="center" justify="between">
@@ -101,7 +124,9 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
           <Text variant="headline" as="h1">
             {state.status === 'ready' ? state.title : isStore ? 'Каталог магазина' : 'Каталог'}
           </Text>
-          {state.status === 'ready' && state.subtitle && <Text tone="secondary">{state.subtitle}</Text>}
+          {state.status === 'ready' && state.subtitle && (
+            <Text tone="secondary">{state.subtitle}</Text>
+          )}
         </Stack>
         {isStore && (
           <Button variant="secondary" size="sm" onClick={() => navigate('/')}>
@@ -113,10 +138,18 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
       <SearchBar initialValue={search} onSearch={(value) => updateParam('search', value || null)} />
 
       <Row gap="sm" wrap>
-        <Button variant={sort === 'name' ? 'primary' : 'secondary'} size="sm" onClick={() => updateParam('sort', 'name')}>
+        <Button
+          variant={sort === 'name' ? 'primary' : 'secondary'}
+          size="sm"
+          onClick={() => updateParam('sort', 'name')}
+        >
           По названию
         </Button>
-        <Button variant={sort === 'price' ? 'primary' : 'secondary'} size="sm" onClick={() => updateParam('sort', 'price')}>
+        <Button
+          variant={sort === 'price' ? 'primary' : 'secondary'}
+          size="sm"
+          onClick={() => updateParam('sort', 'price')}
+        >
           По цене
         </Button>
         {groupId && (
@@ -135,18 +168,29 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
       )}
 
       {state.status === 'error' && (
-        <ErrorState title="Не удалось загрузить каталог" description={state.message} action={<Button onClick={load}>Повторить</Button>} />
+        <ErrorState
+          title="Не удалось загрузить каталог"
+          description={state.message}
+          action={<Button onClick={load}>Повторить</Button>}
+        />
       )}
 
       {state.status === 'ready' && state.products.length === 0 && (
-        <EmptyState title="Ничего не найдено" description="Попробуйте изменить запрос или категорию" />
+        <EmptyState
+          title="Ничего не найдено"
+          description="Попробуйте изменить запрос или категорию"
+        />
       )}
 
       {state.status === 'ready' && state.products.length > 0 && (
         <>
           <Grid gap="md">
             {state.products.map((p) => (
-              <ProductCard key={p.key} product={p} onOpen={(id) => navigate(productPath(context, id))} />
+              <ProductCard
+                key={p.key}
+                product={p}
+                onOpen={(product) => navigate(productRoute(product))}
+              />
             ))}
           </Grid>
 
