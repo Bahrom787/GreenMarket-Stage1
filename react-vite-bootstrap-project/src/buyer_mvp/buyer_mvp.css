@@ -118,6 +118,12 @@
   cursor: default;
 }
 
+.gm-buyer-offer-card__store-link {
+  align-self: flex-start;
+  margin-top: var(--space-sm);
+  text-decoration: none;
+}
+
 .gm-buyer-product-detail {
   min-width: 0;
 }
