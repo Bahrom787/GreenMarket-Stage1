@@ -7,6 +7,7 @@ import { ProductCardScreen } from "@/platform-core/screens/ProductCardScreen";
 import { BasketScreen } from "@/platform-core/screens/BasketScreen";
 import { FavoritesScreen } from "@/platform-core/screens/FavoritesScreen";
 import { PurchaseOptionsScreen } from "@/platform-core/screens/PurchaseOptionsScreen";
+import { StoreHomeScreen } from "@/platform-core/screens/StoreHomeScreen";
 import { SellerCardScreen } from "@/platform-core/screens/SellerCardScreen";
 import { SellerCatalogScreen } from "@/platform-core/screens/SellerCatalogScreen";
 import { MapScreen } from "@/platform-core/screens/MapScreen";
@@ -29,6 +30,7 @@ export const ScreenRegistry: Readonly<Record<ScreenId, ScreenDefinition<unknown>
   Basket: BasketScreen as ScreenDefinition<unknown>,
   Favorites: FavoritesScreen as ScreenDefinition<unknown>,
   PurchaseOptions: PurchaseOptionsScreen as ScreenDefinition<unknown>,
+  StoreHome: StoreHomeScreen as ScreenDefinition<unknown>,
   SellerCard: SellerCardScreen as ScreenDefinition<unknown>,
   SellerCatalog: SellerCatalogScreen as ScreenDefinition<unknown>,
   Map: MapScreen as ScreenDefinition<unknown>,

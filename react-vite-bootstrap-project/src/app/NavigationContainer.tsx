@@ -23,12 +23,6 @@ function LegacyCatalogRedirect() {
   return <Navigate to={`/${location.search}`} replace />;
 }
 
-function LegacySellerRedirect() {
-  const { sellerId } = useParams<{ sellerId: string }>();
-  const location = useLocation();
-  return <Navigate to={`/store/${sellerId ?? ''}${location.search}`} replace />;
-}
-
 function StoreCatalogRoute() {
   const { storeId } = useParams<{ storeId: string }>();
   const context = useMemo(() => storeCatalogContext(storeId ?? ''), [storeId]);
@@ -85,7 +79,7 @@ export function NavigationContainer() {
             <Route path="/store/:storeId/product/:productId" element={<StoreProductRoute />} />
             <Route path="/cart" element={<PlaceholderScreen name="Корзина" />} />
             <Route path="/profile" element={<PlaceholderScreen name="Профиль" />} />
-            <Route path="/seller/:sellerId" element={<LegacySellerRedirect />} />
+            <Route path="/seller/:sellerId" element={<PlaceholderScreen name="Seller Card" />} />
             <Route path="*" element={<PlaceholderScreen name="Страница не найдена" />} />
           </Routes>
         </Page>

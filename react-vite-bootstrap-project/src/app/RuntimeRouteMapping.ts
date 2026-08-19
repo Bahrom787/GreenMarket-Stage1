@@ -24,7 +24,7 @@ function isGlobalProductPath(pathname: string) {
 export function entryFromPath(pathname: string): NavigationEntry | null {
   const storeHome = pathname.match(/^\/store\/([^/]+)$/)?.[1];
   if (storeHome) {
-    return { screen: 'SellerCard', params: { sellerId: asSellerId(storeHome) } };
+    return { screen: 'StoreHome', params: { storeId: asSellerId(storeHome) } };
   }
   const sellerId = pathname.match(/^\/seller\/([^/]+)$/)?.[1];
   if (sellerId) {
@@ -47,8 +47,11 @@ export function entryFromPath(pathname: string): NavigationEntry | null {
 }
 
 export function pathFromEntry(entry: NavigationEntry): string | null {
+  if (entry.screen === 'StoreHome') {
+    return `/store/${entry.params.storeId}`;
+  }
   if (entry.screen === 'SellerCard') {
-    return `/store/${entry.params.sellerId}`;
+    return `/seller/${entry.params.sellerId}`;
   }
   if (entry.screen === 'SellerCatalog') {
     const category = entry.params.categoryId ? `?group_id=${entry.params.categoryId}` : '';

@@ -24,6 +24,7 @@ export type ScreenId =
   | "Basket"
   | "Favorites"
   | "PurchaseOptions"
+  | "StoreHome"
   | "SellerCard"
   | "SellerCatalog"
   /* AR-003: Map — полноценный экран, НЕ корневой (см. ROOT_ENTRY ниже).
@@ -45,6 +46,7 @@ export interface ScreenParamsMap {
   Basket: Record<string, never>;
   Favorites: Record<string, never>;
   PurchaseOptions: Record<string, never>;
+  StoreHome: { storeId: SellerId };
   SellerCard: { sellerId: SellerId };
   SellerCatalog: { sellerId: SellerId; categoryId?: CategoryId };
   Map: Record<string, never>;
