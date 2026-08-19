@@ -1,8 +1,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fetchSellerProducts } from '../api';
+import { fetchSellerProducts, normalizeCatalogApiBase } from '../api';
 
 describe('catalog api', () => {
   afterEach(() => vi.unstubAllGlobals());
+
+  it('accepts an origin-only backend env value', () => {
+    expect(normalizeCatalogApiBase('https://testapi.vnespecplanpodaz.online/')).toBe(
+      'https://testapi.vnespecplanpodaz.online/api/v1/catalog',
+    );
+    expect(normalizeCatalogApiBase('https://testapi.vnespecplanpodaz.online/api/v1/catalog/')).toBe(
+      'https://testapi.vnespecplanpodaz.online/api/v1/catalog',
+    );
+  });
 
   it('uses the scoped seller catalog endpoint without global fallback', async () => {
     const fetch = vi.fn().mockResolvedValue(

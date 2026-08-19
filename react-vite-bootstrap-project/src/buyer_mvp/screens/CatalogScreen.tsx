@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Text, Loader, ErrorState, EmptyState, Button } from '@/design-system/components';
+import { Text, ErrorState, EmptyState, Button } from '@/design-system/components';
 import { Grid, Stack, Row } from '@/layout';
 import { fetchProducts, fetchSeller, fetchSellerProducts, CatalogApiError } from '../api';
 import { SearchBar } from '../components/SearchBar';
-import { ProductCard } from '../components/ProductCard';
+import { ProductCard, ProductCardSkeleton } from '../components/ProductCard';
 import { globalCatalogContext, isStoreContext, productPath, type CatalogContext } from '../catalogContext';
 import { toGlobalProductCard, toStoreProductCard, type CatalogProductCardViewModel } from '../catalogPresentation';
 import type { CatalogQuery, SortOrder } from '../types';
@@ -126,7 +126,13 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
         )}
       </Row>
 
-      {state.status === 'loading' && <Loader size="lg" label="Загрузка каталога" />}
+      {state.status === 'loading' && (
+        <Grid gap="md" aria-label="Загрузка каталога">
+          {Array.from({ length: 6 }, (_, index) => (
+            <ProductCardSkeleton key={index} />
+          ))}
+        </Grid>
+      )}
 
       {state.status === 'error' && (
         <ErrorState title="Не удалось загрузить каталог" description={state.message} action={<Button onClick={load}>Повторить</Button>} />

@@ -18,7 +18,7 @@ export default defineConfig({
       // (см. buyer_mvp/api.ts и бриф, раздел 10). В проде используется
       // VITE_API_BASE напрямую, прокси в билд не попадает.
       '/api/v1/catalog': {
-        target: 'http://104.171.133.95',
+        target: 'https://testapi.vnespecplanpodaz.online',
         changeOrigin: true,
       },
     },

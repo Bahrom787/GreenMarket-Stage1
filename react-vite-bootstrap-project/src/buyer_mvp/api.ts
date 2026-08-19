@@ -8,12 +8,18 @@ import type {
   SellerCatalogResponse,
 } from './types';
 
-const DEV_API_BASE = '/api/v1/catalog';
+const CATALOG_API_SCOPE = '/api/v1/catalog';
 const configuredApiBase = import.meta.env.VITE_API_BASE as string | undefined;
 
 // In production the backend origin must be configured explicitly. Falling back to
 // the frontend origin hides deployment errors and makes API connectivity unverifiable.
-const API_BASE = configuredApiBase ?? (import.meta.env.DEV ? DEV_API_BASE : '');
+const API_BASE = normalizeCatalogApiBase(configuredApiBase) ?? (import.meta.env.DEV ? CATALOG_API_SCOPE : '');
+
+export function normalizeCatalogApiBase(value?: string) {
+  const base = value?.trim().replace(/\/+$/, '');
+  if (!base) return undefined;
+  return base.endsWith(CATALOG_API_SCOPE) ? base : `${base}${CATALOG_API_SCOPE}`;
+}
 
 export class CatalogApiError extends Error {
   constructor(

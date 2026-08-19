@@ -49,7 +49,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--font-size-display1);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
 }
 
 .gm-buyer-product-card,
@@ -80,6 +82,36 @@
 .gm-buyer-product-card__price,
 .gm-buyer-product-card__meta {
   overflow-wrap: anywhere;
+}
+
+.gm-buyer-product-card--skeleton {
+  cursor: wait;
+}
+
+.gm-buyer-card-skeleton__media,
+.gm-buyer-card-skeleton__line {
+  background: var(--color-surface-sunken);
+}
+
+.gm-buyer-card-skeleton__line {
+  height: 16px;
+  border-radius: var(--radius-sm);
+}
+
+.gm-buyer-card-skeleton__line--title {
+  width: 100%;
+}
+
+.gm-buyer-card-skeleton__line--title-short {
+  width: 72%;
+}
+
+.gm-buyer-card-skeleton__line--price {
+  width: 48%;
+}
+
+.gm-buyer-card-skeleton__line--meta {
+  width: 60%;
 }
 
 .gm-buyer-offer-card {
