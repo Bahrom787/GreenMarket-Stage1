@@ -1,7 +1,8 @@
 // price/min_price/stock приходят строками (Decimal на бэке) — здесь единственное
 // место, где Buyer MVP парсит их для отображения.
 
-export function formatPrice(value: string): string {
+export function formatPrice(value?: string | null): string {
+  if (value == null || value.trim() === '') return 'Цена не указана';
   const n = Number(value);
   if (Number.isNaN(n)) return value;
   return `${n.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ₽`;

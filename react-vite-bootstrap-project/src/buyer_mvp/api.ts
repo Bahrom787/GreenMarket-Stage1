@@ -4,6 +4,8 @@ import type {
   ProductDetail,
   ProductGroupsResponse,
   ProductListResponse,
+  SellerCardResponse,
+  SellerCatalogResponse,
 } from './types';
 
 const DEV_API_BASE = '/api/v1/catalog';
@@ -57,13 +59,27 @@ export function fetchGroups(): Promise<ProductGroupsResponse> {
 }
 
 export function fetchProducts(query: CatalogQuery = {}): Promise<ProductListResponse> {
+  return request<ProductListResponse>(`/products?${productQueryParams(query).toString()}`);
+}
+
+export function fetchSeller(storeId: string): Promise<SellerCardResponse> {
+  return request<SellerCardResponse>(`/sellers/${encodeURIComponent(storeId)}`);
+}
+
+export function fetchSellerProducts(storeId: string, query: CatalogQuery = {}): Promise<SellerCatalogResponse> {
+  return request<SellerCatalogResponse>(
+    `/sellers/${encodeURIComponent(storeId)}/products?${productQueryParams(query).toString()}`,
+  );
+}
+
+function productQueryParams(query: CatalogQuery) {
   const params = new URLSearchParams();
   if (query.groupId != null) params.set('group_id', String(query.groupId));
   if (query.search) params.set('search', query.search);
   params.set('sort', query.sort ?? 'name');
   params.set('page', String(query.page ?? 1));
   if (query.limit != null) params.set('limit', String(query.limit));
-  return request<ProductListResponse>(`/products?${params.toString()}`);
+  return params;
 }
 
 export function fetchProduct(id: number): Promise<ProductDetail> {
