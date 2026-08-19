@@ -4,12 +4,24 @@ import { fetchSellerProducts, normalizeCatalogApiBase } from '../api';
 describe('catalog api', () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it('accepts an origin-only backend env value', () => {
+  it('accepts origin-only and scoped backend env values', () => {
+    expect(normalizeCatalogApiBase('https://testapi.vnespecplanpodaz.online')).toBe(
+      'https://testapi.vnespecplanpodaz.online/api/v1/catalog',
+    );
     expect(normalizeCatalogApiBase('https://testapi.vnespecplanpodaz.online/')).toBe(
+      'https://testapi.vnespecplanpodaz.online/api/v1/catalog',
+    );
+    expect(normalizeCatalogApiBase('https://testapi.vnespecplanpodaz.online/api/v1/catalog')).toBe(
       'https://testapi.vnespecplanpodaz.online/api/v1/catalog',
     );
     expect(normalizeCatalogApiBase('https://testapi.vnespecplanpodaz.online/api/v1/catalog/')).toBe(
       'https://testapi.vnespecplanpodaz.online/api/v1/catalog',
+    );
+  });
+
+  it('rejects backend env values with unrelated paths', () => {
+    expect(() => normalizeCatalogApiBase('https://testapi.vnespecplanpodaz.online/some/path')).toThrow(
+      'VITE_API_BASE must be backend origin or /api/v1/catalog.',
     );
   });
 
