@@ -17,7 +17,7 @@ export function toGlobalProductCard(product: ProductListItem): CatalogProductCar
     name: product.name,
     photos: product.photos,
     priceText: `${product.offer_count > 1 ? 'от ' : ''}${formatPrice(product.min_price)}`,
-    metaText: formatOfferCount(product.offer_count),
+    metaText: product.offer_count > 1 ? formatOfferCount(product.offer_count) : undefined,
   };
 }
 

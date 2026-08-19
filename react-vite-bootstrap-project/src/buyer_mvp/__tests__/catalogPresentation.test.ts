@@ -6,7 +6,7 @@ describe('catalog presentation', () => {
   it('shows a plain price for one global offer and a min price for multiple offers', () => {
     const product: ProductListItem = { id: 1, name: 'Аджика', min_price: '125.00', offer_count: 1, photos: [] };
 
-    expect(toGlobalProductCard(product).priceText).toBe('125 ₽');
+    expect(toGlobalProductCard(product)).toMatchObject({ priceText: '125 ₽', metaText: undefined });
 
     expect(toGlobalProductCard({ ...product, offer_count: 3 }).priceText).toBe('от 125 ₽');
     expect(toGlobalProductCard({ ...product, offer_count: 3 }).metaText).toBe('3 предложения');
