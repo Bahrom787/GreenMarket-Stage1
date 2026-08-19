@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fetchSellerProduct, fetchSellerProducts, normalizeCatalogApiBase } from '../api';
+import { fetchSeller, fetchSellerProduct, fetchSellerProducts, normalizeCatalogApiBase } from '../api';
 import type { SellerCatalogItem } from '../types';
 
 const sellerProduct: SellerCatalogItem = {
@@ -66,6 +66,27 @@ describe('catalog api', () => {
     expect(fetch).toHaveBeenCalledWith(
       '/api/v1/catalog/sellers/seller%201/products?group_id=7&search=milk&sort=price&page=2&limit=10',
     );
+  });
+
+  it('loads Store Home from the seller endpoint without catalog fallback', async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      response({
+        seller_id: 6,
+        name: 'Лавка зелени',
+        market: null,
+        row: null,
+        place: null,
+        working_hours: null,
+        short_description: null,
+        phone: null,
+        whatsapp: null,
+      }),
+    );
+    vi.stubGlobal('fetch', fetch);
+
+    await expect(fetchSeller('seller 1')).resolves.toMatchObject({ name: 'Лавка зелени' });
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(fetch).toHaveBeenCalledWith('/api/v1/catalog/sellers/seller%201');
   });
 
   it('finds Store Product Detail through seller-scoped catalog pages', async () => {

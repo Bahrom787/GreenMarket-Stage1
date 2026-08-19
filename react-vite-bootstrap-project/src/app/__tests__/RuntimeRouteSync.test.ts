@@ -16,6 +16,10 @@ describe('RuntimeRouteSync route mapping', () => {
       screen: 'SellerCard',
       params: { sellerId: asSellerId('seller-1') },
     });
+    expect(entryFromPath('/store/seller-1')).toEqual({
+      screen: 'StoreHome',
+      params: { storeId: asSellerId('seller-1') },
+    });
     expect(entryFromPath('/store/seller-1/catalog')).toEqual({
       screen: 'SellerCatalog',
       params: { sellerId: asSellerId('seller-1') },
@@ -30,6 +34,9 @@ describe('RuntimeRouteSync route mapping', () => {
     expect(pathFromEntry({ screen: 'Catalog', params: {} })).toBe('/');
     expect(pathFromEntry({ screen: 'Map', params: {} })).toBe('/map');
     expect(pathFromEntry({ screen: 'SellerList', params: {} })).toBe('/seller-list');
+    expect(
+      pathFromEntry({ screen: 'StoreHome', params: { storeId: asSellerId('seller-1') } }),
+    ).toBe('/store/seller-1');
     expect(
       pathFromEntry({ screen: 'SellerCard', params: { sellerId: asSellerId('seller-1') } }),
     ).toBe('/seller/seller-1');
