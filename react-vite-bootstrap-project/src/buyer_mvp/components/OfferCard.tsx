@@ -1,29 +1,31 @@
 import { Card, Text, Divider } from '@/design-system/components';
 import { PhotoStrip } from './PhotoStrip';
-import { formatPrice, formatStock } from '../format';
-import type { SellerOffer } from '../types';
+import type { ProductDetailOfferViewModel } from '../productDetailPresentation';
 
 interface OfferCardProps {
-  offer: SellerOffer;
+  offer: ProductDetailOfferViewModel;
+  showSellerName?: boolean;
+  showPhotos?: boolean;
 }
 
-/** Экран 3 (Карточка товара): продавец, цена, единица, остаток, фото (все, лентой), описание. */
-export function OfferCard({ offer }: OfferCardProps) {
+/** Product Detail offer block. Data semantics are prepared before JSX. */
+export function OfferCard({ offer, showSellerName = true, showPhotos = true }: OfferCardProps) {
   return (
     <Card className="gm-buyer-offer-card">
-      <PhotoStrip photos={offer.photos} label={offer.seller_name} />
-      <Text variant="bodyStrong" as="h3">
-        {offer.seller_name}
-      </Text>
-      <Text variant="title" as="p">
-        {formatPrice(offer.price)}{' '}
-        <Text as="span" variant="caption" tone="secondary">
-          / {offer.unit}
+      {showPhotos && <PhotoStrip photos={offer.photos} label={offer.sellerName ?? 'Фото товара'} />}
+      {showSellerName && offer.sellerName && (
+        <Text variant="bodyStrong" as="h3">
+          {offer.sellerName}
         </Text>
+      )}
+      <Text variant="title" as="p">
+        {offer.priceText}
       </Text>
-      <Text variant="caption" tone="secondary">
-        Остаток: {formatStock(offer.stock, offer.unit)}
-      </Text>
+      {offer.stockText && (
+        <Text variant="caption" tone="secondary">
+          {offer.stockText}
+        </Text>
+      )}
       {offer.description && (
         <>
           <Divider />

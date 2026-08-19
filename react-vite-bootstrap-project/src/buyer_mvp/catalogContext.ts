@@ -1,6 +1,4 @@
-export type CatalogContext =
-  | { kind: 'global' }
-  | { kind: 'store'; storeId: string };
+export type CatalogContext = { kind: 'global' } | { kind: 'store'; storeId: string };
 
 export const globalCatalogContext: CatalogContext = { kind: 'global' };
 
@@ -12,10 +10,16 @@ export function catalogPath(context: CatalogContext, search = '') {
   return context.kind === 'store' ? `/store/${context.storeId}/catalog${search}` : `/${search}`;
 }
 
-export function productPath(context: CatalogContext, productId: number) {
-  return context.kind === 'store' ? `/store/${context.storeId}/product/${productId}` : `/product/${productId}`;
+export function productPath(context: CatalogContext, productId: number, search = '') {
+  const path =
+    context.kind === 'store'
+      ? `/store/${context.storeId}/product/${productId}`
+      : `/product/${productId}`;
+  return `${path}${search}`;
 }
 
-export function isStoreContext(context: CatalogContext): context is Extract<CatalogContext, { kind: 'store' }> {
+export function isStoreContext(
+  context: CatalogContext,
+): context is Extract<CatalogContext, { kind: 'store' }> {
   return context.kind === 'store';
 }

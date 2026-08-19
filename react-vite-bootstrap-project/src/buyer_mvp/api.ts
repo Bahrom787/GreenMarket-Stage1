@@ -5,10 +5,12 @@ import type {
   ProductGroupsResponse,
   ProductListResponse,
   SellerCardResponse,
+  SellerCatalogItem,
   SellerCatalogResponse,
 } from './types';
 
 const CATALOG_API_SCOPE = '/api/v1/catalog';
+const SELLER_PRODUCT_LOOKUP_LIMIT = 100;
 const configuredApiBase = import.meta.env.VITE_API_BASE as string | undefined;
 
 // In production the backend origin must be configured explicitly. Falling back to
@@ -16,7 +18,9 @@ const configuredApiBase = import.meta.env.VITE_API_BASE as string | undefined;
 let apiBaseConfigError: string | undefined;
 const API_BASE = (() => {
   try {
-    return normalizeCatalogApiBase(configuredApiBase) ?? (import.meta.env.DEV ? CATALOG_API_SCOPE : '');
+    return (
+      normalizeCatalogApiBase(configuredApiBase) ?? (import.meta.env.DEV ? CATALOG_API_SCOPE : '')
+    );
   } catch (err) {
     apiBaseConfigError = err instanceof Error ? err.message : 'VITE_API_BASE is invalid.';
     return '';
@@ -93,9 +97,49 @@ export function fetchSeller(storeId: string): Promise<SellerCardResponse> {
   return request<SellerCardResponse>(`/sellers/${encodeURIComponent(storeId)}`);
 }
 
-export function fetchSellerProducts(storeId: string, query: CatalogQuery = {}): Promise<SellerCatalogResponse> {
+export function fetchSellerProducts(
+  storeId: string,
+  query: CatalogQuery = {},
+): Promise<SellerCatalogResponse> {
   return request<SellerCatalogResponse>(
     `/sellers/${encodeURIComponent(storeId)}/products?${productQueryParams(query).toString()}`,
+  );
+}
+
+export async function fetchSellerProduct(
+  storeId: string,
+  productId: number,
+  sellerProductId?: number,
+): Promise<SellerCatalogItem> {
+  let page = 1;
+  let hasNextPage = true;
+
+  while (hasNextPage) {
+    // ponytail: scoped list scan until backend exposes /sellers/{storeId}/products/{productId}.
+    const res = await fetchSellerProducts(storeId, { page, limit: SELLER_PRODUCT_LOOKUP_LIMIT });
+    const found = res.products.find(
+      (product) =>
+        product.product_id === productId &&
+        (sellerProductId == null || product.seller_product_id === sellerProductId),
+    );
+    if (found) return found;
+
+    const limit = res.limit || SELLER_PRODUCT_LOOKUP_LIMIT;
+    hasNextPage = page * limit < res.total;
+    if (!hasNextPage) {
+      throw new CatalogApiError(
+        'Предложение магазина больше недоступно.',
+        404,
+        'SELLER_PRODUCT_NOT_FOUND',
+      );
+    }
+    page += 1;
+  }
+
+  throw new CatalogApiError(
+    'Предложение магазина больше недоступно.',
+    404,
+    'SELLER_PRODUCT_NOT_FOUND',
   );
 }
 

@@ -118,6 +118,16 @@
   cursor: default;
 }
 
+.gm-buyer-product-detail {
+  min-width: 0;
+}
+
+.gm-buyer-product-detail h1,
+.gm-buyer-product-detail h2,
+.gm-buyer-product-detail p {
+  overflow-wrap: anywhere;
+}
+
 .gm-buyer-search {
   position: relative;
   display: flex;
@@ -144,7 +154,9 @@
 
 .gm-buyer-search:focus-within {
   border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 3px var(--color-selected-subtle), var(--shadow-md);
+  box-shadow:
+    0 0 0 3px var(--color-selected-subtle),
+    var(--shadow-md);
 }
 
 .gm-buyer-search__icon {

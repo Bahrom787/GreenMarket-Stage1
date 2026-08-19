@@ -30,12 +30,12 @@ describe('RuntimeRouteSync route mapping', () => {
     expect(pathFromEntry({ screen: 'Catalog', params: {} })).toBe('/');
     expect(pathFromEntry({ screen: 'Map', params: {} })).toBe('/map');
     expect(pathFromEntry({ screen: 'SellerList', params: {} })).toBe('/seller-list');
-    expect(pathFromEntry({ screen: 'SellerCard', params: { sellerId: asSellerId('seller-1') } })).toBe(
-      '/seller/seller-1',
-    );
-    expect(pathFromEntry({ screen: 'SellerCatalog', params: { sellerId: asSellerId('seller-1') } })).toBe(
-      '/store/seller-1/catalog',
-    );
+    expect(
+      pathFromEntry({ screen: 'SellerCard', params: { sellerId: asSellerId('seller-1') } }),
+    ).toBe('/seller/seller-1');
+    expect(
+      pathFromEntry({ screen: 'SellerCatalog', params: { sellerId: asSellerId('seller-1') } }),
+    ).toBe('/store/seller-1/catalog');
     expect(
       pathFromEntry({
         screen: 'ProductCard',
@@ -53,5 +53,13 @@ describe('RuntimeRouteSync route mapping', () => {
     expect(nextPathFromRuntime('/', catalogEntry)).toBeNull();
     expect(nextPathFromRuntime('/catalog', catalogEntry)).toBe('/');
     expect(nextPathFromRuntime('/map', catalogEntry)).toBe('/');
+  });
+
+  it('does not overwrite React-owned Global Product Detail routes', () => {
+    const catalogEntry = { screen: 'Catalog' as const, params: {} };
+
+    expect(entryFromPath('/product/42')).toBeNull();
+    expect(nextPathFromRuntime('/product/42', catalogEntry)).toBeNull();
+    expect(nextPathFromRuntime('/product/42', { screen: 'Map', params: {} })).toBe('/map');
   });
 });

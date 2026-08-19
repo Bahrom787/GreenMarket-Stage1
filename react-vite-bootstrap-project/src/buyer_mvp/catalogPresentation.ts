@@ -7,6 +7,7 @@ export interface CatalogProductCardViewModel {
   key: string;
   context: ProductCardContext;
   id: number;
+  sellerProductId?: number;
   name: string;
   photos: string[];
   priceText: string;
@@ -42,6 +43,7 @@ export function toStoreProductCard(product: SellerCatalogItem): CatalogProductCa
     key: `store-${product.seller_product_id}`,
     context: 'STORE',
     id: product.product_id,
+    sellerProductId: product.seller_product_id,
     name: product.name || product.catalog_name,
     photos: product.photos ?? [],
     priceText: hasPrice && product.unit ? `${priceText} / ${product.unit}` : priceText,
