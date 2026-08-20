@@ -1,6 +1,8 @@
-# Platform Core Reconciliation
+# Platform Core Ownership Reconciliation
 
-**PR scope:** Platform Core reconciliation only. Map and SellerCard migration are out of scope.
+**PR scope:** ownership reconciliation for Platform Core only. This PR does not migrate Map, SellerCard, runtime repositories, persistence, or screen-specific CSS.
+
+This document records the canonical runtime source, reference-copy rules, and accepted guardrails for Stage1. It does not claim a complete line-by-line semantic merge of both Platform Core copies. Full contract/runtime reconciliation remains a separate follow-up stage.
 
 ## Ownership
 
@@ -10,7 +12,9 @@
 
 No sync mechanism was found between the two copies. Treat differences as semantic conflicts, not generated drift.
 
-## Semantic Diff Summary
+## Contract Decision Summary
+
+The table below records the accepted source of truth for this PR and the next action for each area. Donor contracts are treated as reference material until a dedicated semantic diff proves that a specific change should be ported.
 
 | Area | Stage1 decision | Donor decision | Reason |
 |---|---|---|---|
@@ -29,9 +33,13 @@ No sync mechanism was found between the two copies. Treat differences as semanti
 `PlatformCoreOwnership.test.ts` verifies:
 
 - canonical Platform Core exists under `react-vite-bootstrap-project/src/platform-core/`
-- reference copy exists but is not imported by app source
+- app runtime source does not import the reference Platform Core copy through static imports, side-effect imports, re-exports, CommonJS `require`, or dynamic `import()`
 - `StoreHomeBuilder`, `StoreHomeScreen`, and `StoreHomeViewModel` remain present
 
+Reference-copy existence is intentionally not a runtime invariant. If `greenmarket/GreenMarket/` is removed after migration is complete, this regression test should continue to pass as long as runtime imports still use only the canonical copy.
+
 ## Next Stage Candidates
+
+Dedicated runtime reconciliation should perform the full semantic diff for contracts such as `Action.ts`, `ContentBlock.ts`, `DomainTypes.ts`, `LoadState.ts`, and `ViewState.ts` before porting any donor behavior.
 
 Donor Map runtime/repository/persistence and SellerCard files remain candidates for later PRs. They are not ported here.
