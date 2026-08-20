@@ -6,6 +6,8 @@ export type ProductDetailContext = 'GLOBAL' | 'STORE';
 export interface ProductDetailOfferViewModel {
   key: string;
   sellerName?: string;
+  storePath?: string;
+  storeActionLabel?: string;
   photos: string[];
   priceText: string;
   stockText?: string;
@@ -44,6 +46,10 @@ export function toGlobalProductDetail(product: ProductDetail): ProductDetailView
   const offers = product.offers.map((offer) => ({
     key: `global-${offer.seller_product_id}`,
     sellerName: hasValue(offer.seller_name) ? offer.seller_name : undefined,
+    storePath: `/store/${offer.seller_id}`,
+    storeActionLabel: hasValue(offer.seller_name)
+      ? `Перейти в магазин «${offer.seller_name}»`
+      : `Перейти в магазин ${offer.seller_id}`,
     photos: cleanPhotos(offer.photos),
     priceText: formatUnitPrice(offer.price, offer.unit),
     stockText: toStockText(offer.stock, offer.unit),

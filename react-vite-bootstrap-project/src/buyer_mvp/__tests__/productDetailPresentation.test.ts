@@ -127,6 +127,74 @@ describe('product detail presentation', () => {
     expect(vm.offers.map((offer) => offer.photos)).toEqual([['a.jpg'], ['b.jpg'], ['c.jpg']]);
   });
 
+  it('builds Store Home links from each Global offer seller_id', () => {
+    const vm = toGlobalProductDetail({
+      id: 18,
+      name: 'Авокадо',
+      description: null,
+      offers: [
+        {
+          seller_product_id: 101,
+          seller_id: 6,
+          seller_name: 'Магазин A',
+          price: '120.00',
+          unit: 'шт',
+          stock: null,
+          description: null,
+          photos: [],
+        },
+        {
+          seller_product_id: 102,
+          seller_id: 9,
+          seller_name: 'Магазин B',
+          price: '130.00',
+          unit: 'шт',
+          stock: null,
+          description: null,
+          photos: [],
+        },
+      ],
+    });
+
+    expect(vm.offers.map((offer) => offer.storePath)).toEqual(['/store/6', '/store/9']);
+    expect(vm.offers.map((offer) => offer.storeActionLabel)).toEqual([
+      'Перейти в магазин «Магазин A»',
+      'Перейти в магазин «Магазин B»',
+    ]);
+  });
+
+  it('keeps multiple Global offers from one seller linked to the same Store Home', () => {
+    const vm = toGlobalProductDetail({
+      id: 18,
+      name: 'Авокадо',
+      description: null,
+      offers: [
+        {
+          seller_product_id: 101,
+          seller_id: 6,
+          seller_name: 'Магазин A',
+          price: '120.00',
+          unit: 'шт',
+          stock: null,
+          description: null,
+          photos: [],
+        },
+        {
+          seller_product_id: 102,
+          seller_id: 6,
+          seller_name: 'Магазин A',
+          price: '130.00',
+          unit: 'шт',
+          stock: null,
+          description: null,
+          photos: [],
+        },
+      ],
+    });
+
+    expect(vm.offers.map((offer) => offer.storePath)).toEqual(['/store/6', '/store/6']);
+  });
+
   it('keeps empty offer photos empty without using another seller photo', () => {
     const vm = toGlobalProductDetail({
       id: 19,
@@ -180,6 +248,7 @@ describe('product detail presentation', () => {
     });
     expect(vm.offers).toHaveLength(1);
     expect(vm.offers[0]).not.toHaveProperty('sellerName');
+    expect(vm.offers[0]).not.toHaveProperty('storePath');
     expect(vm).not.toHaveProperty('photos');
   });
 
