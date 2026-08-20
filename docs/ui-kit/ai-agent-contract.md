@@ -12,8 +12,10 @@ AI agents implementing GreenMarket UI must reuse the canonical UI Kit and Design
 6. Add domain components only for reusable semantic roles or documented patterns.
 7. Keep business/domain logic out of presentational components.
 8. Do not modify Platform Core for UI Kit work unless separately authorized.
-9. Do not replace the current implementation with an external UI kit during ordinary screen work.
-10. External libraries may be evaluated separately as implementation foundations.
+9. Do not treat Platform Core builders, adapters, runtime entries or view models as UI Kit components.
+10. Treat `Existing`, `Candidate` and `Planned/Missing` inventory entries as non-canonical until the docs explicitly promote them.
+11. Do not replace the current implementation with an external UI kit during ordinary screen work.
+12. External libraries may be evaluated separately as implementation foundations.
 
 ## Required component record
 

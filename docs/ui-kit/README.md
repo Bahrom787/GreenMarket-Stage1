@@ -9,6 +9,7 @@ It is not a new Design System and does not modify Platform Core.
 Design System → GM UI Kit → GM Screens
 
 Platform Core remains the application/runtime infrastructure and is unchanged.
+Platform Core components are not UI Kit components.
 
 ## Rules
 
@@ -22,6 +23,13 @@ Platform Core remains the application/runtime infrastructure and is unchanged.
 
 ## Initial inventory
 
+Inventory status values must stay explicit:
+
+- `Existing` — implemented in current GreenMarket code, but not yet canonical.
+- `Canonical` — accepted as part of the GreenMarket UI Kit contract.
+- `Candidate` — can become canonical after audit or reconciliation.
+- `Planned/Missing` — required or proposed, but not implemented or not verified yet.
+
 ### Primitives
 Text, Icon, Surface, Card, Divider, Avatar, Badge, Chip, Button, IconButton, Loader, ListItem, EmptyState, ErrorState, Snackbar, DialogSurface, BottomSheetSurface.
 
@@ -30,6 +38,8 @@ ProductCard, SellerCard, SellerListItem, PurchaseSummary.
 
 ### Map components
 MapFabButton, MapFabPanel, MapLegend, MapSearchAutocomplete, MapBottomSheetContent.
+
+Map components currently implemented in the parallel Map repository are candidates for canonical UI Kit components and must be reconciled before migration.
 
 ### Patterns
 Catalog, Seller Card, Purchase Options, Bottom Sheet, Search, Filters, Map.
