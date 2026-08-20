@@ -88,10 +88,42 @@ This prepared branch intentionally contains only migration documentation:
 ```text
 docs/merge/MIGRATION-MANIFEST.md
 docs/merge/MIGRATION-PREP-REPORT.md
+docs/merge/FILE-LEVEL-MIGRATION-INVENTORY.md
+docs/merge/PLATFORM-CORE-OWNERSHIP.md
+docs/merge/DONOR-HISTORY-STRATEGY.md
 ```
 
 No app code, Platform Core, Buyer MVP, Map or Seller Card implementation files are changed in this preparation branch.
 
+## File-Level Inventory
+
+Full overlapping file inventory is documented in `docs/merge/FILE-LEVEL-MIGRATION-INVENTORY.md`.
+
+It classifies 275 files that exist in both Stage1 and donor repositories at the same path. Each row includes:
+
+- migration status
+- source decision
+- reason
+- dependencies
+- concrete action
+
+## Platform Core Ownership
+
+Platform Core ownership is documented in `docs/merge/PLATFORM-CORE-OWNERSHIP.md`.
+
+Current decision for migration preparation:
+
+- `react-vite-bootstrap-project/src/platform-core/` is the app runtime/consumer copy used by Stage1 build and tests.
+- `greenmarket/GreenMarket/` is a reference/library-style copy until ownership is explicitly accepted.
+- no automatic sync mechanism was found between the copies.
+- donor Platform Core files must not replace Stage1 copies wholesale.
+
+## Donor History Strategy
+
+Donor history strategy is documented in `docs/merge/DONOR-HISTORY-STRATEGY.md`.
+
+Selected strategy: keep `donor-greenmarket` remote and preserve provenance through explicit capability migration commits. Do not use `merge --allow-unrelated-histories` for this migration, and do not import donor as a subtree in this preparation branch.
+
 ## Next Step
 
-Review the unresolved semantic conflicts. After ownership and route semantics are accepted, create the next migration PR for one narrow slice only, preferably Map capability inventory or a single Map module with adapted tests.
+Review the file-level inventory, Platform Core ownership decision and donor history strategy. After these are accepted, migrate one narrow capability slice at a time from the same branch or from a follow-up implementation branch.
