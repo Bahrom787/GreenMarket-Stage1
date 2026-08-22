@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Button, ErrorState, Loader, Text } from '@/design-system/components';
 import { Row, Stack } from '@/layout';
 import { CatalogApiError, fetchSeller } from '../api';
@@ -23,6 +23,7 @@ function StoreInfoRow({ label, value }: { label: string; value: string }) {
 export function StoreHomeScreen() {
   const { storeId } = useParams<{ storeId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [state, setState] = useState<LoadState>({ status: 'loading' });
 
   const load = useCallback(() => {
@@ -59,7 +60,7 @@ export function StoreHomeScreen() {
   }, [load]);
 
   function openCatalog() {
-    if (storeId) navigate(catalogPath(storeCatalogContext(storeId)));
+    if (storeId) navigate(catalogPath(storeCatalogContext(storeId), location.search));
   }
 
   return (

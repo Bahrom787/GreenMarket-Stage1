@@ -6,6 +6,7 @@ import { SellerListScreenView } from '@/screens/seller-list/SellerListScreenView
 import { Header, Page, Row } from '@/layout';
 import '@/buyer_mvp/buyer_mvp.css';
 import { CatalogScreen } from '@/buyer_mvp/screens/CatalogScreen';
+import { HomeScreen } from '@/buyer_mvp/screens/HomeScreen';
 import { ProductScreen } from '@/buyer_mvp/screens/ProductScreen';
 import { StoreHomeScreen } from '@/buyer_mvp/screens/StoreHomeScreen';
 import { globalCatalogContext, storeCatalogContext } from '@/buyer_mvp/catalogContext';
@@ -71,7 +72,7 @@ export function NavigationContainer() {
         <Page>
           <Routes>
             <Route path="/" element={<CatalogScreen context={globalCatalogContext} />} />
-            <Route path="/home" element={<Navigate to="/" replace />} />
+            <Route path="/home" element={<HomeScreen />} />
             <Route path="/catalog" element={<LegacyCatalogRedirect />} />
             <Route path="/product/:productId" element={<ProductScreen context={globalCatalogContext} />} />
             <Route path="/store/:storeId" element={<StoreHomeScreen />} />

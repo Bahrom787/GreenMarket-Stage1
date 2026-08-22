@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   catalogPath,
+  globalHomePath,
   globalCatalogContext,
   productPath,
   storeCatalogContext,
@@ -11,6 +12,7 @@ describe('catalog context routing', () => {
   it('builds canonical Global Context routes', () => {
     expect(catalogPath(globalCatalogContext)).toBe('/');
     expect(catalogPath(globalCatalogContext, '?search=milk')).toBe('/?search=milk');
+    expect(globalHomePath()).toBe('/home');
     expect(productPath(globalCatalogContext, 42)).toBe('/product/42');
     expect(productPath(globalCatalogContext, 42, '?search=milk')).toBe('/product/42?search=milk');
   });
@@ -19,6 +21,7 @@ describe('catalog context routing', () => {
     const context = storeCatalogContext('seller-1');
 
     expect(storeHomePath(context.storeId)).toBe('/store/seller-1');
+    expect(storeHomePath(context.storeId, '?search=milk')).toBe('/store/seller-1?search=milk');
     expect(catalogPath(context)).toBe('/store/seller-1/catalog');
     expect(catalogPath(context, '?search=milk')).toBe('/store/seller-1/catalog?search=milk');
     expect(productPath(context, 42)).toBe('/store/seller-1/product/42');
