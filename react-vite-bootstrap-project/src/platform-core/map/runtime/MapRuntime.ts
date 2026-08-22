@@ -1,6 +1,13 @@
 import type { SellerId } from "@/platform-core/contracts/Action";
-import type { BottomSheetState, GeoPoint, MapBounds, SellerMapRecord, SellerSearchState } from "@/platform-core/map/viewmodels/MapViewModel";
-import type { CategoryOption } from "@/platform-core/map/repository/SellerRepository";
+import type {
+  BottomSheetState,
+  GeoPoint,
+  MapBounds,
+  ProductSearchState,
+  SellerMapRecord,
+  SellerSearchState,
+} from "@/platform-core/map/viewmodels/MapViewModel";
+import type { CategoryOption, SellerRepository } from "@/platform-core/map/repository/SellerRepository";
 import { defaultMapConfig } from "@/platform-core/map/gis/MapConfig";
 import { GeoService } from "@/platform-core/map/gis/GeoService";
 import { MockSellerRepository } from "@/platform-core/map/repository/MockSellerRepository";
@@ -86,6 +93,7 @@ export interface MapRuntimeState {
    *  пересчитывается из него тем же глобальным фильтром, что и visibleSellers
    *  (единая сущность — смена фильтра в любом месте видна во всех). */
   sellerSearch: SellerSearchState;
+  productSearch: ProductSearchState;
   mapCenter: GeoPoint;
   zoom: number;
   userLocation: GeoPoint | null;
@@ -113,6 +121,10 @@ export type MapRuntimeAction =
   | { type: "UNSELECT_SELLER" }
   | { type: "SEARCH_RESULT"; sellers: SellerMapRecord[] }
   | { type: "SEARCH_CLEARED" }
+  | { type: "PRODUCT_SEARCH_LOADING"; query: string }
+  | { type: "PRODUCT_SEARCH_SUCCESS"; query: string; result: ProductSearchState["result"] }
+  | { type: "PRODUCT_SEARCH_ERROR"; query: string; error: string }
+  | { type: "PRODUCT_SEARCH_CLEARED" }
   /* ======== Action'ы мастера «Поиск продавцов» (MAP-053/MAP-018) ========
    *  SELLER_SEARCH_OPEN — открыть мастер (экран выбора точки).
    *  SELLER_SEARCH_ORIGIN_PICKED { origin, label } — выбрана точка поиска;
@@ -152,6 +164,12 @@ const initialState: MapRuntimeState = {
     radiusMeters: DEFAULT_SELLER_SEARCH_RADIUS_METERS,
     rawResults: null,
     results: [],
+  },
+  productSearch: {
+    query: "",
+    status: "idle",
+    result: null,
+    error: null,
   },
   loading: false,
   error: false,
@@ -262,6 +280,14 @@ function reducer(state: MapRuntimeState, action: MapRuntimeAction): MapRuntimeSt
       return { ...state, searchResult: action.sellers };
     case "SEARCH_CLEARED":
       return { ...state, searchResult: null };
+    case "PRODUCT_SEARCH_LOADING":
+      return { ...state, productSearch: { query: action.query, status: "loading", result: null, error: null } };
+    case "PRODUCT_SEARCH_SUCCESS":
+      return { ...state, productSearch: { query: action.query, status: "success", result: action.result, error: null } };
+    case "PRODUCT_SEARCH_ERROR":
+      return { ...state, productSearch: { query: action.query, status: "error", result: null, error: action.error } };
+    case "PRODUCT_SEARCH_CLEARED":
+      return { ...state, productSearch: initialState.productSearch };
     case "SELLER_SEARCH_OPEN":
       // Открытие мастера: сбрасываем старый мастер и выбор продавца, показываем
       // шаг выбора точки (список «Моё местоположение» / «Положение на карте»).
@@ -350,7 +376,7 @@ function diagnosticsFor(action: MapRuntimeAction): void {
   }
 }
 
-function createMapRuntime() {
+export function createMapRuntime(repository: SellerRepository = MockSellerRepository) {
   let state = initialState;
   const listeners = new Set<() => void>();
 
@@ -373,13 +399,14 @@ function createMapRuntime() {
   let areaLabelSeq = 0;
   let sellerSearchTimer: ReturnType<typeof setTimeout> | null = null;
   let sellerSearchSeq = 0;
+  let productSearchSeq = 0;
 
   /** Фактическая загрузка продавцов (MAP-011): запрос Repository и применение
    *  ответа только если загрузка всё ещё последняя. */
   function loadVisibleSellersNow(bounds: MapBounds): void {
     const seq = ++visibleSellersSeq;
     dispatch({ type: "SELLERS_LOADING" });
-    void MockSellerRepository.getVisibleSellers(bounds)
+    void repository.getVisibleSellers(bounds)
       .then((visible) => {
         if (seq === visibleSellersSeq) dispatch({ type: "SELLERS_LOADED", sellers: visible });
       })
@@ -422,7 +449,7 @@ function createMapRuntime() {
     const search = state.sellerSearch;
     if (!search.origin) return;
     const seq = ++sellerSearchSeq;
-    void MockSellerRepository.searchSellersNear({
+    void repository.searchSellersNear({
       origin: search.origin,
       radiusMeters: search.radiusMeters,
       sort: { key: "distance" },
@@ -447,14 +474,38 @@ function createMapRuntime() {
   /** Поиск продавца по имени из строки поиска (MAP-053). Кладёт результат в
    *  state.searchResult и возвращает найденного продавца (null — не найден). */
   async function searchSellerByName(query: string): Promise<SellerMapRecord | null> {
-    const found = await MockSellerRepository.findSeller(query);
+    const found = await repository.findSeller(query);
     dispatch({ type: "SEARCH_RESULT", sellers: found ? [found] : [] });
     return found;
   }
 
+  async function searchProducts(query: string): Promise<void> {
+    const seq = ++productSearchSeq;
+    const trimmed = query.trim();
+    if (!trimmed) {
+      dispatch({ type: "PRODUCT_SEARCH_CLEARED" });
+      return;
+    }
+
+    dispatch({ type: "PRODUCT_SEARCH_LOADING", query: trimmed });
+    try {
+      const result = await repository.searchProducts(trimmed);
+      if (seq === productSearchSeq) dispatch({ type: "PRODUCT_SEARCH_SUCCESS", query: trimmed, result });
+    } catch {
+      if (seq === productSearchSeq) {
+        dispatch({ type: "PRODUCT_SEARCH_ERROR", query: trimmed, error: "Product search failed" });
+      }
+    }
+  }
+
+  function clearProductSearch(): void {
+    productSearchSeq += 1;
+    dispatch({ type: "PRODUCT_SEARCH_CLEARED" });
+  }
+
   /** Загрузка категорий для фильтра — источник опций группы «Категория». */
   function loadCategories(): void {
-    void MockSellerRepository.getCategories().then((categories) => {
+    void repository.getCategories().then((categories) => {
       dispatch({ type: "CATEGORIES_LOADED", categories });
     });
   }
@@ -473,6 +524,8 @@ function createMapRuntime() {
     scheduleSellerSearch,
     cancelPendingSellerSearch,
     searchSellerByName,
+    searchProducts,
+    clearProductSearch,
     loadCategories,
   };
 }

@@ -289,6 +289,7 @@ export function MapScreenView() {
       camera,
       bottomSheet: mapState.bottomSheet,
       sellerSearch: mapState.sellerSearch,
+      productSearch: mapState.productSearch,
       currentAreaLabel: mapState.currentAreaLabel,
     }),
     [mapState, camera],

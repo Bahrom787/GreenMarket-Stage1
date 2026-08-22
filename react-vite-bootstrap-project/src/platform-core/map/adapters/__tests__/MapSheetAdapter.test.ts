@@ -45,6 +45,7 @@ function viewModel(overrides: Partial<MapViewModel>): MapViewModel {
     camera: { center: { lat: 50.11, lng: 8.68 }, zoom: 13 },
     bottomSheet: "sellerSearchOrigin",
     sellerSearch: sellerSearch(),
+    productSearch: { query: "", status: "idle", result: null, error: null },
     currentAreaLabel: null,
     ...overrides,
   };

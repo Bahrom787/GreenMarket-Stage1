@@ -1,6 +1,7 @@
 import type { SellerId } from "@/platform-core/contracts/Action";
 import type { CategoryId } from "@/platform-core/contracts/DomainTypes";
 import type { ViewState } from "@/platform-core/contracts/ViewState";
+import type { ProductSearchResult } from "@/platform-core/map/product-search/ProductSearch";
 
 /** Географическая точка WGS84 (EPSG:4326) — см. IMP-003.1 §2 "Координаты". */
 export interface GeoPoint {
@@ -58,6 +59,13 @@ export interface SellerSearchState {
   results: SellerMapRecord[];
 }
 
+export interface ProductSearchState {
+  query: string;
+  status: Extract<ViewState, "idle" | "loading" | "success" | "error">;
+  result: ProductSearchResult | null;
+  error: string | null;
+}
+
 export type BottomSheetState = "hidden" | "sellerSummary" | "sellerSearchOrigin" | "sellerSearchResults";
 
 /** Доменный контракт экрана Map (IMP-003.1 §10 "ViewModel"). Ничего не знает
@@ -72,5 +80,6 @@ export interface MapViewModel {
   /** Мастер «Поиск продавцов» (MAP-053/MAP-018). Всегда актуален; активен,
    *  когда bottomSheet = sellerSearchOrigin/sellerSearchResults. */
   sellerSearch: SellerSearchState;
+  productSearch: ProductSearchState;
   currentAreaLabel: string | null;
 }

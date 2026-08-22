@@ -2,9 +2,10 @@ import assert from "node:assert/strict";
 import { it } from "vitest";
 import { asSellerId } from "../../../contracts/Action";
 import { asCategoryId, type CategoryId } from "../../../contracts/DomainTypes";
+import type { ProductSearchResult } from "../../product-search/ProductSearch";
+import type { CategoryOption, SellerRepository } from "../../repository/SellerRepository";
 import type { SellerMapRecord } from "../../viewmodels/MapViewModel";
-import type { CategoryOption } from "../SellerRepository";
-import { MapRuntime } from "../MapRuntime";
+import { createMapRuntime, MapRuntime } from "../MapRuntime";
 
 /** Формат — как в MockSellerRepository.test.ts: node:assert, без test runner'а.
  *  Запуск: npx tsx src/platform-core/map/runtime/__tests__/MapRuntime.test.ts */
@@ -327,4 +328,70 @@ it("runs MapRuntime contract checks", async () => {
   );
 
   console.log("MapRuntime: все проверки пройдены");
+});
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, resolve, reject };
+}
+
+function emptyResult(product: string | null = null): ProductSearchResult {
+  return { matchedProduct: product, suggestedProduct: null, sellers: [] };
+}
+
+function repositoryWithProductSearch(searchProducts: SellerRepository["searchProducts"]): SellerRepository {
+  return {
+    getAllSellers: async () => [],
+    getVisibleSellers: async () => [],
+    getSeller: async () => null,
+    searchSellersNear: async () => [],
+    searchSellers: async () => [],
+    searchProducts,
+    findSeller: async () => null,
+    getCategories: async () => [],
+  };
+}
+
+it("keeps product search state and ignores stale responses", async () => {
+  const first = deferred<ProductSearchResult>();
+  const second = deferred<ProductSearchResult>();
+  const runtime = createMapRuntime(
+    repositoryWithProductSearch((query) => {
+      if (query === "first") return first.promise;
+      if (query === "second") return second.promise;
+      if (query === "fail") return Promise.reject(new Error("fail"));
+      return Promise.resolve(emptyResult(query));
+    }),
+  );
+
+  assert.equal(runtime.getState().productSearch.status, "idle");
+
+  const firstSearch = runtime.searchProducts("first");
+  assert.equal(runtime.getState().productSearch.status, "loading");
+  assert.equal(runtime.getState().productSearch.query, "first");
+
+  const secondSearch = runtime.searchProducts("second");
+  second.resolve(emptyResult("second"));
+  await secondSearch;
+  assert.equal(runtime.getState().productSearch.status, "success");
+  assert.equal(runtime.getState().productSearch.result?.matchedProduct, "second");
+
+  first.resolve(emptyResult("first"));
+  await firstSearch;
+  assert.equal(runtime.getState().productSearch.result?.matchedProduct, "second");
+
+  runtime.clearProductSearch();
+  assert.equal(runtime.getState().productSearch.status, "idle");
+
+  await runtime.searchProducts("fail");
+  assert.equal(runtime.getState().productSearch.status, "error");
+
+  await runtime.searchProducts("after");
+  assert.equal(runtime.getState().productSearch.status, "success");
+  assert.equal(runtime.getState().productSearch.result?.matchedProduct, "after");
 });
