@@ -9,6 +9,7 @@ import {
   globalCatalogContext,
   isStoreContext,
   productPath,
+  storeHomePath,
   type CatalogContext,
 } from '../catalogContext';
 import {
@@ -128,10 +129,15 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
             <Text tone="secondary">{state.subtitle}</Text>
           )}
         </Stack>
-        {isStore && (
-          <Button variant="secondary" size="sm" onClick={() => navigate('/')}>
-            В общий каталог
-          </Button>
+        {isStore && storeId && (
+          <Row gap="sm" wrap>
+            <Button variant="secondary" size="sm" onClick={() => navigate(storeHomePath(storeId))}>
+              О магазине
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => navigate('/')}>
+              В общий каталог
+            </Button>
+          </Row>
         )}
       </Row>
 

@@ -4,6 +4,7 @@ import {
   globalCatalogContext,
   productPath,
   storeCatalogContext,
+  storeHomePath,
 } from '../catalogContext';
 
 describe('catalog context routing', () => {
@@ -17,6 +18,7 @@ describe('catalog context routing', () => {
   it('keeps Store Context in catalog and product routes', () => {
     const context = storeCatalogContext('seller-1');
 
+    expect(storeHomePath(context.storeId)).toBe('/store/seller-1');
     expect(catalogPath(context)).toBe('/store/seller-1/catalog');
     expect(catalogPath(context, '?search=milk')).toBe('/store/seller-1/catalog?search=milk');
     expect(productPath(context, 42)).toBe('/store/seller-1/product/42');
