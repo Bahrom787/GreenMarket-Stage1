@@ -1,8 +1,6 @@
 import assert from "node:assert/strict";
 import { it } from "vitest";
 import { asSellerId } from "@/platform-core/contracts/Action";
-import { asCategoryId } from "@/platform-core/contracts/DomainTypes";
-import type { SellerMapRecord } from "../../viewmodels/MapViewModel";
 import {
   findDirectProductMatches,
   findMostSimilarProduct,
@@ -11,22 +9,11 @@ import {
   stringSimilarityPercent,
   type ProductSearchCandidate,
   type ProductSearchListing,
+  type ProductSearchSellerRef,
 } from "../ProductSearch";
 
-function seller(id: string, name: string): SellerMapRecord {
-  return {
-    sellerId: asSellerId(id),
-    name,
-    location: { lat: 50, lng: 8 },
-    rating: 4.5,
-    distanceMeters: 100,
-    categories: [asCategoryId("dairy")],
-    categoryNames: ["Dairy"],
-    photoUrl: null,
-    isOpenNow: true,
-    workingHoursLabel: "Open",
-    isAvailable: true,
-  };
+function seller(id: string, name: string): ProductSearchSellerRef {
+  return { sellerId: asSellerId(id), name };
 }
 
 const candidates: ProductSearchCandidate[] = [

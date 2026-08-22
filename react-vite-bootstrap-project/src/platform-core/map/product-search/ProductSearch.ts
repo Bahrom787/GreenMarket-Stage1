@@ -1,10 +1,15 @@
-import type { SellerMapRecord } from "@/platform-core/map/viewmodels/MapViewModel";
+import type { SellerId } from "@/platform-core/contracts/Action";
 
 export const PRODUCT_SIMILARITY_THRESHOLD_PERCENT = 85;
 
+export interface ProductSearchSellerRef {
+  sellerId: SellerId;
+  name: string;
+}
+
 export interface ProductSearchListing {
   productName: string;
-  seller: SellerMapRecord;
+  seller: ProductSearchSellerRef;
   price: number;
   unit: string;
   tags?: string[];
@@ -17,7 +22,7 @@ export interface ProductSearchCandidate {
 }
 
 export interface ProductSellerMatch {
-  seller: SellerMapRecord;
+  seller: ProductSearchSellerRef;
   productName: string;
   price: number;
   unit: string;
