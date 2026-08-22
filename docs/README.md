@@ -6,7 +6,7 @@
 
 - **[`specifications/`](./specifications/)** — технические задания (ТЗ-001…ТЗ-026), включая черновики и утверждённые версии.
 - **[`architecture/`](./architecture/)** — подготовка к FSM Engine: промпт-инструкция и ТЗ-022.
-- **[`merge/`](./merge/)** — подготовка миграции/сверки параллельного репозитория GreenMarket, включая manifest, file-level inventory, Platform Core ownership и donor history strategy.
+- **[`merge/`](./merge/)** — подготовка миграции/сверки параллельного репозитория GreenMarket, включая manifest, file-level inventory, Platform Core ownership/reconciliation и donor history strategy.
 - **[`reviews/`](./reviews/)** — ревью, рецензии архива, мета-разборы структуры.
 - **[`ui-kit/`](./ui-kit/)** — формализация существующего GreenMarket UI Kit и контракт для AI-агентов.
 
