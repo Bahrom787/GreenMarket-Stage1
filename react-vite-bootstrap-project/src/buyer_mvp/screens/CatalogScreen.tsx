@@ -6,6 +6,7 @@ import { fetchProducts, fetchSeller, fetchSellerProducts, CatalogApiError } from
 import { SearchBar } from '../components/SearchBar';
 import { ProductCard, ProductCardSkeleton } from '../components/ProductCard';
 import {
+  globalHomePath,
   globalCatalogContext,
   isStoreContext,
   productPath,
@@ -118,6 +119,8 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
     return productPath(context, product.id, routeSearch ? `?${routeSearch}` : '');
   }
 
+  const currentSearch = searchParams.toString();
+
   return (
     <Stack gap="lg">
       <Row align="center" justify="between">
@@ -129,16 +132,26 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
             <Text tone="secondary">{state.subtitle}</Text>
           )}
         </Stack>
-        {isStore && storeId && (
-          <Row gap="sm" wrap>
-            <Button variant="secondary" size="sm" onClick={() => navigate(storeHomePath(storeId))}>
-              О магазине
+        <Row gap="sm" wrap>
+          {isStore && storeId ? (
+            <>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => navigate(storeHomePath(storeId, currentSearch ? `?${currentSearch}` : ''))}
+              >
+                О магазине
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => navigate('/')}>
+                В общий каталог
+              </Button>
+            </>
+          ) : (
+            <Button variant="secondary" size="sm" onClick={() => navigate(globalHomePath())}>
+              О Green Board
             </Button>
-            <Button variant="secondary" size="sm" onClick={() => navigate('/')}>
-              В общий каталог
-            </Button>
-          </Row>
-        )}
+          )}
+        </Row>
       </Row>
 
       <SearchBar initialValue={search} onSearch={(value) => updateParam('search', value || null)} />

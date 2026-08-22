@@ -6,8 +6,12 @@ export function storeCatalogContext(storeId: string): CatalogContext {
   return { kind: 'store', storeId };
 }
 
-export function storeHomePath(storeId: string) {
-  return `/store/${storeId}`;
+export function storeHomePath(storeId: string, search = '') {
+  return `/store/${storeId}${search}`;
+}
+
+export function globalHomePath() {
+  return '/home';
 }
 
 export function catalogPath(context: CatalogContext, search = '') {
