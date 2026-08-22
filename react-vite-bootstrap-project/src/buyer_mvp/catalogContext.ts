@@ -6,6 +6,10 @@ export function storeCatalogContext(storeId: string): CatalogContext {
   return { kind: 'store', storeId };
 }
 
+export function storeHomePath(storeId: string) {
+  return `/store/${storeId}`;
+}
+
 export function catalogPath(context: CatalogContext, search = '') {
   return context.kind === 'store' ? `/store/${context.storeId}/catalog${search}` : `/${search}`;
 }
