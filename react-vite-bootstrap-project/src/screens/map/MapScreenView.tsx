@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Content, Header, Row, Stack } from '@/layout';
 import { Text, IconButton, Icon, BottomSheetSurface, Snackbar } from '@/design-system/components';
 import { BottomSheetContainer, SnackbarContainer } from '@/containers';
@@ -10,9 +10,11 @@ import type { CameraChangeReason } from '@/platform-core/map/gis/MapAdapterTypes
 import { MapBuilder } from '@/platform-core/map/builders/MapBuilder';
 import { DEFAULT_SELLER_SEARCH_RADIUS_METERS, MapRuntime } from '@/platform-core/map/runtime/MapRuntime';
 import { Diagnostics } from '@/platform-core/diagnostics/Diagnostics';
+import type { ProductSellerMatch } from '@/platform-core/map/product-search/ProductSearch';
 import type { CameraParams, GeoPoint, MapBounds, MapViewModel } from '@/platform-core/map/viewmodels/MapViewModel';
 import { MapBottomSheetContent } from '@/screens/map/MapBottomSheetContent';
 import { MapFabButton } from '@/screens/map/MapFabButton';
+import { MapSearchAutocomplete } from '@/screens/map/MapSearchAutocomplete';
 import { SellerFilter } from '@/screens/filter/SellerFilter';
 
 /** Зум при центрировании на конкретного продавца (поиск / выбор из списка). */
@@ -258,22 +260,12 @@ export function MapScreenView() {
     [handleOpenSellerCard, handleSelectListSeller, handleSearchOriginMyLocation, handleSearchOriginMapCenter],
   );
 
-  const handleSearchSubmit = useCallback(
-    async (event: FormEvent) => {
-      event.preventDefault();
-      const query = searchQuery.trim();
-      if (!query) return;
-      const found = await MapRuntime.searchSellerByName(query);
-      if (found) {
-        // §6: центрирование карты + автоматическое открытие Bottom Sheet.
-        MapRuntime.dispatch({ type: 'MOVE_MAP', center: found.location, zoom: ZOOM_ON_SELLER });
-        MapRuntime.dispatch({ type: 'SELECT_SELLER', sellerId: found.sellerId });
-        dispatch({ type: 'SELECT_SELLER', payload: { sellerId: found.sellerId } });
-        setCenterRequestToken((t) => t + 1);
-      }
-    },
-    [searchQuery, dispatch],
-  );
+  const handleProductSearch = useCallback((query: string) => void MapRuntime.searchProducts(query), []);
+  const handleProductSearchClear = useCallback(() => MapRuntime.clearProductSearch(), []);
+  const handleProductSelect = useCallback((match: ProductSellerMatch) => {
+    setSearchQuery(match.productName);
+    Diagnostics.track('map.product_search_selected', { sellerId: match.seller.sellerId, productName: match.productName });
+  }, []);
 
   const camera: CameraParams = useMemo(
     () => ({ center: mapState.mapCenter, zoom: mapState.zoom }),
@@ -304,30 +296,16 @@ export function MapScreenView() {
           <Text variant="title" as="span">
             🌿 Green Board
           </Text>
-          <form
-            onSubmit={(e) => void handleSearchSubmit(e)}
-            style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 360 }}
-          >
-            <input
-              type="search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Найти продавца"
-              aria-label="Поиск продавца"
-              data-testid="map-search"
-              style={{
-                width: '100%',
-                height: 36,
-                borderRadius: 'var(--radius-full)',
-                border: '1px solid var(--color-border-default)',
-                padding: '0 var(--space-md)',
-                fontFamily: 'var(--font-family-body)',
-                fontSize: 'var(--font-size-sm)',
-                background: 'var(--color-surface-sunken)',
-                color: 'var(--color-text-primary)',
-              }}
+          <div className="gm-map-search-slot">
+            <MapSearchAutocomplete
+              query={searchQuery}
+              productSearch={viewModel.productSearch}
+              onQueryChange={setSearchQuery}
+              onSearch={handleProductSearch}
+              onClear={handleProductSearchClear}
+              onProductSelect={handleProductSelect}
             />
-          </form>
+          </div>
           <Row gap="sm">
             <SellerFilter
               categories={mapState.categories}
