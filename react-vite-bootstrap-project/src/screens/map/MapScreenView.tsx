@@ -14,12 +14,15 @@ import type { ProductSellerMatch } from '@/platform-core/map/product-search/Prod
 import type { CameraParams, GeoPoint, MapBounds, MapViewModel } from '@/platform-core/map/viewmodels/MapViewModel';
 import { MapBottomSheetContent } from '@/screens/map/MapBottomSheetContent';
 import { MapFabButton } from '@/screens/map/MapFabButton';
+import { MapFabPanel, type MapFabPanelHandle } from '@/screens/map/MapFabPanel';
+import { MapLegend, type MapLegendHandle } from '@/screens/map/MapLegend';
 import { MapSearchAutocomplete } from '@/screens/map/MapSearchAutocomplete';
 import type { MapSearchMode } from '@/screens/map/MapSearchAutocomplete.logic';
 import { SellerFilter } from '@/screens/filter/SellerFilter';
 
 /** Зум при центрировании на конкретного продавца (поиск / выбор из списка). */
 const ZOOM_ON_SELLER = 15;
+const PANEL_RETURN_MESSAGE_MS = 3000;
 
 /** «Км → метры» для поля радиуса: запятая считается десятичной точкой;
  *  пустое/нечисловое/неположительное значение возвращает null (поиск не
@@ -62,6 +65,10 @@ export function MapScreenView() {
   const [locationNotice, setLocationNotice] = useState<'unavailable' | 'no-permission' | null>(null);
   const locationNoticeTimerRef = useRef<number | null>(null);
   const [searchRadiusKm, setSearchRadiusKm] = useState('5');
+  const fabPanelRef = useRef<MapFabPanelHandle>(null);
+  const legendRef = useRef<MapLegendHandle>(null);
+  const [returnTarget, setReturnTarget] = useState<'panel' | 'legend' | null>(null);
+  const returnMessageTimerRef = useRef<number | null>(null);
 
   /** Показывает snackbar об ошибке геолокации (MAP-005 §4) и автоматически
    *  скрывает его через несколько секунд. Повторное нажатие кнопки
@@ -106,9 +113,23 @@ export function MapScreenView() {
   useEffect(
     () => () => {
       if (locationNoticeTimerRef.current !== null) window.clearTimeout(locationNoticeTimerRef.current);
+      if (returnMessageTimerRef.current !== null) window.clearTimeout(returnMessageTimerRef.current);
     },
     [],
   );
+
+  const handleReturnRequest = useCallback((target: 'panel' | 'legend', show: boolean) => {
+    if (returnMessageTimerRef.current !== null) window.clearTimeout(returnMessageTimerRef.current);
+    if (!show) {
+      setReturnTarget(null);
+      return;
+    }
+    setReturnTarget(target);
+    returnMessageTimerRef.current = window.setTimeout(() => {
+      setReturnTarget(null);
+      returnMessageTimerRef.current = null;
+    }, PANEL_RETURN_MESSAGE_MS);
+  }, []);
 
   const handleVisibleBoundsChange = useCallback((bounds: MapBounds) => {
     // §5/§13 (дедупликация почти не изменившихся границ) и MAP-011 (debounce)
@@ -307,7 +328,7 @@ export function MapScreenView() {
   const bottomSheetBlocks = useMemo(() => MapBuilder.build(viewModel), [viewModel]);
 
   return (
-    <div data-testid="map-screen" style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+    <div className="gm-map-screen" data-testid="map-screen" style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       <Header>
         <Row gap="md" align="center" justify="between" style={{ position: 'relative', width: '100%' }}>
           <Text variant="title" as="span">
@@ -365,10 +386,13 @@ export function MapScreenView() {
 
         {/* Плавающая панель действий: белая поверхность, чтобы иконки не
             сливались с картой; кнопки равноудалены (gap = --space-sm). */}
-        <div className="gm-map-fab-panel">
+        <MapFabPanel ref={fabPanelRef} onReturnRequest={(show) => handleReturnRequest('panel', show)}>
           <MapFabButton label="Открыть каталог" icon="🛒" onClick={handleOpenCatalog} testId="open-catalog" />
           <MapFabButton label="Поиск продавцов" icon="🧭" onClick={handleOpenSellerSearch} testId="open-seller-search" />
           <MapFabButton label="Моё местоположение" icon="📍" onClick={() => void handleCenterOnUser()} />
+        </MapFabPanel>
+        <div className="gm-map-bottom-left">
+          <MapLegend ref={legendRef} onReturnRequest={(show) => handleReturnRequest('legend', show)} />
         </div>
       </Content>
 
@@ -472,6 +496,27 @@ export function MapScreenView() {
         <SnackbarContainer>
           <Snackbar tone="error" data-testid="location-error-snackbar">
             {locationNotice === 'no-permission' ? 'Нет доступа к геолокации' : 'Не удалось определить местоположение'}
+          </Snackbar>
+        </SnackbarContainer>
+      )}
+      {returnTarget && (
+        <SnackbarContainer>
+          <Snackbar
+            data-testid="map-panel-return-snackbar"
+            action={
+              <button
+                type="button"
+                className="gm-map-return-action"
+                onClick={() => {
+                  if (returnTarget === 'panel') fabPanelRef.current?.resetPosition();
+                  else legendRef.current?.resetPosition();
+                }}
+              >
+                Р’РµСЂРЅСѓС‚СЊ
+              </button>
+            }
+          >
+            {returnTarget === 'panel' ? 'РџР°РЅРµР»СЊ РїРµСЂРµРјРµС‰РµРЅР°' : 'Р›РµРіРµРЅРґР° РїРµСЂРµРјРµС‰РµРЅР°'}
           </Snackbar>
         </SnackbarContainer>
       )}
