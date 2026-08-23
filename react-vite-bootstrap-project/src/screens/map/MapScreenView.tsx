@@ -15,6 +15,7 @@ import type { CameraParams, GeoPoint, MapBounds, MapViewModel } from '@/platform
 import { MapBottomSheetContent } from '@/screens/map/MapBottomSheetContent';
 import { MapFabButton } from '@/screens/map/MapFabButton';
 import { MapSearchAutocomplete } from '@/screens/map/MapSearchAutocomplete';
+import type { MapSearchMode } from '@/screens/map/MapSearchAutocomplete.logic';
 import { SellerFilter } from '@/screens/filter/SellerFilter';
 
 /** Зум при центрировании на конкретного продавца (поиск / выбор из списка). */
@@ -56,6 +57,7 @@ export function MapScreenView() {
   const mapState = useSyncExternalStore(MapRuntime.subscribe, MapRuntime.getState);
 
   const [centerRequestToken, setCenterRequestToken] = useState(0);
+  const [searchMode, setSearchMode] = useState<MapSearchMode>('seller');
   const [searchQuery, setSearchQuery] = useState('');
   const [locationNotice, setLocationNotice] = useState<'unavailable' | 'no-permission' | null>(null);
   const locationNoticeTimerRef = useRef<number | null>(null);
@@ -262,10 +264,25 @@ export function MapScreenView() {
 
   const handleProductSearch = useCallback((query: string) => void MapRuntime.searchProducts(query), []);
   const handleProductSearchClear = useCallback(() => MapRuntime.clearProductSearch(), []);
+  const handleSellerSearch = useCallback(async (query: string) => {
+    const target = await MapRuntime.searchSellerByName(query);
+    if (!target) return;
+    MapRuntime.dispatch({ type: 'MOVE_MAP', center: target.location, zoom: ZOOM_ON_SELLER });
+    MapRuntime.dispatch({ type: 'SELECT_SELLER', sellerId: target.sellerId });
+    dispatch({ type: 'SELECT_SELLER', payload: { sellerId: target.sellerId } });
+    setCenterRequestToken((t) => t + 1);
+  }, [dispatch]);
   const handleProductSelect = useCallback((match: ProductSellerMatch) => {
     setSearchQuery(match.productName);
     Diagnostics.track('map.product_search_selected', { sellerId: match.seller.sellerId, productName: match.productName });
   }, []);
+  const handleSearchModeChange = useCallback(
+    (nextMode: MapSearchMode) => {
+      setSearchMode(nextMode);
+      if (nextMode === 'seller') MapRuntime.clearProductSearch();
+    },
+    [],
+  );
 
   const camera: CameraParams = useMemo(
     () => ({ center: mapState.mapCenter, zoom: mapState.zoom }),
@@ -298,10 +315,13 @@ export function MapScreenView() {
           </Text>
           <div className="gm-map-search-slot">
             <MapSearchAutocomplete
+              mode={searchMode}
               query={searchQuery}
               productSearch={viewModel.productSearch}
+              onModeChange={handleSearchModeChange}
               onQueryChange={setSearchQuery}
-              onSearch={handleProductSearch}
+              onSellerSubmit={handleSellerSearch}
+              onProductSearch={handleProductSearch}
               onClear={handleProductSearchClear}
               onProductSelect={handleProductSelect}
             />

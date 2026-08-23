@@ -2,28 +2,40 @@ import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { EmptyState, ErrorState, ListItem, Loader, Surface, Text } from '@/design-system/components';
 import type { ProductSellerMatch } from '@/platform-core/map/product-search/ProductSearch';
 import type { ProductSearchState } from '@/platform-core/map/viewmodels/MapViewModel';
-import { nextOptionIndex } from './MapSearchAutocomplete.logic';
+import {
+  resolveSearchKeyAction,
+  scheduleProductSearch,
+  shouldClearProductSearch,
+  shouldRunProductSearch,
+  type MapSearchMode,
+} from './MapSearchAutocomplete.logic';
 
 const SEARCH_DEBOUNCE_MS = 250;
 
 interface MapSearchAutocompleteProps {
+  mode: MapSearchMode;
   query: string;
   productSearch: ProductSearchState;
+  onModeChange: (mode: MapSearchMode) => void;
   onQueryChange: (value: string) => void;
-  onSearch: (query: string) => void;
+  onSellerSubmit: (query: string) => void;
+  onProductSearch: (query: string) => void;
   onClear: () => void;
   onProductSelect: (match: ProductSellerMatch) => void;
 }
 
 export function MapSearchAutocomplete({
+  mode,
   query,
   productSearch,
+  onModeChange,
   onQueryChange,
-  onSearch,
+  onSellerSubmit,
+  onProductSearch,
   onClear,
   onProductSelect,
 }: MapSearchAutocompleteProps) {
-  const [open, setOpen] = useState(() => query.trim().length > 0);
+  const [open, setOpen] = useState(() => mode === 'product' && query.trim().length > 0);
   const [activeIndex, setActiveIndex] = useState(-1);
   const trimmed = query.trim();
   const matches = productSearch.result?.sellers ?? [];
@@ -32,46 +44,72 @@ export function MapSearchAutocomplete({
 
   useEffect(() => {
     setActiveIndex(-1);
-  }, [matches.length, productSearch.status, productSearch.query]);
+  }, [matches.length, mode, productSearch.status, productSearch.query]);
 
   useEffect(() => {
-    if (!trimmed) {
+    if (mode !== 'product') {
+      setOpen(false);
+      return;
+    }
+    if (shouldClearProductSearch(mode, trimmed)) {
       onClear();
       return;
     }
-    const timer = window.setTimeout(() => onSearch(trimmed), SEARCH_DEBOUNCE_MS);
-    return () => window.clearTimeout(timer);
-  }, [trimmed, onSearch, onClear]);
+    if (!shouldRunProductSearch(mode, trimmed)) return;
+    return scheduleProductSearch(trimmed, SEARCH_DEBOUNCE_MS, window, onProductSearch);
+  }, [mode, trimmed, onProductSearch, onClear]);
 
   const isFresh = productSearch.query === trimmed;
-  const showPanel = open && trimmed.length > 0;
+  const showPanel = mode === 'product' && open && trimmed.length > 0;
   const showLoading = showPanel && productSearch.status === 'loading' && isFresh;
   const showError = showPanel && productSearch.status === 'error' && isFresh;
   const showEmpty = showPanel && productSearch.status === 'success' && isFresh && matches.length === 0;
   const showResults = showPanel && productSearch.status === 'success' && isFresh && matches.length > 0;
 
   const label = useMemo(
-    () => (productSearch.result?.suggestedProduct ? `Возможно: ${productSearch.result.suggestedProduct}` : 'Поиск товара на карте'),
-    [productSearch.result?.suggestedProduct],
+    () =>
+      mode === 'seller'
+        ? 'Поиск продавца на карте'
+        : productSearch.result?.suggestedProduct
+          ? `Возможно: ${productSearch.result.suggestedProduct}`
+          : 'Поиск товара на карте',
+    [mode, productSearch.result?.suggestedProduct],
   );
+
+  const placeholder = mode === 'seller' ? 'Найти продавца' : 'Найти товар';
 
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (['ArrowDown', 'ArrowUp', 'Enter', 'Escape'].includes(event.key)) event.stopPropagation();
-    if (event.key === 'Escape') {
+    const action = resolveSearchKeyAction({
+      mode,
+      key: event.key,
+      activeIndex,
+      optionCount: matches.length,
+    });
+
+    if (action.type === 'close') {
       setOpen(false);
       setActiveIndex(-1);
       return;
     }
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+
+    if (action.type === 'navigate') {
       event.preventDefault();
-      setOpen(true);
-      setActiveIndex((current) => nextOptionIndex(current, matches.length, event.key as 'ArrowDown' | 'ArrowUp'));
+      if (mode === 'product') setOpen(true);
+      setActiveIndex(action.index);
       return;
     }
-    if (event.key === 'Enter' && activeIndex >= 0 && matches[activeIndex]) {
+
+    if (action.type === 'submit-seller') {
+      event.preventDefault();
+      if (trimmed) onSellerSubmit(trimmed);
+      return;
+    }
+
+    if (action.type === 'select-product' && matches[action.index]) {
       event.preventDefault();
       setOpen(false);
-      onProductSelect(matches[activeIndex]);
+      onProductSelect(matches[action.index]);
     }
   }
 
@@ -82,27 +120,52 @@ export function MapSearchAutocomplete({
   }
 
   return (
-    <div className="gm-map-search" role="search">
-      <label className="gm-map-search__label" htmlFor="map-product-search">
+    <div className="gm-map-search" role="search" data-mode={mode}>
+      <div className="gm-map-search__mode" role="tablist" aria-label="Режим поиска на карте">
+        <button
+          type="button"
+          role="tab"
+          className="gm-map-search__mode-button"
+          aria-selected={mode === 'seller'}
+          data-active={mode === 'seller'}
+          onClick={() => onModeChange('seller')}
+        >
+          Продавцы
+        </button>
+        <button
+          type="button"
+          role="tab"
+          className="gm-map-search__mode-button"
+          aria-selected={mode === 'product'}
+          data-active={mode === 'product'}
+          onClick={() => onModeChange('product')}
+        >
+          Товары
+        </button>
+      </div>
+
+      <label className="gm-map-search__label" htmlFor="map-search-input">
         {label}
       </label>
       <div className="gm-map-search__field">
         <input
-          id="map-product-search"
+          id="map-search-input"
           type="search"
           value={query}
           onChange={(event) => {
             onQueryChange(event.target.value);
-            setOpen(true);
+            if (mode === 'product') setOpen(true);
           }}
-          onFocus={() => setOpen(true)}
+          onFocus={() => {
+            if (mode === 'product') setOpen(true);
+          }}
           onKeyDown={handleKeyDown}
-          placeholder="Найти товар"
-          aria-label="Поиск товара на карте"
+          placeholder={placeholder}
+          aria-label={label}
           aria-expanded={showPanel}
-          aria-controls={listId}
-          aria-activedescendant={activeId}
-          role="combobox"
+          aria-controls={mode === 'product' ? listId : undefined}
+          aria-activedescendant={mode === 'product' ? activeId : undefined}
+          role={mode === 'product' ? 'combobox' : 'searchbox'}
           autoComplete="off"
           data-testid="map-search"
         />
