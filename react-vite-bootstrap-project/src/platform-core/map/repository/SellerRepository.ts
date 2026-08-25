@@ -1,5 +1,6 @@
 import type { SellerId } from "@/platform-core/contracts/Action";
 import type { CategoryId } from "@/platform-core/contracts/DomainTypes";
+import type { ProductSearchResult } from "@/platform-core/map/product-search/ProductSearch";
 import type { GeoPoint, MapBounds, SellerMapRecord } from "@/platform-core/map/viewmodels/MapViewModel";
 
 export interface CategoryOption {
@@ -42,6 +43,7 @@ export interface SellerRepository {
    *  поиска (а не от центра тестовой территории). */
   searchSellersNear(request: SellerSearchRequest): Promise<SellerMapRecord[]>;
   searchSellers(query: string): Promise<SellerMapRecord[]>;
+  searchProducts(query: string): Promise<ProductSearchResult>;
   /** IMP-003.1.2 §11: единичный лучший результат по названию — то, что
    *  строка поиска (§6) центрирует карту и открывает Bottom Sheet на одном
    *  продавце. searchSellers() остаётся для случаев, когда нужен весь

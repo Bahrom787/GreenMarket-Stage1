@@ -9,6 +9,7 @@ import type {
 } from "@/platform-core/map/repository/SellerRepository";
 import { GeoService } from "@/platform-core/map/gis/GeoService";
 import { defaultMapConfig } from "@/platform-core/map/gis/MapConfig";
+import { searchProducts, type ProductSearchListing } from "@/platform-core/map/product-search/ProductSearch";
 
 /** IMP-003.1 §14: 20-50 продавцов, разные категории, координаты в пределах
  *  тестовой территории, рейтинги, фото (плейсхолдеры — как и в остальном
@@ -71,6 +72,14 @@ function buildSellers(): SellerMapRecord[] {
 
 const ALL_SELLERS = buildSellers();
 
+const PRODUCT_LISTINGS: ProductSearchListing[] = [
+  { productName: "Milk", seller: ALL_SELLERS[3], price: 120, unit: "l", tags: ["dairy"] },
+  { productName: "Milk", seller: ALL_SELLERS[12], price: 135, unit: "l", tags: ["dairy"] },
+  { productName: "Honey", seller: ALL_SELLERS[5], price: 420, unit: "kg", tags: ["sweet", "bee"] },
+  { productName: "Honey", seller: ALL_SELLERS[22], price: 390, unit: "kg", tags: ["sweet", "bee"] },
+  { productName: "Tomatoes", seller: ALL_SELLERS[1], price: 95, unit: "kg", tags: ["tomato", "vegetables"] },
+];
+
 /** Реестр компараторов сортировки результатов поиска: ключ → компаратор по
  *  полям записи. Новый способ сортировки = новая запись здесь + член в
  *  SellerSortKey (см. SellerRepository.ts) — searchSellersNear и весь мастер
@@ -128,6 +137,10 @@ export const MockSellerRepository: SellerRepository = {
     const q = normalizeForSearch(query);
     if (!q) return delay([]);
     return delay(ALL_SELLERS.filter((s) => normalizeForSearch(s.name).includes(q)));
+  },
+
+  searchProducts(query) {
+    return delay(searchProducts(query, PRODUCT_LISTINGS));
   },
 
   findSeller(query) {
