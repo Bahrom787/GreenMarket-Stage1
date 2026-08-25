@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Navigate, Routes, Route, NavLink, useLocation, useParams } from 'react-router-dom';
 import { PlaceholderScreen } from '@/screens/PlaceholderScreen';
 import { MapScreenView } from '@/screens/map/MapScreenView';
@@ -9,6 +9,13 @@ import { CatalogScreen } from '@/buyer_mvp/screens/CatalogScreen';
 import { ProductScreen } from '@/buyer_mvp/screens/ProductScreen';
 import { StoreHomeScreen } from '@/buyer_mvp/screens/StoreHomeScreen';
 import { globalCatalogContext, storeCatalogContext } from '@/buyer_mvp/catalogContext';
+import {
+  isStoreModePathAllowed,
+  storeModeAfterNavigation,
+  storeModeFromPath,
+  storeModeLandingPath,
+  type StoreMode,
+} from '@/app/storeMode';
 
 const navItems = [
   { to: '/', label: 'Каталог' },
@@ -57,11 +64,22 @@ function TopNav() {
 
 export function NavigationContainer() {
   const location = useLocation();
-  const isFullScreenRoute = FULL_SCREEN_ROUTES.has(location.pathname);
+  const [storeMode, setStoreMode] = useState<StoreMode>(() => storeModeFromPath(location.pathname));
+  const routeStoreMode = useMemo(() => storeModeFromPath(location.pathname), [location.pathname]);
+
+  useEffect(() => {
+    if (routeStoreMode.active) setStoreMode((current) => storeModeAfterNavigation(current, location.pathname));
+  }, [location.pathname, routeStoreMode]);
+
+  if (storeMode.active && !isStoreModePathAllowed(location.pathname, storeMode.storeId)) {
+    return <Navigate to={storeModeLandingPath(storeMode.storeId)} replace />;
+  }
+
+  const isFullScreenRoute = !storeMode.active && FULL_SCREEN_ROUTES.has(location.pathname);
 
   return (
     <>
-      {!isFullScreenRoute && <TopNav />}
+      {!isFullScreenRoute && !storeMode.active && <TopNav />}
       {isFullScreenRoute ? (
         <Routes>
           <Route path="/map" element={<MapScreenView />} />

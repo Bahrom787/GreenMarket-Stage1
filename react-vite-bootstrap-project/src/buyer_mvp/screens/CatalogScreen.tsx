@@ -134,9 +134,6 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
             <Button variant="secondary" size="sm" onClick={() => navigate(storeHomePath(storeId))}>
               О магазине
             </Button>
-            <Button variant="secondary" size="sm" onClick={() => navigate('/')}>
-              В общий каталог
-            </Button>
           </Row>
         )}
       </Row>
