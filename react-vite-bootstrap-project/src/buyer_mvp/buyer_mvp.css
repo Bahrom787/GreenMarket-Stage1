@@ -177,6 +177,19 @@
   color: var(--color-text-primary);
 }
 
+.gm-seller-card__action {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: var(--space-sm) var(--space-lg);
+  border: var(--border-width-hairline) solid var(--color-border-subtle);
+  border-radius: var(--radius-full);
+  color: var(--color-text-primary);
+  background: var(--color-surface-raised);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+
 .gm-buyer-search {
   position: relative;
   display: flex;
