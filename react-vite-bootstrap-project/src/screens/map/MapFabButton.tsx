@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Icon, IconButton } from '@/design-system/components';
 import './map.css';
 
-export const MAP_FAB_TOOLTIP_DELAY_MS = 667;
+export const MAP_FAB_TOOLTIP_DELAY_MS = 400;
 
 export interface MapFabButtonProps {
   label: string;
