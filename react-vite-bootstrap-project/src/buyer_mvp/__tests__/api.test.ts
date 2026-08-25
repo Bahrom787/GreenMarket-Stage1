@@ -63,7 +63,7 @@ describe('catalog api', () => {
     vi.stubGlobal('fetch', fetch);
 
     await fetchSellerProducts('seller 1', {
-      groupId: 7,
+      groupIds: [7, 8],
       search: 'milk',
       sort: 'price',
       page: 2,
@@ -71,7 +71,7 @@ describe('catalog api', () => {
     });
 
     expect(fetch).toHaveBeenCalledWith(
-      '/api/v1/catalog/sellers/seller%201/products?group_id=7&search=milk&sort=price&page=2&limit=10',
+      '/api/v1/catalog/sellers/seller%201/products?group_id=7,8&search=milk&sort=price&page=2&limit=10',
     );
   });
 
@@ -90,11 +90,40 @@ describe('catalog api', () => {
       .mockResolvedValue(response({ products: [], page: 2, limit: 10, total: 0 }));
     vi.stubGlobal('fetch', fetch);
 
-    await fetchProducts({ search: 'milk', groupId: 12, sort: 'price', page: 2 });
+    await fetchProducts({ search: 'milk', groupIds: [12, 13], sort: 'price', page: 2 });
 
     expect(fetch).toHaveBeenCalledWith(
-      '/api/v1/catalog/products?group_id=12&search=milk&sort=price&page=2',
+      '/api/v1/catalog/products?group_id=12,13&search=milk&sort=price&page=2',
     );
+  });
+
+  it('omits group_id when no categories are selected', async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValue(response({ products: [], page: 1, limit: 10, total: 0 }));
+    vi.stubGlobal('fetch', fetch);
+
+    await fetchProducts({ groupIds: [], sort: 'name', page: 1 });
+
+    expect(fetch).toHaveBeenCalledWith('/api/v1/catalog/products?sort=name&page=1');
+  });
+
+  it('surfaces backend validation errors for malformed group_id requests', async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          error: { code: 'VALIDATION_ERROR', message: 'Invalid group_id', details: [] },
+        }),
+        { status: 422, headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+    vi.stubGlobal('fetch', fetch);
+
+    await expect(fetchProducts({ groupIds: [17] })).rejects.toMatchObject({
+      status: 422,
+      code: 'VALIDATION_ERROR',
+      message: 'Invalid group_id',
+    });
   });
 
   it('loads Store Home from the seller endpoint without catalog fallback', async () => {

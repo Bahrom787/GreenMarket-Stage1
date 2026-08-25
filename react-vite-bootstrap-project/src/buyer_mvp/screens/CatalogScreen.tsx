@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Text, ErrorState, EmptyState, Button, Chip } from '@/design-system/components';
 import { Grid, Stack, Row } from '@/layout';
@@ -19,13 +19,14 @@ import {
   type CatalogProductCardViewModel,
 } from '../catalogPresentation';
 import {
-  catalogGroupId,
+  catalogGroupIds,
   catalogGroupOptionLabel,
   catalogGroupOptions,
   catalogPage,
   catalogSort,
   clearCatalogSearchParams,
-  selectedCatalogGroup,
+  selectedCatalogGroups,
+  toggleCatalogGroupParam,
   updateCatalogSearchParams,
   type CatalogParam,
 } from '../catalogUrlState';
@@ -65,21 +66,30 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
 
   const search = searchParams.get('search') ?? '';
   const groupId = searchParams.get('group_id');
-  const parsedGroupId = catalogGroupId(groupId);
+  const parsedGroupIds = useMemo(() => catalogGroupIds(groupId), [groupId]);
+  const groupIds = useMemo(() => parsedGroupIds ?? [], [parsedGroupIds]);
+  const hasInvalidGroupId = Boolean(groupId && !parsedGroupIds);
   const sort = catalogSort(searchParams.get('sort'));
   const page = catalogPage(searchParams.get('page'));
   const isStore = isStoreContext(context);
   const storeId = isStore ? context.storeId : undefined;
   const groups = catalogGroupOptions(groupsState.groups);
-  const selectedGroup = selectedCatalogGroup(groupsState.groups, groupId);
-  const hasFilters = Boolean(search || groupId || sort !== 'name' || page !== 1);
+  const selectedGroups = selectedCatalogGroups(groupsState.groups, groupIds);
+  const selectedGroupIds = new Set(groupIds);
+  const hasFilters = Boolean(search || groupIds.length || hasInvalidGroupId || sort !== 'name' || page !== 1);
 
   function load() {
     const requestId = catalogRequestId.current + 1;
     catalogRequestId.current = requestId;
+
+    if (hasInvalidGroupId) {
+      setState({ status: 'error', message: 'Некорректный параметр категории.' });
+      return;
+    }
+
     const query: CatalogQuery = {
       search: search || undefined,
-      groupId: parsedGroupId,
+      groupIds,
       sort,
       page,
     };
@@ -125,7 +135,7 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
       });
   }
 
-  useEffect(load, [search, groupId, parsedGroupId, sort, page, isStore, storeId]);
+  useEffect(load, [search, groupIds, sort, page, isStore, storeId, hasInvalidGroupId]);
 
   useEffect(() => {
     let active = true;
@@ -153,6 +163,10 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
     setSearchParams(clearCatalogSearchParams());
   }
 
+  function toggleGroup(groupId: number) {
+    updateParam('group_id', toggleCatalogGroupParam(groupIds, groupId));
+  }
+
   function productRoute(product: CatalogProductCardViewModel) {
     const next = new URLSearchParams(searchParams);
     if (isStore && product.sellerProductId != null) {
@@ -177,7 +191,11 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
         </Stack>
         {isStore && storeId && (
           <Row gap="sm" wrap>
-            <Button variant="secondary" size="sm" onClick={() => navigate(`${storeHomePath(storeId)}${globalStoreModeSearch(location.search)}`)}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => navigate(`${storeHomePath(storeId)}${globalStoreModeSearch(location.search)}`)}
+            >
               О магазине
             </Button>
           </Row>
@@ -187,50 +205,39 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
       <Stack gap="sm" className="gm-catalog-filters">
         <SearchBar initialValue={search} onSearch={(value) => updateParam('search', value || null)} />
 
-        <Row gap="sm" wrap align="center">
-          <label className="gm-catalog-filter">
-            <Text variant="caption" as="span">
-              Категория
-            </Text>
-            <select
-              className="gm-catalog-filter__select gm-focusable"
-              value={groupId ?? ''}
-              onChange={(event) => updateParam('group_id', event.target.value || null)}
-              disabled={groupsState.status === 'loading' && groups.length === 0}
-              aria-label="Категория"
+        <Row gap="sm" wrap align="center" aria-label="Категории">
+          <Text variant="caption" as="span">
+            Категории
+          </Text>
+          {groups.map(({ group, depth }) => (
+            <Chip
+              key={group.id}
+              selected={selectedGroupIds.has(group.id)}
+              disabled={groupsState.status === 'loading'}
+              onClick={() => toggleGroup(group.id)}
             >
-              <option value="">Все категории</option>
-              {groups.map(({ group, depth }) => (
-                <option key={group.id} value={group.id}>
-                  {catalogGroupOptionLabel({ group, depth })}
-                </option>
-              ))}
-            </select>
-          </label>
+              {catalogGroupOptionLabel({ group, depth })}
+            </Chip>
+          ))}
           {groupsState.status === 'loading' && <Text tone="secondary">Категории загружаются</Text>}
           {groupsState.status === 'error' && <Text tone="secondary">{groupsState.message}</Text>}
         </Row>
 
         <Row gap="sm" wrap>
-        <Button
-          variant={sort === 'name' ? 'primary' : 'secondary'}
-          size="sm"
-          onClick={() => updateParam('sort', 'name')}
-        >
-          По названию
-        </Button>
-        <Button
-          variant={sort === 'price' ? 'primary' : 'secondary'}
-          size="sm"
-          onClick={() => updateParam('sort', 'price')}
-        >
-          По цене
-        </Button>
-        {groupId && (
-          <Button variant="ghost" size="sm" onClick={() => updateParam('group_id', null)}>
-            Сбросить категорию
+          <Button
+            variant={sort === 'name' ? 'primary' : 'secondary'}
+            size="sm"
+            onClick={() => updateParam('sort', 'name')}
+          >
+            По названию
           </Button>
-        )}
+          <Button
+            variant={sort === 'price' ? 'primary' : 'secondary'}
+            size="sm"
+            onClick={() => updateParam('sort', 'price')}
+          >
+            По цене
+          </Button>
           {hasFilters && (
             <Button variant="ghost" size="sm" onClick={clearFilters}>
               Очистить фильтры
@@ -240,12 +247,12 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
 
         <Row gap="sm" wrap align="center" aria-label="Активные фильтры">
           {search && <Chip onClick={() => updateParam('search', null)}>Поиск: {search} ×</Chip>}
-          {selectedGroup && (
-            <Chip selected onClick={() => updateParam('group_id', null)}>
-              {selectedGroup.name} ×
+          {selectedGroups.map((group) => (
+            <Chip key={group.id} selected onClick={() => toggleGroup(group.id)}>
+              {group.name} ×
             </Chip>
-          )}
-          {!search && !selectedGroup && <Text tone="secondary">Фильтры не применены</Text>}
+          ))}
+          {!search && selectedGroups.length === 0 && <Text tone="secondary">Фильтры не применены</Text>}
         </Row>
       </Stack>
 
