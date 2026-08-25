@@ -10,14 +10,19 @@ function decodePathPart(value: string): string | null {
   }
 }
 
-export function storeModeFromPath(pathname: string): StoreMode {
+function hasGlobalStoreMode(search = '') {
+  return new URLSearchParams(search).get('mode') === 'global';
+}
+
+export function storeModeFromPath(pathname: string, search = ''): StoreMode {
+  if (hasGlobalStoreMode(search)) return { active: false };
   const match = pathname.match(STORE_PATH_RE);
   const storeId = match ? decodePathPart(match[1]) : null;
   return storeId ? { active: true, storeId } : { active: false };
 }
 
-export function storeModeAfterNavigation(current: StoreMode, pathname: string): StoreMode {
-  const routeMode = storeModeFromPath(pathname);
+export function storeModeAfterNavigation(current: StoreMode, pathname: string, search = ''): StoreMode {
+  const routeMode = storeModeFromPath(pathname, search);
   if (!routeMode.active) return current;
   return current.active ? current : routeMode;
 }
@@ -26,7 +31,8 @@ export function storeModeLandingPath(storeId: string): string {
   return `/store/${encodeURIComponent(storeId)}/catalog`;
 }
 
-export function isStoreModePathAllowed(pathname: string, storeId: string): boolean {
+export function isStoreModePathAllowed(pathname: string, storeId: string, search = ''): boolean {
+  if (hasGlobalStoreMode(search)) return false;
   const match = pathname.match(/^\/store\/([^/]+)(.*)$/);
   if (!match || decodePathPart(match[1]) !== storeId) return false;
 

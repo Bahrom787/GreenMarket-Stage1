@@ -10,6 +10,14 @@ export function storeHomePath(storeId: string) {
   return `/store/${storeId}`;
 }
 
+export function globalStoreModeSearch(search = '') {
+  return new URLSearchParams(search).get('mode') === 'global' ? '?mode=global' : '';
+}
+
+export function globalStoreHomePath(storeId: string) {
+  return `${storeHomePath(storeId)}?mode=global`;
+}
+
 export function catalogPath(context: CatalogContext, search = '') {
   return context.kind === 'store' ? `/store/${context.storeId}/catalog${search}` : `/${search}`;
 }

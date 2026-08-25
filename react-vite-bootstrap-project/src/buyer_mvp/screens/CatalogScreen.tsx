@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Text, ErrorState, EmptyState, Button, Chip } from '@/design-system/components';
 import { Grid, Stack, Row } from '@/layout';
 import { fetchProducts, fetchSeller, fetchSellerProducts, fetchGroups, CatalogApiError } from '../api';
@@ -8,6 +8,7 @@ import { ProductCard, ProductCardSkeleton } from '../components/ProductCard';
 import {
   globalCatalogContext,
   isStoreContext,
+  globalStoreModeSearch,
   productPath,
   storeHomePath,
   type CatalogContext,
@@ -56,6 +57,7 @@ interface CatalogScreenProps {
 
 export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const [groupsState, setGroupsState] = useState<GroupsState>({ status: 'loading', groups: [] });
@@ -175,7 +177,7 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
         </Stack>
         {isStore && storeId && (
           <Row gap="sm" wrap>
-            <Button variant="secondary" size="sm" onClick={() => navigate(storeHomePath(storeId))}>
+            <Button variant="secondary" size="sm" onClick={() => navigate(`${storeHomePath(storeId)}${globalStoreModeSearch(location.search)}`)}>
               О магазине
             </Button>
           </Row>

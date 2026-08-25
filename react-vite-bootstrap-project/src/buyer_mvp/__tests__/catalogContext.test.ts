@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   catalogPath,
+  globalStoreHomePath,
+  globalStoreModeSearch,
   globalCatalogContext,
   productPath,
   storeCatalogContext,
@@ -23,5 +25,11 @@ describe('catalog context routing', () => {
     expect(catalogPath(context, '?search=milk')).toBe('/store/seller-1/catalog?search=milk');
     expect(productPath(context, 42)).toBe('/store/seller-1/product/42');
     expect(productPath(context, 42, '?search=milk')).toBe('/store/seller-1/product/42?search=milk');
+  });
+
+  it('preserves explicit Global Context for Store UI links', () => {
+    expect(globalStoreModeSearch('?mode=global')).toBe('?mode=global');
+    expect(globalStoreModeSearch('?search=milk')).toBe('');
+    expect(globalStoreHomePath('6')).toBe('/store/6?mode=global');
   });
 });

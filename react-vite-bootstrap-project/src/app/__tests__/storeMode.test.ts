@@ -12,6 +12,7 @@ describe('store mode routing', () => {
     expect(storeModeFromPath('/map')).toEqual({ active: false });
     expect(storeModeFromPath('/store/123')).toEqual({ active: true, storeId: '123' });
     expect(storeModeFromPath('/store/123/catalog')).toEqual({ active: true, storeId: '123' });
+    expect(storeModeFromPath('/store/123', '?mode=global')).toEqual({ active: false });
   });
 
   it('allows only same-store routes while active', () => {
@@ -26,6 +27,7 @@ describe('store mode routing', () => {
     expect(isStoreModePathAllowed('/seller/999', '123')).toBe(false);
     expect(isStoreModePathAllowed('/store/999/catalog', '123')).toBe(false);
     expect(isStoreModePathAllowed('/store/999/product/456', '123')).toBe(false);
+    expect(isStoreModePathAllowed('/store/123', '123', '?mode=global')).toBe(false);
   });
 
   it('matches encoded store ids without switching stores implicitly', () => {
@@ -48,6 +50,16 @@ describe('store mode routing', () => {
 
     expect(storeModeAfterNavigation(entered, '/')).toEqual(entered);
     expect(storeModeAfterNavigation(entered, '/store/999')).toEqual(entered);
+    expect(storeModeAfterNavigation(entered, '/store/999', '?mode=global')).toEqual(entered);
+  });
+
+  it('keeps global navigation context for store urls with mode=global', () => {
+    expect(storeModeAfterNavigation({ active: false }, '/store/123', '?mode=global')).toEqual({
+      active: false,
+    });
+    expect(storeModeAfterNavigation({ active: false }, '/store/999', '?mode=global')).toEqual({
+      active: false,
+    });
   });
 
   it('restores store mode from direct store urls after refresh', () => {

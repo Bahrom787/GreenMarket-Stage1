@@ -45,6 +45,7 @@ export function sellerCardProductPath(
   product: Pick<CatalogProductCardViewModel, 'id' | 'sellerProductId'>,
 ) {
   const params = new URLSearchParams();
+  params.set('mode', 'global');
   if (product.sellerProductId != null) params.set('seller_product_id', String(product.sellerProductId));
   const search = params.toString();
   return productPath(storeCatalogContext(sellerId), product.id, search ? `?${search}` : '');
