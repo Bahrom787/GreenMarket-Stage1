@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { catalogPath, storeCatalogContext } from '../catalogContext';
-import { toBuyerSellerCard } from '../sellerCardPresentation';
+import { sellerCardProductPath, toBuyerSellerCard } from '../sellerCardPresentation';
 import type { SellerCardResponse, SellerCatalogResponse } from '../types';
 
 const seller: SellerCardResponse = {
@@ -97,5 +97,17 @@ describe('sellerCardPresentation', () => {
   it('uses Store Catalog as the seller-scoped catalog action', () => {
     const vm = toBuyerSellerCard(seller, catalog);
     expect(catalogPath(storeCatalogContext(vm.sellerId))).toBe('/store/6/catalog');
+  });
+
+  it('opens Seller Card products through Store Product routes', () => {
+    const vm = toBuyerSellerCard(seller, catalog);
+    const href = sellerCardProductPath(vm.sellerId, vm.products[0]);
+
+    expect(href).toBe('/store/6/product/42?seller_product_id=10');
+    expect(href).not.toBe('/product/42');
+  });
+
+  it('omits seller_product_id only when it is absent', () => {
+    expect(sellerCardProductPath('6', { id: 42 })).toBe('/store/6/product/42');
   });
 });
