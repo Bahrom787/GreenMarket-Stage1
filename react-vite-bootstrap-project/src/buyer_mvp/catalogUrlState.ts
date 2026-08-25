@@ -1,0 +1,69 @@
+import type { ProductGroup, SortOrder } from './types';
+
+export type CatalogParam = 'search' | 'group_id' | 'sort' | 'page';
+
+export function updateCatalogSearchParams(
+  current: URLSearchParams,
+  key: CatalogParam,
+  value: string | null,
+) {
+  const next = new URLSearchParams(current);
+  if (value) next.set(key, value);
+  else next.delete(key);
+  if (key !== 'page') next.set('page', '1');
+  return next;
+}
+
+export function clearCatalogSearchParams() {
+  return new URLSearchParams({ sort: 'name', page: '1' });
+}
+
+export function catalogPage(value: string | null) {
+  const parsed = Number(value ?? '1');
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
+}
+
+export function catalogSort(value: string | null): SortOrder {
+  return value === 'price' ? 'price' : 'name';
+}
+
+export function catalogGroupId(value: string | null) {
+  if (!value) return undefined;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+export interface CatalogGroupOption {
+  group: ProductGroup;
+  depth: number;
+}
+
+export function catalogGroupOptions(groups: ProductGroup[]): CatalogGroupOption[] {
+  const children = new Map<number | null, ProductGroup[]>();
+  for (const group of groups) {
+    children.set(group.parent_id, [...(children.get(group.parent_id) ?? []), group]);
+  }
+
+  for (const groupList of children.values()) {
+    groupList.sort((left, right) => left.sort_order - right.sort_order);
+  }
+
+  const result: CatalogGroupOption[] = [];
+  const visit = (parentId: number | null, depth: number) => {
+    for (const group of children.get(parentId) ?? []) {
+      result.push({ group, depth });
+      visit(group.id, depth + 1);
+    }
+  };
+
+  visit(null, 0);
+  return result;
+}
+
+export function selectedCatalogGroup(groups: ProductGroup[], groupId: string | null) {
+  return groups.find((group) => String(group.id) === groupId);
+}
+
+export function catalogGroupOptionLabel(option: CatalogGroupOption) {
+  return `${'— '.repeat(option.depth)}${option.group.name}`;
+}
