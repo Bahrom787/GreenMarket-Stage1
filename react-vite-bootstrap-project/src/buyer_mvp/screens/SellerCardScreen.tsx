@@ -6,6 +6,7 @@ import { CatalogApiError, fetchSeller, fetchSellerProducts } from '../api';
 import { catalogPath, storeCatalogContext } from '../catalogContext';
 import { ProductCard, ProductCardSkeleton } from '../components/ProductCard';
 import {
+  sellerCardProductPath,
   toBuyerSellerCard,
   type BuyerSellerCardViewModel,
 } from '../sellerCardPresentation';
@@ -126,7 +127,7 @@ export function SellerCardScreen() {
                   <ProductCard
                     key={product.key}
                     product={product}
-                    onOpen={(p) => navigate(`/product/${p.id}`)}
+                    onOpen={(p) => navigate(sellerCardProductPath(state.seller.sellerId, p))}
                   />
                 ))}
               </Grid>

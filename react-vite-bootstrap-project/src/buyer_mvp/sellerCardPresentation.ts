@@ -1,5 +1,6 @@
 import { toStoreHome, type StoreHomeViewModel } from './storeHomePresentation';
 import { toStoreProductCard, type CatalogProductCardViewModel } from './catalogPresentation';
+import { productPath, storeCatalogContext } from './catalogContext';
 import type { SellerCardResponse, SellerCatalogResponse } from './types';
 
 export interface SellerActionLink {
@@ -37,4 +38,14 @@ export function toBuyerSellerCard(
     products: catalog.products.map(toStoreProductCard),
     totalProducts: catalog.total,
   };
+}
+
+export function sellerCardProductPath(
+  sellerId: string,
+  product: Pick<CatalogProductCardViewModel, 'id' | 'sellerProductId'>,
+) {
+  const params = new URLSearchParams();
+  if (product.sellerProductId != null) params.set('seller_product_id', String(product.sellerProductId));
+  const search = params.toString();
+  return productPath(storeCatalogContext(sellerId), product.id, search ? `?${search}` : '');
 }
