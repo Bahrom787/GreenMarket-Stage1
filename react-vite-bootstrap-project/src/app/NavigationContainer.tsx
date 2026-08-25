@@ -7,6 +7,7 @@ import { Header, Page, Row } from '@/layout';
 import '@/buyer_mvp/buyer_mvp.css';
 import { CatalogScreen } from '@/buyer_mvp/screens/CatalogScreen';
 import { ProductScreen } from '@/buyer_mvp/screens/ProductScreen';
+import { SellerCardScreen } from '@/buyer_mvp/screens/SellerCardScreen';
 import { StoreHomeScreen } from '@/buyer_mvp/screens/StoreHomeScreen';
 import { globalCatalogContext, storeCatalogContext } from '@/buyer_mvp/catalogContext';
 import {
@@ -97,7 +98,7 @@ export function NavigationContainer() {
             <Route path="/store/:storeId/product/:productId" element={<StoreProductRoute />} />
             <Route path="/cart" element={<PlaceholderScreen name="Корзина" />} />
             <Route path="/profile" element={<PlaceholderScreen name="Профиль" />} />
-            <Route path="/seller/:sellerId" element={<PlaceholderScreen name="Seller Card" />} />
+            <Route path="/seller/:sellerId" element={<SellerCardScreen />} />
             <Route path="*" element={<PlaceholderScreen name="Страница не найдена" />} />
           </Routes>
         </Page>
