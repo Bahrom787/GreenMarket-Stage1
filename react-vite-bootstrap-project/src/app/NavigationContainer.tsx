@@ -65,14 +65,14 @@ function TopNav() {
 
 export function NavigationContainer() {
   const location = useLocation();
-  const [storeMode, setStoreMode] = useState<StoreMode>(() => storeModeFromPath(location.pathname));
-  const routeStoreMode = useMemo(() => storeModeFromPath(location.pathname), [location.pathname]);
+  const [storeMode, setStoreMode] = useState<StoreMode>(() => storeModeFromPath(location.pathname, location.search));
+  const routeStoreMode = useMemo(() => storeModeFromPath(location.pathname, location.search), [location.pathname, location.search]);
 
   useEffect(() => {
-    if (routeStoreMode.active) setStoreMode((current) => storeModeAfterNavigation(current, location.pathname));
-  }, [location.pathname, routeStoreMode]);
+    if (routeStoreMode.active) setStoreMode((current) => storeModeAfterNavigation(current, location.pathname, location.search));
+  }, [location.pathname, location.search, routeStoreMode]);
 
-  if (storeMode.active && !isStoreModePathAllowed(location.pathname, storeMode.storeId)) {
+  if (storeMode.active && !isStoreModePathAllowed(location.pathname, storeMode.storeId, location.search)) {
     return <Navigate to={storeModeLandingPath(storeMode.storeId)} replace />;
   }
 

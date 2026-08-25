@@ -103,11 +103,11 @@ describe('sellerCardPresentation', () => {
     const vm = toBuyerSellerCard(seller, catalog);
     const href = sellerCardProductPath(vm.sellerId, vm.products[0]);
 
-    expect(href).toBe('/store/6/product/42?seller_product_id=10');
+    expect(href).toBe('/store/6/product/42?mode=global&seller_product_id=10');
     expect(href).not.toBe('/product/42');
   });
 
   it('omits seller_product_id only when it is absent', () => {
-    expect(sellerCardProductPath('6', { id: 42 })).toBe('/store/6/product/42');
+    expect(sellerCardProductPath('6', { id: 42 })).toBe('/store/6/product/42?mode=global');
   });
 });

@@ -1,4 +1,5 @@
 import { formatPrice, formatStock } from './format';
+import { globalStoreHomePath } from './catalogContext';
 import type { ProductDetail, SellerCardResponse, SellerCatalogItem } from './types';
 
 export type ProductDetailContext = 'GLOBAL' | 'STORE';
@@ -46,7 +47,7 @@ export function toGlobalProductDetail(product: ProductDetail): ProductDetailView
   const offers = product.offers.map((offer) => ({
     key: `global-${offer.seller_product_id}`,
     sellerName: hasValue(offer.seller_name) ? offer.seller_name : undefined,
-    storePath: `/store/${offer.seller_id}`,
+    storePath: globalStoreHomePath(String(offer.seller_id)),
     storeActionLabel: hasValue(offer.seller_name)
       ? `Перейти в магазин «${offer.seller_name}»`
       : `Перейти в магазин ${offer.seller_id}`,

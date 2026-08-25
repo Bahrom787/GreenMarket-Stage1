@@ -156,7 +156,7 @@ describe('product detail presentation', () => {
       ],
     });
 
-    expect(vm.offers.map((offer) => offer.storePath)).toEqual(['/store/6', '/store/9']);
+    expect(vm.offers.map((offer) => offer.storePath)).toEqual(['/store/6?mode=global', '/store/9?mode=global']);
     expect(vm.offers.map((offer) => offer.storeActionLabel)).toEqual([
       'Перейти в магазин «Магазин A»',
       'Перейти в магазин «Магазин B»',
@@ -192,7 +192,7 @@ describe('product detail presentation', () => {
       ],
     });
 
-    expect(vm.offers.map((offer) => offer.storePath)).toEqual(['/store/6', '/store/6']);
+    expect(vm.offers.map((offer) => offer.storePath)).toEqual(['/store/6?mode=global', '/store/6?mode=global']);
   });
 
   it('keeps empty offer photos empty without using another seller photo', () => {
