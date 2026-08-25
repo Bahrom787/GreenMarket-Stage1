@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Text, ErrorState, EmptyState, Button } from '@/design-system/components';
+import { Text, ErrorState, EmptyState, Button, Chip } from '@/design-system/components';
 import { Grid, Stack, Row } from '@/layout';
-import { fetchProducts, fetchSeller, fetchSellerProducts, CatalogApiError } from '../api';
+import { fetchProducts, fetchSeller, fetchSellerProducts, fetchGroups, CatalogApiError } from '../api';
 import { SearchBar } from '../components/SearchBar';
 import { ProductCard, ProductCardSkeleton } from '../components/ProductCard';
 import {
@@ -17,7 +17,18 @@ import {
   toStoreProductCard,
   type CatalogProductCardViewModel,
 } from '../catalogPresentation';
-import type { CatalogQuery, SortOrder } from '../types';
+import {
+  catalogGroupId,
+  catalogGroupOptionLabel,
+  catalogGroupOptions,
+  catalogPage,
+  catalogSort,
+  clearCatalogSearchParams,
+  selectedCatalogGroup,
+  updateCatalogSearchParams,
+  type CatalogParam,
+} from '../catalogUrlState';
+import type { CatalogQuery, ProductGroup } from '../types';
 
 type LoadState =
   | { status: 'loading' }
@@ -33,6 +44,11 @@ type ReadyPayload = {
   total: number;
 };
 
+type GroupsState =
+  | { status: 'loading'; groups: ProductGroup[] }
+  | { status: 'error'; groups: ProductGroup[]; message: string }
+  | { status: 'ready'; groups: ProductGroup[] };
+
 /** Экран 2 (Buyer_MVP.md): список товаров, поиск, фильтр по категории. */
 interface CatalogScreenProps {
   context?: CatalogContext;
@@ -42,18 +58,26 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [state, setState] = useState<LoadState>({ status: 'loading' });
+  const [groupsState, setGroupsState] = useState<GroupsState>({ status: 'loading', groups: [] });
+  const catalogRequestId = useRef(0);
 
   const search = searchParams.get('search') ?? '';
   const groupId = searchParams.get('group_id');
-  const sort = (searchParams.get('sort') as SortOrder | null) ?? 'name';
-  const page = Number(searchParams.get('page') ?? '1');
+  const parsedGroupId = catalogGroupId(groupId);
+  const sort = catalogSort(searchParams.get('sort'));
+  const page = catalogPage(searchParams.get('page'));
   const isStore = isStoreContext(context);
   const storeId = isStore ? context.storeId : undefined;
+  const groups = catalogGroupOptions(groupsState.groups);
+  const selectedGroup = selectedCatalogGroup(groupsState.groups, groupId);
+  const hasFilters = Boolean(search || groupId || sort !== 'name' || page !== 1);
 
   function load() {
+    const requestId = catalogRequestId.current + 1;
+    catalogRequestId.current = requestId;
     const query: CatalogQuery = {
       search: search || undefined,
-      groupId: groupId ? Number(groupId) : undefined,
+      groupId: parsedGroupId,
       sort,
       page,
     };
@@ -79,7 +103,8 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
         }));
 
     request
-      .then((res) =>
+      .then((res) => {
+        if (requestId !== catalogRequestId.current) return;
         setState({
           status: 'ready',
           title: res.title,
@@ -88,23 +113,42 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
           page: res.page,
           limit: res.limit,
           total: res.total,
-        }),
-      )
+        });
+      })
       .catch((err: unknown) => {
+        if (requestId !== catalogRequestId.current) return;
         const message =
           err instanceof CatalogApiError ? err.message : 'Не удалось загрузить товары.';
         setState({ status: 'error', message });
       });
   }
 
-  useEffect(load, [search, groupId, sort, page, isStore, storeId]);
+  useEffect(load, [search, groupId, parsedGroupId, sort, page, isStore, storeId]);
 
-  function updateParam(key: string, value: string | null) {
-    const next = new URLSearchParams(searchParams);
-    if (value) next.set(key, value);
-    else next.delete(key);
-    if (key !== 'page') next.delete('page');
-    setSearchParams(next);
+  useEffect(() => {
+    let active = true;
+    setGroupsState((current) => ({ status: 'loading', groups: current.groups }));
+    fetchGroups()
+      .then((res) => {
+        if (active) setGroupsState({ status: 'ready', groups: res.groups });
+      })
+      .catch((err: unknown) => {
+        if (!active) return;
+        const message =
+          err instanceof CatalogApiError ? err.message : 'Не удалось загрузить категории.';
+        setGroupsState((current) => ({ status: 'error', groups: current.groups, message }));
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  function updateParam(key: CatalogParam, value: string | null) {
+    setSearchParams(updateCatalogSearchParams(searchParams, key, value));
+  }
+
+  function clearFilters() {
+    setSearchParams(clearCatalogSearchParams());
   }
 
   function productRoute(product: CatalogProductCardViewModel) {
@@ -138,9 +182,34 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
         )}
       </Row>
 
-      <SearchBar initialValue={search} onSearch={(value) => updateParam('search', value || null)} />
+      <Stack gap="sm" className="gm-catalog-filters">
+        <SearchBar initialValue={search} onSearch={(value) => updateParam('search', value || null)} />
 
-      <Row gap="sm" wrap>
+        <Row gap="sm" wrap align="center">
+          <label className="gm-catalog-filter">
+            <Text variant="caption" as="span">
+              Категория
+            </Text>
+            <select
+              className="gm-catalog-filter__select gm-focusable"
+              value={groupId ?? ''}
+              onChange={(event) => updateParam('group_id', event.target.value || null)}
+              disabled={groupsState.status === 'loading' && groups.length === 0}
+              aria-label="Категория"
+            >
+              <option value="">Все категории</option>
+              {groups.map(({ group, depth }) => (
+                <option key={group.id} value={group.id}>
+                  {catalogGroupOptionLabel({ group, depth })}
+                </option>
+              ))}
+            </select>
+          </label>
+          {groupsState.status === 'loading' && <Text tone="secondary">Категории загружаются</Text>}
+          {groupsState.status === 'error' && <Text tone="secondary">{groupsState.message}</Text>}
+        </Row>
+
+        <Row gap="sm" wrap>
         <Button
           variant={sort === 'name' ? 'primary' : 'secondary'}
           size="sm"
@@ -160,7 +229,23 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
             Сбросить категорию
           </Button>
         )}
-      </Row>
+          {hasFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
+              Очистить фильтры
+            </Button>
+          )}
+        </Row>
+
+        <Row gap="sm" wrap align="center" aria-label="Активные фильтры">
+          {search && <Chip onClick={() => updateParam('search', null)}>Поиск: {search} ×</Chip>}
+          {selectedGroup && (
+            <Chip selected onClick={() => updateParam('group_id', null)}>
+              {selectedGroup.name} ×
+            </Chip>
+          )}
+          {!search && !selectedGroup && <Text tone="secondary">Фильтры не применены</Text>}
+        </Row>
+      </Stack>
 
       {state.status === 'loading' && (
         <Grid gap="md" aria-label="Загрузка каталога">

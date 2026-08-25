@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fetchSeller, fetchSellerProduct, fetchSellerProducts, normalizeCatalogApiBase } from '../api';
+import {
+  fetchGroups,
+  fetchProducts,
+  fetchSeller,
+  fetchSellerProduct,
+  fetchSellerProducts,
+  normalizeCatalogApiBase,
+} from '../api';
 import type { SellerCatalogItem } from '../types';
 
 const sellerProduct: SellerCatalogItem = {
@@ -65,6 +72,28 @@ describe('catalog api', () => {
 
     expect(fetch).toHaveBeenCalledWith(
       '/api/v1/catalog/sellers/seller%201/products?group_id=7&search=milk&sort=price&page=2&limit=10',
+    );
+  });
+
+  it('loads groups from the existing catalog endpoint', async () => {
+    const fetch = vi.fn().mockResolvedValue(response({ groups: [] }));
+    vi.stubGlobal('fetch', fetch);
+
+    await fetchGroups();
+
+    expect(fetch).toHaveBeenCalledWith('/api/v1/catalog/groups');
+  });
+
+  it('passes combined Global Catalog filters through the existing product endpoint', async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValue(response({ products: [], page: 2, limit: 10, total: 0 }));
+    vi.stubGlobal('fetch', fetch);
+
+    await fetchProducts({ search: 'milk', groupId: 12, sort: 'price', page: 2 });
+
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/v1/catalog/products?group_id=12&search=milk&sort=price&page=2',
     );
   });
 
