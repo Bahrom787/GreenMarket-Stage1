@@ -512,11 +512,11 @@ export function MapScreenView() {
                   else legendRef.current?.resetPosition();
                 }}
               >
-                Р’РµСЂРЅСѓС‚СЊ
+                Вернуть
               </button>
             }
           >
-            {returnTarget === 'panel' ? 'РџР°РЅРµР»СЊ РїРµСЂРµРјРµС‰РµРЅР°' : 'Р›РµРіРµРЅРґР° РїРµСЂРµРјРµС‰РµРЅР°'}
+            {returnTarget === 'panel' ? 'Панель перемещена' : 'Легенда перемещена'}
           </Snackbar>
         </SnackbarContainer>
       )}
