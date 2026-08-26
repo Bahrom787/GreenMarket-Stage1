@@ -107,7 +107,7 @@ export interface ApiErrorBody {
 export type SortOrder = 'name' | 'price';
 
 export interface CatalogQuery {
-  groupId?: number;
+  groupIds?: number[];
   search?: string;
   sort?: SortOrder;
   page?: number;

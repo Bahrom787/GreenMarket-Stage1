@@ -27,10 +27,12 @@ export function catalogSort(value: string | null): SortOrder {
   return value === 'price' ? 'price' : 'name';
 }
 
-export function catalogGroupId(value: string | null) {
-  if (!value) return undefined;
-  const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
+export function catalogGroupIds(value: string | null) {
+  if (!value) return [];
+  const ids = value.split(',').map((part) => Number(part.trim()));
+  return ids.length > 0 && ids.every((id) => Number.isInteger(id) && id > 0)
+    ? [...new Set(ids)]
+    : undefined;
 }
 
 export interface CatalogGroupOption {
@@ -60,10 +62,19 @@ export function catalogGroupOptions(groups: ProductGroup[]): CatalogGroupOption[
   return result;
 }
 
-export function selectedCatalogGroup(groups: ProductGroup[], groupId: string | null) {
-  return groups.find((group) => String(group.id) === groupId);
+export function selectedCatalogGroups(groups: ProductGroup[], groupIds: number[]) {
+  const selected = new Set(groupIds);
+  return groups.filter((group) => selected.has(group.id));
 }
 
 export function catalogGroupOptionLabel(option: CatalogGroupOption) {
   return `${'— '.repeat(option.depth)}${option.group.name}`;
+}
+
+export function toggleCatalogGroupParam(currentIds: number[], groupId: number) {
+  const selected = new Set(currentIds);
+  if (selected.has(groupId)) selected.delete(groupId);
+  else selected.add(groupId);
+  const next = [...selected];
+  return next.length ? next.join(',') : null;
 }
