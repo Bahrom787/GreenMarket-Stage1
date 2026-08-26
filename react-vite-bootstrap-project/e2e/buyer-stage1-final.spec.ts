@@ -21,6 +21,14 @@ const seller = {
   whatsapp: null,
 };
 
+const secondSeller = {
+  ...seller,
+  seller_id: 9,
+  name: 'Second marker',
+  row: 'B',
+  place: '21',
+};
+
 const storeProduct = {
   seller_product_id: 653,
   product_id: 169,
@@ -35,6 +43,13 @@ const storeProduct = {
   origin_country: null,
   supply_date: null,
   photos: [],
+};
+
+const secondStoreProduct = {
+  ...storeProduct,
+  seller_product_id: 654,
+  name: 'Second Store Apple',
+  price: '130.00',
 };
 
 async function mockBuyerApi(page: Page) {
@@ -93,6 +108,18 @@ async function mockBuyerApi(page: Page) {
               supply_date: null,
               photos: [],
             },
+            {
+              seller_product_id: 654,
+              seller_id: 9,
+              seller_name: 'Second marker',
+              price: '130.00',
+              unit: 'pcs',
+              stock: '4.000',
+              description: null,
+              origin_country: null,
+              supply_date: null,
+              photos: [],
+            },
           ],
         },
       });
@@ -104,15 +131,25 @@ async function mockBuyerApi(page: Page) {
       return;
     }
 
+    if (url.pathname.endsWith('/sellers/9/products')) {
+      await route.fulfill({ json: { products: [secondStoreProduct], page: Number(url.searchParams.get('page') ?? 1), limit: 1, total: 1 } });
+      return;
+    }
+
     if (url.pathname.endsWith('/sellers/6')) {
       await route.fulfill({ json: seller });
+      return;
+    }
+
+    if (url.pathname.endsWith('/sellers/9')) {
+      await route.fulfill({ json: secondSeller });
       return;
     }
 
     if (url.pathname.endsWith('/products')) {
       await route.fulfill({
         json: {
-          products: [{ id: 169, name: 'Global Apple', min_price: '125.00', offer_count: 1, photos: [] }],
+          products: [{ id: 169, name: 'Global Apple', min_price: '125.00', offer_count: 2, photos: [] }],
           page: Number(url.searchParams.get('page') ?? 1),
           limit: 1,
           total: 3,
@@ -148,25 +185,42 @@ test('Global Catalog -> Product -> Store Global preserves URL context and histor
   await expect(page).toHaveURL(/\/product\/169/);
   await expect(page).toHaveURL(/group_id=17%2C18|group_id=17,18/);
   await expect(page.getByRole('heading', { name: 'Global Apple' })).toBeVisible();
+  await expect(page.locator('.gm-buyer-offer-card__store-link')).toHaveCount(2);
 
-  await page.locator('.gm-buyer-offer-card__store-link').click();
+  await page.locator('.gm-buyer-offer-card__store-link').first().click();
   await expect(page).toHaveURL('/store/6?mode=global');
   await expect(page.getByRole('heading', { name: 'Dev marker' })).toBeVisible();
+  await page.locator('.gm-store-home button').click();
+  await expect(page).toHaveURL('/store/6/catalog?mode=global');
 
   await page.goBack();
   await expect(page).toHaveURL(/\/product\/169/);
   await page.goForward();
-  await expect(page).toHaveURL('/store/6?mode=global');
+  await expect(page).toHaveURL('/store/6/catalog?mode=global');
+
+  await page.getByRole('button', { name: /Store Apple/ }).click();
+  await expect(page).toHaveURL(/\/store\/6\/product\/169\?mode=global&seller_product_id=653/);
+  await page.goBack();
+  await expect(page).toHaveURL('/store/6/catalog?mode=global');
+  await page.goBack();
+  await expect(page).toHaveURL(/\/product\/169/);
+
+  await page.locator('.gm-buyer-offer-card__store-link').nth(1).click();
+  await expect(page).toHaveURL('/store/9?mode=global');
+  await expect(page.getByRole('heading', { name: 'Second marker' })).toBeVisible();
+  await page.locator('.gm-store-home button').click();
+  await expect(page).toHaveURL('/store/9/catalog?mode=global');
+  await page.goBack();
+  await expect(page).toHaveURL(/\/product\/169/);
 
   await page.locator('.gm-site-nav__link[href="/"]').click();
   await expect(page).toHaveURL('/');
   await page.goBack();
-  await expect(page).toHaveURL('/store/6?mode=global');
+  await expect(page).toHaveURL(/\/product\/169/);
 
-  await page.getByRole('button', { name: /каталог/i }).click();
-  await expect(page).toHaveURL('/store/6/catalog?mode=global');
+  await page.locator('.gm-buyer-offer-card__store-link').first().click();
+  await page.locator('.gm-store-home button').click();
   await page.getByRole('button', { name: /Store Apple/ }).click();
-  await expect(page).toHaveURL(/\/store\/6\/product\/169\?mode=global&seller_product_id=653/);
   await page.reload();
   await expect(page).toHaveURL(/\/store\/6\/product\/169\?mode=global&seller_product_id=653/);
   await expect(page.getByRole('heading', { name: 'Store Apple' })).toBeVisible();
@@ -177,7 +231,7 @@ test('Store Mode keeps store routes isolated through catalog, product, back and 
 
   await page.goto('/store/6');
   await expect(page.getByRole('heading', { name: 'Dev marker' })).toBeVisible();
-  await page.getByRole('button', { name: /каталог/i }).click();
+  await page.locator('.gm-store-home button').click();
   await expect(page).toHaveURL('/store/6/catalog');
 
   await page.getByRole('button', { name: /Store Apple/ }).click();
@@ -230,7 +284,7 @@ test('Seller List and Map entry keep Buyer navigation on React routes', async ({
 
   await page.goto('/map');
   await expect(page.getByTestId('map-screen')).toBeVisible();
-  await page.getByRole('button', { name: /панель/i }).click();
+  await page.getByTestId('fab-panel-toggle').click();
   await page.getByTestId('open-catalog').click();
   await expect(page).toHaveURL('/');
 });
