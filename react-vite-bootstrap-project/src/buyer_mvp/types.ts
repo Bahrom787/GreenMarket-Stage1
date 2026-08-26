@@ -41,6 +41,33 @@ export interface CatalogMarket {
   address: string;
   latitude: string;
   longitude: string;
+  seller_count?: number;
+}
+
+export interface CatalogMarketsResponse {
+  markets: CatalogMarket[];
+}
+
+export interface MarketSellerSummary {
+  seller_id: number;
+  name: string;
+  row: string | null;
+  place: string | null;
+  working_hours: string | null;
+  short_description: string | null;
+  product_count: number;
+}
+
+export interface MarketSellerListResponse {
+  sellers: MarketSellerSummary[];
+}
+
+export interface BuyerSellerListItem extends MarketSellerSummary {
+  market: CatalogMarket;
+}
+
+export interface BuyerSellerListResponse {
+  sellers: BuyerSellerListItem[];
 }
 
 export interface SellerCardResponse {

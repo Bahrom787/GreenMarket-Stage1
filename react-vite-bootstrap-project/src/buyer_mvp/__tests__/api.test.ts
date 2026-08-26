@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   fetchGroups,
+  fetchSellers,
   fetchProducts,
   fetchSeller,
   fetchSellerProduct,
@@ -82,6 +83,71 @@ describe('catalog api', () => {
     await fetchGroups();
 
     expect(fetch).toHaveBeenCalledWith('/api/v1/catalog/groups');
+  });
+
+  it('loads Seller List through Buyer market seller endpoints', async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        response({
+          markets: [
+            {
+              id: 1,
+              name: 'Dev market',
+              type: 'SHOP',
+              address: 'Kazan',
+              latitude: '55.7',
+              longitude: '49.1',
+              seller_count: 1,
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(
+        response({
+          sellers: [
+            {
+              seller_id: 6,
+              name: 'Dev marker',
+              row: 'A',
+              place: '12',
+              working_hours: '10-18',
+              short_description: 'Fresh greens',
+              product_count: 12,
+            },
+          ],
+        }),
+      );
+    vi.stubGlobal('fetch', fetch);
+
+    await expect(fetchSellers()).resolves.toMatchObject({
+      sellers: [{ seller_id: 6, name: 'Dev marker', market: { name: 'Dev market' } }],
+    });
+    expect(fetch).toHaveBeenNthCalledWith(1, '/api/v1/catalog/markets');
+    expect(fetch).toHaveBeenNthCalledWith(2, '/api/v1/catalog/markets/1/sellers');
+  });
+
+  it('filters Seller List search inside the Buyer API facade', async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        response({
+          markets: [{ id: 1, name: 'Dev market', type: 'SHOP', address: 'Kazan', latitude: '0', longitude: '0' }],
+        }),
+      )
+      .mockResolvedValueOnce(
+        response({
+          sellers: [
+            { seller_id: 6, name: 'Dev marker', row: null, place: null, working_hours: null, short_description: null, product_count: 1 },
+            { seller_id: 7, name: 'Fruit seller', row: null, place: null, working_hours: null, short_description: null, product_count: 1 },
+          ],
+        }),
+      );
+    vi.stubGlobal('fetch', fetch);
+
+    await expect(fetchSellers({ search: 'fruit' })).resolves.toMatchObject({
+      sellers: [{ seller_id: 7, name: 'Fruit seller' }],
+    });
   });
 
   it('passes combined Global Catalog filters through the existing product endpoint', async () => {

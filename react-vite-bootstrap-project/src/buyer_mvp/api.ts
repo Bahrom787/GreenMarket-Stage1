@@ -1,6 +1,9 @@
 import type {
   ApiErrorBody,
   CatalogQuery,
+  CatalogMarketsResponse,
+  BuyerSellerListResponse,
+  MarketSellerListResponse,
   ProductDetail,
   ProductGroupsResponse,
   ProductListResponse,
@@ -91,6 +94,44 @@ export function fetchGroups(): Promise<ProductGroupsResponse> {
 
 export function fetchProducts(query: CatalogQuery = {}): Promise<ProductListResponse> {
   return request<ProductListResponse>(`/products?${productQueryString(query)}`);
+}
+
+export function fetchMarkets(): Promise<CatalogMarketsResponse> {
+  return request<CatalogMarketsResponse>('/markets');
+}
+
+export function fetchMarketSellers(marketId: number): Promise<MarketSellerListResponse> {
+  return request<MarketSellerListResponse>(`/markets/${marketId}/sellers`);
+}
+
+export async function fetchSellers(query: { search?: string } = {}): Promise<BuyerSellerListResponse> {
+  const markets = await fetchMarkets();
+  const perMarket = await Promise.all(
+    markets.markets.map(async (market) => {
+      const res = await fetchMarketSellers(market.id);
+      return res.sellers.map((seller) => ({ ...seller, market }));
+    }),
+  );
+  const needle = query.search?.trim().toLocaleLowerCase();
+  const sellers = perMarket.flat();
+
+  return {
+    sellers: needle
+      ? sellers.filter((seller) =>
+          [
+            seller.name,
+            seller.short_description,
+            seller.working_hours,
+            seller.row,
+            seller.place,
+            seller.market.name,
+            seller.market.address,
+          ]
+            .filter(Boolean)
+            .some((value) => String(value).toLocaleLowerCase().includes(needle)),
+        )
+      : sellers,
+  };
 }
 
 export function fetchSeller(storeId: string): Promise<SellerCardResponse> {
