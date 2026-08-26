@@ -60,7 +60,10 @@ export function StoreHomeScreen() {
   }, [load]);
 
   function openCatalog() {
-    if (storeId) navigate(catalogPath(storeCatalogContext(storeId), globalStoreModeSearch(location.search)));
+    if (!storeId) return;
+
+    const modeSearch = globalStoreModeSearch(location.search);
+    navigate(catalogPath(storeCatalogContext(storeId), modeSearch), { replace: Boolean(modeSearch) });
   }
 
   return (
