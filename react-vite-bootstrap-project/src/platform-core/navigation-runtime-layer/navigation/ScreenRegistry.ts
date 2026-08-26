@@ -12,6 +12,7 @@ import { SellerCardScreen } from "@/platform-core/screens/SellerCardScreen";
 import { SellerCatalogScreen } from "@/platform-core/screens/SellerCatalogScreen";
 import { MapScreen } from "@/platform-core/screens/MapScreen";
 import { SellerListScreen } from "@/platform-core/screens/SellerListScreen";
+import { GreenBoardScreen } from "@/platform-core/screens/GreenBoardScreen";
 
 /** ScreenRegistry — единственная точка, где ScreenId (навигационное имя)
  *  сопоставляется конкретному ScreenDefinition (screens/*.ts). До этого
@@ -35,6 +36,7 @@ export const ScreenRegistry: Readonly<Record<ScreenId, ScreenDefinition<unknown>
   SellerCatalog: SellerCatalogScreen as ScreenDefinition<unknown>,
   Map: MapScreen as ScreenDefinition<unknown>,
   SellerList: SellerListScreen as ScreenDefinition<unknown>,
+  GreenBoard: GreenBoardScreen as ScreenDefinition<unknown>,
 };
 
 export function getScreenDefinition(screen: ScreenId): ScreenDefinition<unknown> {
