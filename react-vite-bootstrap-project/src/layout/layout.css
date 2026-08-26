@@ -126,10 +126,13 @@
     height: 64px;
   }
   .gm-site-nav {
-    gap: var(--space-md);
+    flex: 1;
+    gap: var(--space-xs);
+    justify-content: space-between;
   }
   .gm-site-nav__link {
     font-size: var(--font-size-xs);
+    white-space: nowrap;
   }
   .gm-site-profile {
     display: none;

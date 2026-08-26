@@ -9,12 +9,14 @@ const PATH_TO_SCREEN: Record<string, ScreenId> = {
   '/catalog': 'Catalog',
   '/map': 'Map',
   '/seller-list': 'SellerList',
+  '/green-board': 'GreenBoard',
 };
 
 const SCREEN_TO_PATH: Partial<Record<ScreenId, string>> = {
   Catalog: '/',
   Map: '/map',
   SellerList: '/seller-list',
+  GreenBoard: '/green-board',
 };
 
 function isGlobalProductPath(pathname: string) {

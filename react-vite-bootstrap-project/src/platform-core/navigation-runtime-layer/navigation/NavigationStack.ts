@@ -32,7 +32,8 @@ export type ScreenId =
    * добавлен как отдельный ScreenId, т.к. AR-003 явно требует переход
    * Map → Seller List; реализация экрана — отдельная задача. */
   | "Map"
-  | "SellerList";
+  | "SellerList"
+  | "GreenBoard";
 
 /** Параметры каждого экрана — минимально необходимые для построения его
  *  ViewModel (Adapter/Builder уже существуют и их сигнатуры не меняются).
@@ -51,6 +52,7 @@ export interface ScreenParamsMap {
   SellerCatalog: { sellerId: SellerId; categoryId?: CategoryId };
   Map: Record<string, never>;
   SellerList: Record<string, never>;
+  GreenBoard: Record<string, never>;
 }
 
 export type NavigationEntry = {

@@ -9,6 +9,7 @@ import { CatalogScreen } from '@/buyer_mvp/screens/CatalogScreen';
 import { ProductScreen } from '@/buyer_mvp/screens/ProductScreen';
 import { SellerCardScreen } from '@/buyer_mvp/screens/SellerCardScreen';
 import { StoreHomeScreen } from '@/buyer_mvp/screens/StoreHomeScreen';
+import { GreenBoardScreen } from '@/buyer_mvp/screens/GreenBoardScreen';
 import { globalCatalogContext, storeCatalogContext } from '@/buyer_mvp/catalogContext';
 import {
   isStoreModePathAllowed,
@@ -22,6 +23,7 @@ const navItems = [
   { to: '/', label: 'Каталог' },
   { to: '/map', label: 'Карта' },
   { to: '/seller-list', label: 'Продавцы' },
+  { to: '/green-board', label: 'О Green Board' },
 ];
 
 const FULL_SCREEN_ROUTES = new Set(['/map', '/seller-list']);
@@ -92,6 +94,7 @@ export function NavigationContainer() {
             <Route path="/" element={<CatalogScreen context={globalCatalogContext} />} />
             <Route path="/home" element={<Navigate to="/" replace />} />
             <Route path="/catalog" element={<LegacyCatalogRedirect />} />
+            <Route path="/green-board" element={<GreenBoardScreen />} />
             <Route path="/product/:productId" element={<ProductScreen context={globalCatalogContext} />} />
             <Route path="/store/:storeId" element={<StoreHomeScreen />} />
             <Route path="/store/:storeId/catalog" element={<StoreCatalogRoute />} />

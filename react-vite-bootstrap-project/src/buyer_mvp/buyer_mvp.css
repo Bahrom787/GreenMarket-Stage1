@@ -177,6 +177,25 @@
   color: var(--color-text-primary);
 }
 
+.gm-green-board {
+  min-width: 0;
+  padding: var(--space-xxl) var(--space-none) var(--space-xxxl);
+}
+
+.gm-green-board__intro {
+  max-width: 760px;
+}
+
+.gm-green-board__intro h1,
+.gm-green-board__intro p {
+  overflow-wrap: anywhere;
+}
+
+.gm-green-board__catalog-link {
+  width: fit-content;
+  text-decoration: none;
+}
+
 .gm-seller-card__action {
   display: inline-flex;
   align-items: center;
