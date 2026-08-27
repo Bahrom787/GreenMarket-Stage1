@@ -291,27 +291,29 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
             ))}
           </Grid>
 
-          <Row gap="sm" justify="center">
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={state.page <= 1}
-              onClick={() => updateParam('page', String(state.page - 1))}
-            >
-              Назад
-            </Button>
-            <Text tone="secondary">
-              Стр. {state.page} из {Math.max(1, Math.ceil(state.total / state.limit))}
-            </Text>
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={state.page * state.limit >= state.total}
-              onClick={() => updateParam('page', String(state.page + 1))}
-            >
-              Вперёд
-            </Button>
-          </Row>
+          {Math.max(1, Math.ceil(state.total / state.limit)) > 1 && (
+            <Row gap="sm" justify="center" data-testid="catalog-pagination">
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={state.page <= 1}
+                onClick={() => updateParam('page', String(state.page - 1))}
+              >
+                Назад
+              </Button>
+              <Text tone="secondary">
+                Стр. {state.page} из {Math.max(1, Math.ceil(state.total / state.limit))}
+              </Text>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={state.page * state.limit >= state.total}
+                onClick={() => updateParam('page', String(state.page + 1))}
+              >
+                Вперёд
+              </Button>
+            </Row>
+          )}
         </>
       )}
     </Stack>
