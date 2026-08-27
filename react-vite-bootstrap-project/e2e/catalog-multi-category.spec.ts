@@ -68,12 +68,28 @@ async function mockCatalog(page: Page) {
     }
 
     if (url.pathname.endsWith('/sellers/6/products')) {
-      await route.fulfill({ json: storeProducts });
+      if (url.searchParams.get('search') === 'empty') {
+        await route.fulfill({ json: { ...storeProducts, products: [], total: 0 } });
+        return;
+      }
+      await route.fulfill({
+        json: url.searchParams.get('search') === 'single'
+          ? { ...storeProducts, total: 1 }
+          : storeProducts,
+      });
       return;
     }
 
     if (url.pathname.endsWith('/products')) {
-      await route.fulfill({ json: globalProducts });
+      if (url.searchParams.get('search') === 'empty') {
+        await route.fulfill({ json: { ...globalProducts, products: [], total: 0 } });
+        return;
+      }
+      await route.fulfill({
+        json: url.searchParams.get('search') === 'single'
+          ? { ...globalProducts, products: [globalProducts.products[0]], total: 1 }
+          : globalProducts,
+      });
       return;
     }
 
@@ -100,12 +116,13 @@ test('Global Catalog keeps multi-category filters in URL through refresh, pagina
   await selectCategories(page);
   await expect(page).toHaveURL(/group_id=17%2C18|group_id=17,18/);
   expect(lastProductRequest(requests)).toContain('/api/v1/catalog/products?group_id=17,18');
+  await expect(page.getByTestId('catalog-pagination')).toBeVisible();
 
   await page.reload();
   await expect(page.getByRole('button', { name: 'Vegetables', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: 'Greens and Salads', exact: true })).toHaveAttribute('aria-pressed', 'true');
 
-  await page.locator('.gm-grid + .gm-row').getByRole('button').last().click();
+  await page.getByTestId('catalog-pagination').getByRole('button').last().click();
   await expect(page).toHaveURL(/group_id=17%2C18|group_id=17,18/);
   await expect(page).toHaveURL(/page=2/);
 
@@ -122,6 +139,7 @@ test('Store Catalog sends one seller-scoped multi-category request and preserves
 
   await page.goto('/store/6/catalog?search=milk&sort=price&page=2');
   await expect(page.getByText('Store Milk')).toBeVisible();
+  await expect(page.getByTestId('catalog-pagination')).toBeVisible();
 
   await selectCategories(page);
   await expect(page).toHaveURL(/search=milk/);
@@ -134,7 +152,25 @@ test('Store Catalog sends one seller-scoped multi-category request and preserves
   await expect(page).toHaveURL(/\/store\/6\/catalog/);
   await expect(page.getByRole('button', { name: 'Vegetables', exact: true })).toHaveAttribute('aria-pressed', 'true');
 
-  await page.locator('.gm-grid + .gm-row').getByRole('button').last().click();
+  await page.getByTestId('catalog-pagination').getByRole('button').last().click();
   await expect(page).toHaveURL(/group_id=17%2C18|group_id=17,18/);
   await expect(page).toHaveURL(/page=2/);
+});
+
+test('Catalog hides pagination for one page and empty results', async ({ page }) => {
+  await mockCatalog(page);
+
+  await page.goto('/?search=single');
+  await expect(page.getByText('Milk')).toBeVisible();
+  await expect(page.getByTestId('catalog-pagination')).toBeHidden();
+
+  await page.goto('/?search=empty');
+  await expect(page.getByTestId('catalog-pagination')).toBeHidden();
+
+  await page.goto('/store/6/catalog?search=single');
+  await expect(page.getByText('Store Milk')).toBeVisible();
+  await expect(page.getByTestId('catalog-pagination')).toBeHidden();
+
+  await page.goto('/store/6/catalog?search=empty');
+  await expect(page.getByTestId('catalog-pagination')).toBeHidden();
 });
