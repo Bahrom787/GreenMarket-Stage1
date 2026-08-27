@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   catalogGroupIds,
+  catalogSellerIds,
   catalogGroupOptions,
   catalogGroupOptionLabel,
   clearCatalogSearchParams,
@@ -47,12 +48,12 @@ describe('catalog URL state', () => {
 
   it('preserves filters when page changes', () => {
     const next = updateCatalogSearchParams(
-      new URLSearchParams('search=milk&group_id=12,13&sort=price&page=2'),
+      new URLSearchParams('search=milk&group_id=12,13&seller_id=6,7&sort=price&page=2'),
       'page',
       '3',
     );
 
-    expect(next.toString()).toBe('search=milk&group_id=12%2C13&sort=price&page=3');
+    expect(next.toString()).toBe('search=milk&group_id=12%2C13&seller_id=6%2C7&sort=price&page=3');
   });
 
   it('keeps combined categories when search and sort change and resets page', () => {
@@ -96,5 +97,10 @@ describe('catalog URL state', () => {
 
   it('rejects malformed manual group_id values before UI can reuse them', () => {
     expect(catalogGroupIds('17,abc')).toBeUndefined();
+  });
+
+  it('restores selected seller ids from URL seller_id', () => {
+    expect(catalogSellerIds('6,7')).toEqual([6, 7]);
+    expect(catalogSellerIds('6,abc')).toBeUndefined();
   });
 });

@@ -26,7 +26,7 @@ const navItems = [
   { to: '/green-board', label: 'О Green Board' },
 ];
 
-const FULL_SCREEN_ROUTES = new Set(['/map', '/seller-list']);
+const FULL_SCREEN_ROUTES = new Set(['/map']);
 
 function LegacyCatalogRedirect() {
   const location = useLocation();
@@ -96,6 +96,7 @@ export function NavigationContainer() {
             <Route path="/catalog" element={<LegacyCatalogRedirect />} />
             <Route path="/green-board" element={<GreenBoardScreen />} />
             <Route path="/product/:productId" element={<ProductScreen context={globalCatalogContext} />} />
+            <Route path="/seller-list" element={<SellerListScreenView />} />
             <Route path="/store/:storeId" element={<StoreHomeScreen />} />
             <Route path="/store/:storeId/catalog" element={<StoreCatalogRoute />} />
             <Route path="/store/:storeId/product/:productId" element={<StoreProductRoute />} />

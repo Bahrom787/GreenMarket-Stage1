@@ -20,6 +20,7 @@ import {
 } from '../catalogPresentation';
 import {
   catalogGroupIds,
+  catalogSellerIds,
   catalogGroupOptionLabel,
   catalogGroupOptions,
   catalogPage,
@@ -66,9 +67,13 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
 
   const search = searchParams.get('search') ?? '';
   const groupId = searchParams.get('group_id');
+  const sellerId = searchParams.get('seller_id');
   const parsedGroupIds = useMemo(() => catalogGroupIds(groupId), [groupId]);
+  const parsedSellerIds = useMemo(() => catalogSellerIds(sellerId), [sellerId]);
   const groupIds = useMemo(() => parsedGroupIds ?? [], [parsedGroupIds]);
+  const sellerIds = useMemo(() => parsedSellerIds ?? [], [parsedSellerIds]);
   const hasInvalidGroupId = Boolean(groupId && !parsedGroupIds);
+  const hasInvalidSellerId = Boolean(sellerId && !parsedSellerIds);
   const sort = catalogSort(searchParams.get('sort'));
   const page = catalogPage(searchParams.get('page'));
   const isStore = isStoreContext(context);
@@ -76,20 +81,21 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
   const groups = catalogGroupOptions(groupsState.groups);
   const selectedGroups = selectedCatalogGroups(groupsState.groups, groupIds);
   const selectedGroupIds = new Set(groupIds);
-  const hasFilters = Boolean(search || groupIds.length || hasInvalidGroupId || sort !== 'name' || page !== 1);
+  const hasFilters = Boolean(search || groupIds.length || sellerIds.length || hasInvalidGroupId || hasInvalidSellerId || sort !== 'name' || page !== 1);
 
   function load() {
     const requestId = catalogRequestId.current + 1;
     catalogRequestId.current = requestId;
 
-    if (hasInvalidGroupId) {
-      setState({ status: 'error', message: 'Некорректный параметр категории.' });
+    if (hasInvalidGroupId || hasInvalidSellerId) {
+      setState({ status: 'error', message: hasInvalidGroupId ? 'Некорректный параметр категории.' : 'Некорректный параметр продавца.' });
       return;
     }
 
     const query: CatalogQuery = {
       search: search || undefined,
       groupIds,
+      sellerIds: isStore ? undefined : sellerIds,
       sort,
       page,
     };
@@ -135,7 +141,7 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
       });
   }
 
-  useEffect(load, [search, groupIds, sort, page, isStore, storeId, hasInvalidGroupId]);
+  useEffect(load, [search, groupIds, sellerIds, sort, page, isStore, storeId, hasInvalidGroupId, hasInvalidSellerId]);
 
   useEffect(() => {
     let active = true;
@@ -252,7 +258,8 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
               {group.name} ×
             </Chip>
           ))}
-          {!search && selectedGroups.length === 0 && <Text tone="secondary">Фильтры не применены</Text>}
+          {sellerIds.length > 0 && <Chip onClick={() => updateParam('seller_id', null)}>Продавцы: {sellerIds.join(', ')} ×</Chip>}
+          {!search && selectedGroups.length === 0 && sellerIds.length === 0 && <Text tone="secondary">Фильтры не применены</Text>}
         </Row>
       </Stack>
 

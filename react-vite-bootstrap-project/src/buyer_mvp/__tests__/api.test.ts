@@ -156,10 +156,10 @@ describe('catalog api', () => {
       .mockResolvedValue(response({ products: [], page: 2, limit: 10, total: 0 }));
     vi.stubGlobal('fetch', fetch);
 
-    await fetchProducts({ search: 'milk', groupIds: [12, 13], sort: 'price', page: 2 });
+    await fetchProducts({ search: 'milk', groupIds: [12, 13], sellerIds: [6, 7], sort: 'price', page: 2 });
 
     expect(fetch).toHaveBeenCalledWith(
-      '/api/v1/catalog/products?group_id=12,13&search=milk&sort=price&page=2',
+      '/api/v1/catalog/products?group_id=12,13&seller_id=6,7&search=milk&sort=price&page=2',
     );
   });
 
