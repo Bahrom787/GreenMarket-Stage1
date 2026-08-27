@@ -34,7 +34,7 @@ import type { CatalogQuery, ProductGroup } from '../types';
 
 type LoadState =
   | { status: 'loading' }
-  | { status: 'error'; message: string }
+  | { status: 'error'; title: string; message?: string }
   | ({ status: 'ready' } & ReadyPayload);
 
 type ReadyPayload = {
@@ -83,7 +83,11 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
     catalogRequestId.current = requestId;
 
     if (hasInvalidGroupId) {
-      setState({ status: 'error', message: 'Некорректный параметр категории.' });
+      setState({
+        status: 'error',
+        title: 'Не удалось загрузить каталог',
+        message: 'Некорректный параметр категории.',
+      });
       return;
     }
 
@@ -129,9 +133,16 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
       })
       .catch((err: unknown) => {
         if (requestId !== catalogRequestId.current) return;
-        const message =
-          err instanceof CatalogApiError ? err.message : 'Не удалось загрузить товары.';
-        setState({ status: 'error', message });
+        const notFound = isStore && err instanceof CatalogApiError && err.status === 404;
+        setState({
+          status: 'error',
+          title: notFound ? 'Магазин не найден' : 'Не удалось загрузить каталог',
+          message: notFound
+            ? undefined
+            : err instanceof CatalogApiError
+              ? err.message
+              : 'Не удалось загрузить товары.',
+        });
       });
   }
 
@@ -182,9 +193,23 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
     <Stack gap="lg">
       <Row align="center" justify="between">
         <Stack gap="xs">
-          <Text variant="headline" as="h1">
-            {state.status === 'ready' ? state.title : isStore ? 'Каталог магазина' : 'Каталог'}
-          </Text>
+          {state.status === 'ready' && (
+            <Text variant="headline" as="h1">
+              {state.title}
+            </Text>
+          )}
+          {state.status !== 'ready' && isStore && (
+            <div
+              aria-label="Загрузка магазина"
+              className="gm-catalog-title-skeleton"
+              data-testid="store-catalog-title-skeleton"
+            />
+          )}
+          {state.status !== 'ready' && !isStore && (
+            <Text variant="headline" as="h1">
+              Каталог
+            </Text>
+          )}
           {state.status === 'ready' && state.subtitle && (
             <Text tone="secondary">{state.subtitle}</Text>
           )}
@@ -266,7 +291,7 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
 
       {state.status === 'error' && (
         <ErrorState
-          title="Не удалось загрузить каталог"
+          title={state.title}
           description={state.message}
           action={<Button onClick={load}>Повторить</Button>}
         />
