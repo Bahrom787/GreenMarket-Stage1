@@ -1,6 +1,6 @@
 import type { ProductGroup, SortOrder } from './types';
 
-export type CatalogParam = 'search' | 'group_id' | 'sort' | 'page';
+export type CatalogParam = 'search' | 'group_id' | 'seller_id' | 'sort' | 'page';
 
 export function updateCatalogSearchParams(
   current: URLSearchParams,
@@ -34,6 +34,8 @@ export function catalogGroupIds(value: string | null) {
     ? [...new Set(ids)]
     : undefined;
 }
+
+export const catalogSellerIds = catalogGroupIds;
 
 export interface CatalogGroupOption {
   group: ProductGroup;

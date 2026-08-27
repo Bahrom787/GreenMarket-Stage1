@@ -190,7 +190,11 @@ function productQueryString(query: CatalogQuery) {
   params.set('sort', query.sort ?? 'name');
   params.set('page', String(query.page ?? 1));
   if (query.limit != null) params.set('limit', String(query.limit));
-  return [query.groupIds?.length ? `group_id=${query.groupIds.join(',')}` : '', params.toString()]
+  return [
+    query.groupIds?.length ? `group_id=${query.groupIds.join(',')}` : '',
+    query.sellerIds?.length ? `seller_id=${query.sellerIds.join(',')}` : '',
+    params.toString(),
+  ]
     .filter(Boolean)
     .join('&');
 }

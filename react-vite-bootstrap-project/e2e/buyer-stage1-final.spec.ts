@@ -278,9 +278,10 @@ test('Seller List and Map entry keep Buyer navigation on React routes', async ({
   await page.goto('/seller-list?search=marker');
   await expect(page.getByTestId('seller-list-row-6')).toBeVisible();
   await page.getByTestId('seller-list-row-6').click();
-  await expect(page).toHaveURL('/seller/6');
+  await page.getByTestId('seller-list-show-products').click();
+  await expect(page).toHaveURL('/?seller_id=6');
   await page.goBack();
-  await expect(page).toHaveURL('/seller-list?search=marker');
+  await expect(page).toHaveURL(/\/seller-list\?search=marker&seller_id=6|\/seller-list\?seller_id=6&search=marker/);
 
   await page.goto('/map');
   await expect(page.getByTestId('map-screen')).toBeVisible();

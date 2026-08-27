@@ -135,6 +135,7 @@ export type SortOrder = 'name' | 'price';
 
 export interface CatalogQuery {
   groupIds?: number[];
+  sellerIds?: number[];
   search?: string;
   sort?: SortOrder;
   page?: number;

@@ -17,7 +17,8 @@ describe('SellerListScreenView architecture', () => {
     expect(source).not.toContain('ZOOM_ON_SELLER');
   });
 
-  it('opens Seller Card route from the list', () => {
-    expect(source).toContain("navigate(`/seller/${seller.sellerId}`)");
+  it('passes selected sellers to Global Catalog instead of opening Map', () => {
+    expect(source).toContain("navigate(selectedSellerIds.length ? `/?seller_id=${selectedSellerIds.join(',')}` : '/')");
+    expect(source).toContain('toggleSeller(seller.sellerId)');
   });
 });
