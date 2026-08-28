@@ -328,26 +328,13 @@ export function MapScreenView() {
   const bottomSheetBlocks = useMemo(() => MapBuilder.build(viewModel), [viewModel]);
 
   return (
-    <div className="gm-map-screen" data-testid="map-screen" style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-      <Header>
-        <Row gap="md" align="center" justify="between" style={{ position: 'relative', width: '100%' }}>
-          <Text variant="title" as="span">
+    <div className="gm-map-screen" data-testid="map-screen">
+      <Header className="gm-map-header">
+        <div className="gm-map-header__top">
+          <Text variant="title" as="span" className="gm-map-header__brand">
             🌿 Green Board
           </Text>
-          <div className="gm-map-search-slot">
-            <MapSearchAutocomplete
-              mode={searchMode}
-              query={searchQuery}
-              productSearch={viewModel.productSearch}
-              onModeChange={handleSearchModeChange}
-              onQueryChange={setSearchQuery}
-              onSellerSubmit={handleSellerSearch}
-              onProductSearch={handleProductSearch}
-              onClear={handleProductSearchClear}
-              onProductSelect={handleProductSelect}
-            />
-          </div>
-          <Row gap="sm">
+          <div className="gm-map-header__actions">
             <SellerFilter
               categories={mapState.categories}
               selectedFilters={mapState.selectedFilters}
@@ -356,12 +343,25 @@ export function MapScreenView() {
             <IconButton label="Список продавцов" onClick={handleOpenSellerList}>
               <Icon label="Список">📋</Icon>
             </IconButton>
-          </Row>
-        </Row>
+          </div>
+        </div>
+        <div className="gm-map-search-slot">
+          <MapSearchAutocomplete
+            mode={searchMode}
+            query={searchQuery}
+            productSearch={viewModel.productSearch}
+            onModeChange={handleSearchModeChange}
+            onQueryChange={setSearchQuery}
+            onSellerSubmit={handleSellerSearch}
+            onProductSearch={handleProductSearch}
+            onClear={handleProductSearchClear}
+            onProductSelect={handleProductSelect}
+          />
+        </div>
       </Header>
 
       {mapState.currentAreaLabel && (
-        <div data-testid="current-area-label" style={{ padding: 'var(--space-xs) var(--space-lg)' }}>
+        <div className="gm-map-area-label" data-testid="current-area-label">
           <Text variant="caption" tone="secondary">
             📍 {mapState.currentAreaLabel}
           </Text>

@@ -22,8 +22,24 @@ it('detects rectangle overlap', () => {
 
 it('clamps panel offset to map bounds', () => {
   const resolved = resolvePanelOffset(999, -999, layout);
-  assert.equal(resolved.x, 0);
-  assert.ok(resolved.y >= -(layout.mapRect.height - 32 - (layout.fullHeight - layout.bodyHeight) / 2 - layout.bodyHeight));
+  const baseLeft = layout.mapRect.right - 16 - layout.fullWidth;
+  const baseTop = layout.mapRect.bottom - 32 - layout.fullHeight;
+  const panelRect = {
+    left: baseLeft + resolved.x,
+    top: baseTop + resolved.y,
+    right: baseLeft + layout.fullWidth + resolved.x,
+    bottom: baseTop + layout.fullHeight + resolved.y,
+  };
+  assert.ok(panelRect.left >= layout.mapRect.left + 8);
+  assert.ok(panelRect.top >= layout.mapRect.top + 8);
+  assert.ok(panelRect.right <= layout.mapRect.right - 8);
+  assert.ok(panelRect.bottom <= layout.mapRect.bottom - 16);
+});
+
+it('keeps downward drag inside the safe bottom boundary', () => {
+  const resolved = resolvePanelOffset(0, 999, layout);
+  const baseTop = layout.mapRect.bottom - 32 - layout.fullHeight;
+  assert.equal(baseTop + layout.fullHeight + resolved.y, layout.mapRect.bottom - 16);
 });
 
 it('pushes panel away from overlapping obstacle', () => {
