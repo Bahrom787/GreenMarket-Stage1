@@ -225,6 +225,37 @@ test('Global Catalog category panel opens compactly, scrolls internally and keep
   expect(page.url()).toBe(url);
 });
 
+test('Global Catalog category UI keeps selector chips and toggle synchronized', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mockCatalog(page);
+
+  await page.goto('/');
+  await page.getByTestId('catalog-category-toggle').click();
+  const idleVegetablesIconColor = await page.getByRole('button', { name: 'Vegetables', exact: true }).locator('.gm-catalog-category-icon').evaluate((node) => getComputedStyle(node).color);
+  await page.getByRole('button', { name: 'Vegetables', exact: true }).click();
+  const selectedIconColor = await page.getByRole('button', { name: 'Vegetables', exact: true }).locator('.gm-catalog-category-icon').evaluate((node) => getComputedStyle(node).color);
+  expect(selectedIconColor).not.toBe(idleVegetablesIconColor);
+  await expect(page.getByTestId('catalog-category-toggle')).toContainText('(1)');
+  await expect(page.getByRole('button', { name: 'Vegetables ×', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Vegetables', exact: true })).toHaveAttribute('aria-pressed', 'true');
+
+  await page.getByRole('button', { name: 'Иконки' }).click();
+  await expect(page.getByTestId('catalog-category-toggle')).toHaveAccessibleName('Категории, выбрано 1');
+  await expect(page.getByLabel('Убрать категорию Vegetables')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Vegetables', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  const toggleBox = await page.getByTestId('catalog-category-toggle').boundingBox();
+  const searchBox = await page.locator('.gm-buyer-search').boundingBox();
+  expect(toggleBox).not.toBeNull();
+  expect(searchBox).not.toBeNull();
+  expect(Math.abs((toggleBox!.y + toggleBox!.height / 2) - (searchBox!.y + searchBox!.height / 2))).toBeLessThan(8);
+
+  const beforeUrl = page.url();
+  await page.getByRole('button', { name: 'Текст' }).click();
+  expect(page.url()).toBe(beforeUrl);
+  await expect(page.getByTestId('catalog-category-toggle')).toContainText('Категории');
+  await expect(page.getByTestId('catalog-category-toggle')).toContainText('(1)');
+});
+
 test('Global Catalog category panel auto-collapses only when enabled', async ({ page }) => {
   await page.clock.install();
   await mockCatalog(page);
