@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Text, ErrorState, EmptyState, Button, Chip } from '@/design-system/components';
 import { Grid, Stack, Row } from '@/layout';
@@ -33,6 +33,33 @@ import {
 } from '../catalogUrlState';
 import type { CatalogQuery, ProductGroup } from '../types';
 
+type CategoryPanelMode = 'text' | 'icons';
+
+const categoryIconRules: Array<{ test: RegExp; kind: string }> = [
+  { test: /овощ|vegetable|огур|помид|карто/i, kind: 'vegetables' },
+  { test: /зелень|салат|green|salad/i, kind: 'greens' },
+  { test: /фрукт|fruit|яблок|груш/i, kind: 'fruit' },
+  { test: /ягод|berr/i, kind: 'berries' },
+  { test: /орех|nut/i, kind: 'nuts' },
+  { test: /слад|восточ|sweet/i, kind: 'sweets' },
+  { test: /сухофрукт|цукат|dried/i, kind: 'dried' },
+  { test: /солень|маринад|pickle/i, kind: 'pickles' },
+  { test: /бакале|проч|grocery/i, kind: 'grocery' },
+];
+
+function categoryIconKind(name: string) {
+  return categoryIconRules.find((rule) => rule.test.test(name))?.kind ?? 'grocery';
+}
+
+function CategoryIcon({ name }: { name: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`gm-catalog-category-icon gm-catalog-category-icon--${categoryIconKind(name)}`}
+    />
+  );
+}
+
 type LoadState =
   | { status: 'loading' }
   | { status: 'error'; message: string }
@@ -63,6 +90,10 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
   const [searchParams, setSearchParams] = useSearchParams();
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const [groupsState, setGroupsState] = useState<GroupsState>({ status: 'loading', groups: [] });
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const [categoryMode, setCategoryMode] = useState<CategoryPanelMode>('text');
+  const [autoCollapseCategories, setAutoCollapseCategories] = useState(true);
+  const [categoryPanelActivity, setCategoryPanelActivity] = useState(0);
   const catalogRequestId = useRef(0);
 
   const search = searchParams.get('search') ?? '';
@@ -171,7 +202,30 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
 
   function toggleGroup(groupId: number) {
     updateParam('group_id', toggleCatalogGroupParam(groupIds, groupId));
+    setCategoryPanelActivity((value) => value + 1);
   }
+
+  function toggleCategoriesOpen() {
+    setCategoriesOpen((open) => !open);
+    setCategoryPanelActivity((value) => value + 1);
+  }
+
+  function touchCategoryPanel() {
+    setCategoryPanelActivity((value) => value + 1);
+  }
+
+  useEffect(() => {
+    if (isStore || !categoriesOpen || !autoCollapseCategories) return;
+    const timer = window.setTimeout(() => setCategoriesOpen(false), 7000);
+    return () => window.clearTimeout(timer);
+  }, [isStore, categoriesOpen, autoCollapseCategories, categoryPanelActivity]);
+
+  useEffect(() => {
+    if (isStore || !categoriesOpen) return;
+    const collapse = () => setCategoriesOpen(false);
+    window.addEventListener('scroll', collapse, { passive: true });
+    return () => window.removeEventListener('scroll', collapse);
+  }, [isStore, categoriesOpen]);
 
   function productRoute(product: CatalogProductCardViewModel) {
     const next = new URLSearchParams(searchParams);
@@ -211,23 +265,107 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
       <Stack gap="sm" className="gm-catalog-filters">
         <SearchBar initialValue={search} onSearch={(value) => updateParam('search', value || null)} />
 
-        <Row gap="sm" wrap align="center" aria-label="Категории">
-          <Text variant="caption" as="span">
-            Категории
-          </Text>
-          {groups.map(({ group, depth }) => (
-            <Chip
-              key={group.id}
-              selected={selectedGroupIds.has(group.id)}
-              disabled={groupsState.status === 'loading'}
-              onClick={() => toggleGroup(group.id)}
-            >
-              {catalogGroupOptionLabel({ group, depth })}
-            </Chip>
-          ))}
-          {groupsState.status === 'loading' && <Text tone="secondary">Категории загружаются</Text>}
-          {groupsState.status === 'error' && <Text tone="secondary">{groupsState.message}</Text>}
-        </Row>
+        {isStore ? (
+          <Row gap="sm" wrap align="center" aria-label="Категории">
+            <Text variant="caption" as="span">
+              Категории
+            </Text>
+            {groups.map(({ group, depth }) => (
+              <Chip
+                key={group.id}
+                selected={selectedGroupIds.has(group.id)}
+                disabled={groupsState.status === 'loading'}
+                onClick={() => toggleGroup(group.id)}
+              >
+                {catalogGroupOptionLabel({ group, depth })}
+              </Chip>
+            ))}
+            {groupsState.status === 'loading' && <Text tone="secondary">Категории загружаются</Text>}
+            {groupsState.status === 'error' && <Text tone="secondary">{groupsState.message}</Text>}
+          </Row>
+        ) : (
+          <div className="gm-catalog-category-panel" data-testid="catalog-category-panel">
+            <Row gap="sm" wrap align="center">
+              <Button
+                variant="secondary"
+                size="sm"
+                aria-controls="catalog-category-list"
+                aria-expanded={categoriesOpen}
+                onClick={toggleCategoriesOpen}
+                data-testid="catalog-category-toggle"
+              >
+                Категории{selectedGroups.length ? ` (${selectedGroups.length})` : ''}
+              </Button>
+            </Row>
+
+            {categoriesOpen && (
+              <Stack
+                gap="sm"
+                className="gm-catalog-category-panel__body"
+                onFocus={touchCategoryPanel}
+                onKeyDown={touchCategoryPanel}
+                onPointerDown={touchCategoryPanel}
+                data-testid="catalog-category-panel-body"
+              >
+                <Row gap="sm" wrap align="center">
+                  <Button
+                    variant={categoryMode === 'text' ? 'primary' : 'secondary'}
+                    size="sm"
+                    onClick={() => setCategoryMode('text')}
+                  >
+                    Текст
+                  </Button>
+                  <Button
+                    variant={categoryMode === 'icons' ? 'primary' : 'secondary'}
+                    size="sm"
+                    onClick={() => setCategoryMode('icons')}
+                  >
+                    Иконки
+                  </Button>
+                  <label className="gm-catalog-category-panel__toggle">
+                    <input
+                      type="checkbox"
+                      checked={autoCollapseCategories}
+                      onChange={(event) => setAutoCollapseCategories(event.currentTarget.checked)}
+                    />
+                    <Text variant="caption" as="span">
+                      Автосворачивание
+                    </Text>
+                  </label>
+                </Row>
+
+                <div
+                  id="catalog-category-list"
+                  className={`gm-catalog-category-list gm-catalog-category-list--${categoryMode}`}
+                  aria-label="Категории"
+                  data-testid="catalog-category-list"
+                >
+                  {groups.map(({ group, depth }) => (
+                    <Chip
+                      key={group.id}
+                      selected={selectedGroupIds.has(group.id)}
+                      disabled={groupsState.status === 'loading'}
+                      onClick={() => toggleGroup(group.id)}
+                      title={group.name}
+                      aria-label={categoryMode === 'icons' ? group.name : undefined}
+                      className="gm-catalog-category-chip"
+                      style={{ '--gm-category-depth': depth } as CSSProperties}
+                    >
+                      <CategoryIcon name={group.name} />
+                      {categoryMode === 'text' && (
+                        <span className="gm-catalog-category-chip__label">
+                          {catalogGroupOptionLabel({ group, depth })}
+                        </span>
+                      )}
+                    </Chip>
+                  ))}
+                  {groupsState.status === 'loading' && <Text tone="secondary">Категории загружаются</Text>}
+                  {groupsState.status === 'error' && <Text tone="secondary">{groupsState.message}</Text>}
+                </div>
+              </Stack>
+            )}
+          </div>
+        )}
 
         <Row gap="sm" wrap>
           <Button
