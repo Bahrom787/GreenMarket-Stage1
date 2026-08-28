@@ -6,6 +6,22 @@ const groups = [
   { id: 19, parent_id: null, name: 'Fruit', sort_order: 30, product_count: 4 },
 ];
 
+const manyGroups = Array.from({ length: 60 }, (_, index) => ({
+  id: 30 + index,
+  parent_id: null,
+  name: `Category ${index + 1}`,
+  sort_order: index,
+  product_count: 1,
+}));
+
+const manyProducts = Array.from({ length: 24 }, (_, index) => ({
+  id: 200 + index,
+  name: `Product ${index + 1}`,
+  min_price: '120.00',
+  offer_count: 1,
+  photos: [],
+}));
+
 const globalProducts = {
   products: [
     { id: 101, name: 'Milk', min_price: '120.00', offer_count: 2, photos: [] },
@@ -39,14 +55,14 @@ const storeProducts = {
   total: 3,
 };
 
-async function mockCatalog(page: Page) {
+async function mockCatalog(page: Page, options: { groups?: typeof groups; products?: typeof globalProducts.products } = {}) {
   const requests: string[] = [];
   await page.route('**/api/v1/catalog/**', async (route) => {
     const url = new URL(route.request().url());
     requests.push(`${url.pathname}${url.search}`);
 
     if (url.pathname.endsWith('/groups')) {
-      await route.fulfill({ json: { groups } });
+      await route.fulfill({ json: { groups: options.groups ?? groups } });
       return;
     }
 
@@ -88,7 +104,7 @@ async function mockCatalog(page: Page) {
       await route.fulfill({
         json: url.searchParams.get('search') === 'single'
           ? { ...globalProducts, products: [globalProducts.products[0]], total: 1 }
-          : globalProducts,
+          : { ...globalProducts, products: options.products ?? globalProducts.products },
       });
       return;
     }
@@ -103,6 +119,10 @@ function lastProductRequest(requests: string[]) {
 }
 
 async function selectCategories(page: Page) {
+  const toggle = page.getByTestId('catalog-category-toggle');
+  if ((await toggle.count()) && (await toggle.getAttribute('aria-expanded')) !== 'true') {
+    await toggle.click();
+  }
   await page.getByRole('button', { name: 'Vegetables', exact: true }).click();
   await page.getByRole('button', { name: 'Greens and Salads', exact: true }).click();
 }
@@ -119,6 +139,7 @@ test('Global Catalog keeps multi-category filters in URL through refresh, pagina
   await expect(page.getByTestId('catalog-pagination')).toBeVisible();
 
   await page.reload();
+  await page.getByTestId('catalog-category-toggle').click();
   await expect(page.getByRole('button', { name: 'Vegetables', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: 'Greens and Salads', exact: true })).toHaveAttribute('aria-pressed', 'true');
 
@@ -126,7 +147,7 @@ test('Global Catalog keeps multi-category filters in URL through refresh, pagina
   await expect(page).toHaveURL(/group_id=17%2C18|group_id=17,18/);
   await expect(page).toHaveURL(/page=2/);
 
-  await page.locator('.gm-catalog-filters > .gm-row').nth(1).getByRole('button').last().click();
+  await page.getByRole('button', { name: 'Очистить фильтры' }).click();
   await expect(page).not.toHaveURL(/group_id=/);
   await expect(page).toHaveURL(/sort=name/);
   await expect(page).toHaveURL(/page=1/);
@@ -173,4 +194,64 @@ test('Catalog hides pagination for one page and empty results', async ({ page })
 
   await page.goto('/store/6/catalog?search=empty');
   await expect(page.getByTestId('catalog-pagination')).toBeHidden();
+});
+
+test('Global Catalog category panel opens compactly, scrolls internally and keeps URL filters', async ({ page }) => {
+  await mockCatalog(page, { groups: manyGroups, products: manyProducts });
+
+  await page.goto('/');
+  await expect(page.getByTestId('catalog-category-toggle')).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.getByTestId('catalog-category-panel-body')).toBeHidden();
+
+  await page.getByTestId('catalog-category-toggle').click();
+  await expect(page.getByTestId('catalog-category-panel-body')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Category 1', exact: true })).toBeVisible();
+  await expect(page.getByTestId('catalog-category-list')).toHaveJSProperty('scrollTop', 0);
+  expect(await page.getByTestId('catalog-category-list').evaluate((node) => node.scrollHeight > node.clientHeight)).toBe(true);
+  const scrollY = await page.evaluate(() => window.scrollY);
+  await page.getByTestId('catalog-category-list').hover();
+  await page.mouse.wheel(0, 800);
+  await expect(page.getByTestId('catalog-category-panel-body')).toBeVisible();
+  expect(await page.evaluate(() => window.scrollY)).toBe(scrollY);
+
+  await page.getByRole('button', { name: 'Category 1', exact: true }).click();
+  await expect(page).toHaveURL(/group_id=30/);
+  await expect(page.getByTestId('catalog-category-panel-body')).toBeVisible();
+
+  const url = page.url();
+  await page.getByRole('button', { name: 'Иконки' }).click();
+  await expect(page.getByRole('button', { name: 'Category 2', exact: true })).toBeVisible();
+  expect(page.url()).toBe(url);
+});
+
+test('Global Catalog category panel auto-collapses only when enabled', async ({ page }) => {
+  await page.clock.install();
+  await mockCatalog(page);
+
+  await page.goto('/');
+  await page.getByTestId('catalog-category-toggle').click();
+  await expect(page.getByTestId('catalog-category-panel-body')).toBeVisible();
+  await page.clock.fastForward(6000);
+  await page.getByRole('button', { name: 'Vegetables', exact: true }).click();
+  await page.clock.fastForward(1000);
+  await expect(page.getByTestId('catalog-category-panel-body')).toBeVisible();
+  await page.clock.fastForward(6000);
+  await expect(page.getByTestId('catalog-category-panel-body')).toBeHidden();
+
+  await page.getByTestId('catalog-category-toggle').click();
+  await page.getByLabel('Автосворачивание').uncheck();
+  await page.clock.fastForward(7000);
+  await expect(page.getByTestId('catalog-category-panel-body')).toBeVisible();
+});
+
+test('Global Catalog category panel collapses on catalog scroll and keeps selected filters', async ({ page }) => {
+  await mockCatalog(page, { products: manyProducts });
+
+  await page.goto('/');
+  await page.getByTestId('catalog-category-toggle').click();
+  await page.getByRole('button', { name: 'Vegetables', exact: true }).click();
+  await page.evaluate(() => window.scrollBy(0, 800));
+
+  await expect(page.getByTestId('catalog-category-panel-body')).toBeHidden();
+  await expect(page).toHaveURL(/group_id=17/);
 });
