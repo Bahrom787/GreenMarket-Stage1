@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  catalogApiUrl,
   fetchGroups,
   fetchSellers,
   fetchProducts,
@@ -83,6 +84,15 @@ describe('catalog api', () => {
     await fetchGroups();
 
     expect(fetch).toHaveBeenCalledWith('/api/v1/catalog/groups');
+  });
+
+  it('builds the groups endpoint from production backend base values', () => {
+    expect(catalogApiUrl('/groups', normalizeCatalogApiBase('https://backend.example.com') ?? '')).toBe(
+      'https://backend.example.com/api/v1/catalog/groups',
+    );
+    expect(
+      catalogApiUrl('/groups', normalizeCatalogApiBase('https://backend.example.com/api/v1/catalog') ?? ''),
+    ).toBe('https://backend.example.com/api/v1/catalog/groups');
   });
 
   it('loads Seller List through Buyer market seller endpoints', async () => {

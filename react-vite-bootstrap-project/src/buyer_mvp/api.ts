@@ -71,7 +71,7 @@ async function request<T>(path: string): Promise<T> {
 
   let response: Response;
   try {
-    response = await fetch(`${API_BASE}${path}`);
+    response = await fetch(catalogApiUrl(path));
   } catch {
     throw new CatalogApiError('Не удалось связаться с сервером. Проверьте подключение.', 0);
   }
@@ -86,6 +86,10 @@ async function request<T>(path: string): Promise<T> {
   }
 
   return response.json() as Promise<T>;
+}
+
+export function catalogApiUrl(path: string, base = API_BASE) {
+  return `${base}${path}`;
 }
 
 export function fetchGroups(): Promise<ProductGroupsResponse> {

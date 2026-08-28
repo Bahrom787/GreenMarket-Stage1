@@ -39,13 +39,20 @@ const storeProducts = {
   total: 3,
 };
 
-async function mockCatalog(page: Page) {
+async function mockCatalog(page: Page, options: { failGroups?: boolean } = {}) {
   const requests: string[] = [];
   await page.route('**/api/v1/catalog/**', async (route) => {
     const url = new URL(route.request().url());
     requests.push(`${url.pathname}${url.search}`);
 
     if (url.pathname.endsWith('/groups')) {
+      if (options.failGroups) {
+        await route.fulfill({
+          status: 500,
+          json: { error: { code: 'SERVER_ERROR', message: 'Groups failed', details: [] } },
+        });
+        return;
+      }
       await route.fulfill({ json: { groups } });
       return;
     }
@@ -173,4 +180,15 @@ test('Catalog hides pagination for one page and empty results', async ({ page })
 
   await page.goto('/store/6/catalog?search=empty');
   await expect(page.getByTestId('catalog-pagination')).toBeHidden();
+});
+
+test('Global Catalog keeps products visible when groups fail', async ({ page }) => {
+  const requests = await mockCatalog(page, { failGroups: true });
+
+  await page.goto('/');
+  await expect(page.getByText('Milk')).toBeVisible();
+  await expect(page.getByText('Cheese')).toBeVisible();
+  await expect(page.getByText('Groups failed')).toBeVisible();
+  expect(requests).toContain('/api/v1/catalog/groups');
+  expect(lastProductRequest(requests)).toBe('/api/v1/catalog/products?sort=name&page=1');
 });
