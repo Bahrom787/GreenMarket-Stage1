@@ -289,3 +289,51 @@ test('Seller List and Map entry keep Buyer navigation on React routes', async ({
   await page.getByTestId('open-catalog').click();
   await expect(page).toHaveURL('/');
 });
+
+test('Map Screen keeps header sections separated and FAB inside viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mockBuyerApi(page);
+
+  await page.goto('/map');
+  await expect(page.getByTestId('map-screen')).toBeVisible();
+
+  async function expectMapLayoutFits() {
+    const top = await page.locator('.gm-map-header__top').boundingBox();
+    const search = await page.locator('.gm-map-search-slot').boundingBox();
+    expect(top).not.toBeNull();
+    expect(search).not.toBeNull();
+    expect(top!.y + top!.height).toBeLessThanOrEqual(search!.y);
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
+      .toBe(true);
+  }
+
+  await expectMapLayoutFits();
+
+  await page.getByTestId('fab-panel-toggle').click();
+  const panel = page.getByTestId('fab-panel');
+  await expect(panel).toBeVisible();
+  let box = await panel.boundingBox();
+  expect(box).not.toBeNull();
+
+  await page.mouse.move(box!.x + box!.width - 4, box!.y + box!.height - 4);
+  await page.mouse.down();
+  await page.mouse.move(900, 1400);
+  await page.mouse.up();
+
+  box = await panel.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box!.x).toBeGreaterThanOrEqual(0);
+  expect(box!.y).toBeGreaterThanOrEqual(0);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(390);
+  expect(box!.y + box!.height).toBeLessThanOrEqual(844);
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expectMapLayoutFits();
+  box = await panel.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box!.x).toBeGreaterThanOrEqual(0);
+  expect(box!.y).toBeGreaterThanOrEqual(0);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(1440);
+  expect(box!.y + box!.height).toBeLessThanOrEqual(900);
+});

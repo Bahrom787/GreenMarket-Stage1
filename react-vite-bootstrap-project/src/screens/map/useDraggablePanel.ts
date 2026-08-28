@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 
 const MAX_OBSTACLE_PASSES = 6;
 const DEFAULT_OFFSET = { x: 0, y: 0 };
+const DEFAULT_BOUNDARY_PADDING = { top: 8, right: 8, bottom: 16, left: 8 };
 
 export interface PanelRect {
   left: number;
@@ -17,6 +18,7 @@ export interface PanelLayout {
   fullHeight: number;
   bodyWidth: number;
   bodyHeight: number;
+  boundaryPadding?: Partial<typeof DEFAULT_BOUNDARY_PADDING>;
 }
 
 function getStorage(): Storage | null {
@@ -48,19 +50,20 @@ export function resolvePanelOffset(
   layout: PanelLayout,
   obstacles: readonly PanelRect[] = [],
 ): { x: number; y: number } {
-  const { anchor, mapRect, fullWidth, fullHeight, bodyWidth, bodyHeight } = layout;
-  const padX = (fullWidth - bodyWidth) / 2;
-  const padY = (fullHeight - bodyHeight) / 2;
+  const { anchor, mapRect, fullWidth, fullHeight } = layout;
+  const padding = { ...DEFAULT_BOUNDARY_PADDING, ...layout.boundaryPadding };
   const baseLeft = anchor === 'bottom-left' ? mapRect.left + 16 : mapRect.right - 16 - fullWidth;
   const baseTop = mapRect.bottom - 32 - fullHeight;
 
-  const minX = anchor === 'bottom-left' ? 0 : -(mapRect.width - 16 - padX - bodyWidth);
-  const maxX = anchor === 'bottom-left' ? mapRect.width - 16 - padX - bodyWidth : 0;
-  const minY = -(mapRect.height - 32 - padY - bodyHeight);
-  const maxY = 0;
+  const minX = mapRect.left + padding.left - baseLeft;
+  const maxX = mapRect.right - padding.right - fullWidth - baseLeft;
+  const minY = mapRect.top + padding.top - baseTop;
+  const maxY = mapRect.bottom - padding.bottom - fullHeight - baseTop;
 
-  const clampX = (value: number) => Math.max(minX, Math.min(maxX, value));
-  const clampY = (value: number) => Math.max(minY, Math.min(maxY, value));
+  const clamp = (value: number, min: number, max: number) =>
+    min > max ? Math.round((min + max) / 2) : Math.max(min, Math.min(max, value));
+  const clampX = (value: number) => clamp(value, minX, maxX);
+  const clampY = (value: number) => clamp(value, minY, maxY);
 
   let x = clampX(rawX);
   let y = clampY(rawY);
@@ -227,6 +230,7 @@ export function useDraggablePanel({
           fullHeight: element.offsetHeight,
           bodyWidth,
           bodyHeight,
+          boundaryPadding: DEFAULT_BOUNDARY_PADDING,
         },
         measureObstacles(obstacleSelectors),
       );
@@ -234,10 +238,7 @@ export function useDraggablePanel({
     [anchor, obstacleSelectors],
   );
 
-  const didMountRef = useRef(false);
-  useLayoutEffect(() => {
-    if (didMountRef.current) return;
-    didMountRef.current = true;
+  const clampCurrentPosition = useCallback(() => {
     const { w, h } = measureSize();
     const next = resolvePosition(offsetRef.current.x, offsetRef.current.y, w, h);
     if (next.x !== offsetRef.current.x || next.y !== offsetRef.current.y) {
@@ -246,17 +247,28 @@ export function useDraggablePanel({
     }
   }, [measureSize, resolvePosition, storageKey]);
 
+  const didMountRef = useRef(false);
+  useLayoutEffect(() => {
+    if (didMountRef.current) return;
+    didMountRef.current = true;
+    clampCurrentPosition();
+  }, [clampCurrentPosition]);
+
   const prevExpandedRef = useRef(expanded);
   useLayoutEffect(() => {
     if (prevExpandedRef.current === expanded) return;
     prevExpandedRef.current = expanded;
-    const { w, h } = measureSize();
-    const next = resolvePosition(offsetRef.current.x, offsetRef.current.y, w, h);
-    if (next.x !== offsetRef.current.x || next.y !== offsetRef.current.y) {
-      savePosition(storageKey, next);
-      setOffset(next);
-    }
-  }, [expanded, measureSize, resolvePosition, storageKey]);
+    clampCurrentPosition();
+  }, [clampCurrentPosition, expanded]);
+
+  useEffect(() => {
+    window.addEventListener('resize', clampCurrentPosition);
+    window.visualViewport?.addEventListener('resize', clampCurrentPosition);
+    return () => {
+      window.removeEventListener('resize', clampCurrentPosition);
+      window.visualViewport?.removeEventListener('resize', clampCurrentPosition);
+    };
+  }, [clampCurrentPosition]);
 
   const onDragStart = useCallback(
     (event: React.PointerEvent) => {
