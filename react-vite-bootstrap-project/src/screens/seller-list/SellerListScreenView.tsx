@@ -100,9 +100,6 @@ export function SellerListScreenView() {
       <Header>
         <Row gap="lg" align="center" justify="between" wrap style={{ width: '100%' }}>
           <Stack gap="xs">
-            <Text variant="title" as="h1">
-              Список продавцов
-            </Text>
             <Text variant="caption" tone="secondary" data-testid="seller-list-count">
               {state.status === 'ready' ? `${count} продавцов` : 'Загрузка продавцов'}
               {selectedCount > 0 ? `, выбрано: ${selectedCount}` : ''}

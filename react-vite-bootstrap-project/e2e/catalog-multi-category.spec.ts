@@ -132,6 +132,7 @@ test('Global Catalog keeps multi-category filters in URL through refresh, pagina
 
   await page.goto('/');
   await expect(page.getByText('Milk')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Каталог' })).toHaveCount(0);
 
   await selectCategories(page);
   await expect(page).toHaveURL(/group_id=17%2C18|group_id=17,18/);

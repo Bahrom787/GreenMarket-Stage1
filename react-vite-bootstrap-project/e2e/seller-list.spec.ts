@@ -133,6 +133,7 @@ test('Seller List selects sellers, opens Global Catalog filter and browser Back 
 
   await page.goto('/seller-list');
   await expect(page.getByTestId('seller-list-row-6')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Список продавцов' })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Продавцы' })).toHaveClass(/gm-site-nav__link--active/);
 
   await page.getByTestId('seller-list-search').fill('marker');

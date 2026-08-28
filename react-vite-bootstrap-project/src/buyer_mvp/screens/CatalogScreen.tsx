@@ -240,27 +240,29 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
 
   return (
     <Stack gap="lg">
-      <Row align="center" justify="between">
-        <Stack gap="xs">
-          <Text variant="headline" as="h1">
-            {state.status === 'ready' ? state.title : isStore ? 'Каталог магазина' : 'Каталог'}
-          </Text>
-          {state.status === 'ready' && state.subtitle && (
-            <Text tone="secondary">{state.subtitle}</Text>
+      {isStore && (
+        <Row align="center" justify="between">
+          <Stack gap="xs">
+            <Text variant="headline" as="h1">
+              {state.status === 'ready' ? state.title : 'Каталог магазина'}
+            </Text>
+            {state.status === 'ready' && state.subtitle && (
+              <Text tone="secondary">{state.subtitle}</Text>
+            )}
+          </Stack>
+          {storeId && (
+            <Row gap="sm" wrap>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => navigate(`${storeHomePath(storeId)}${globalStoreModeSearch(location.search)}`)}
+              >
+                О магазине
+              </Button>
+            </Row>
           )}
-        </Stack>
-        {isStore && storeId && (
-          <Row gap="sm" wrap>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => navigate(`${storeHomePath(storeId)}${globalStoreModeSearch(location.search)}`)}
-            >
-              О магазине
-            </Button>
-          </Row>
-        )}
-      </Row>
+        </Row>
+      )}
 
       <Stack gap="sm" className="gm-catalog-filters">
         <SearchBar initialValue={search} onSearch={(value) => updateParam('search', value || null)} />
