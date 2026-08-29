@@ -23,6 +23,7 @@ export interface MapAdapterProps {
   onVisibleBoundsChange: (bounds: MapBounds) => void;
   onSellerSelect: (sellerId: SellerId) => void;
   onMapBackgroundClick: () => void;
+  hideMapPois?: boolean;
   /** Императивный доступ для FAB "центрировать карту" — не завязан на
    *  конкретный движок: реализация решает, что значит "центрировать". */
   centerRequestToken: number;

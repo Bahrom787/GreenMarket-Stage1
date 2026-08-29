@@ -296,23 +296,52 @@ test('Map Screen keeps header sections separated and FAB inside viewport', async
 
   await page.goto('/map');
   await expect(page.getByTestId('map-screen')).toBeVisible();
+  await expect(page.locator('.gm-site-header')).toContainText('Green Board');
+  await expect(page.locator('.gm-site-nav__link--active')).toHaveText('Карта');
+  await expect(page.getByTestId('map-controls')).not.toContainText('Green Board');
+  await expect(page.getByText('Leaflet')).toHaveCount(0);
 
   async function expectMapLayoutFits() {
-    const top = await page.locator('.gm-map-header__top').boundingBox();
+    const mode = await page.locator('.gm-map-search__mode').boundingBox();
     const search = await page.locator('.gm-map-search-slot').boundingBox();
-    expect(top).not.toBeNull();
+    const input = await page.getByTestId('map-search').boundingBox();
+    const actions = await page.locator('.gm-map-controls__actions').boundingBox();
+    expect(mode).not.toBeNull();
     expect(search).not.toBeNull();
-    expect(top!.y + top!.height).toBeLessThanOrEqual(search!.y);
+    expect(input).not.toBeNull();
+    expect(actions).not.toBeNull();
+    expect(mode!.x + mode!.width).toBeLessThanOrEqual(input!.x + 1);
+    expect(search!.x + search!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+    expect(actions!.x + actions!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
     await expect
       .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
       .toBe(true);
   }
 
   await expectMapLayoutFits();
+  await page.getByRole('tab', { name: 'Товары' }).click();
+  await expect(page.getByTestId('map-search')).toHaveAttribute('placeholder', 'Найти товар');
+  await page.getByRole('tab', { name: 'Продавцы' }).click();
+  await expect(page.getByTestId('map-search')).toHaveAttribute('placeholder', 'Найти продавца');
+
+  await page.getByTestId('seller-filter-trigger').click();
+  const filter = page.getByTestId('seller-filter-popover');
+  await expect(filter).toBeVisible();
+  let filterBox = await filter.boundingBox();
+  expect(filterBox).not.toBeNull();
+  expect(filterBox!.x).toBeGreaterThanOrEqual(0);
+  expect(filterBox!.y).toBeGreaterThanOrEqual(0);
+  expect(filterBox!.x + filterBox!.width).toBeLessThanOrEqual(390);
+  expect(filterBox!.y + filterBox!.height).toBeLessThanOrEqual(844);
+  await page.keyboard.press('Escape');
+  await expect(filter).toBeHidden();
 
   await page.getByTestId('fab-panel-toggle').click();
   const panel = page.getByTestId('fab-panel');
   await expect(panel).toBeVisible();
+  for (const testId of ['toggle-map-pois', 'open-catalog', 'open-seller-search', 'center-on-user', 'toggle-fullscreen', 'toggle-theme']) {
+    await expect(page.getByTestId(testId)).toBeVisible();
+  }
   let box = await panel.boundingBox();
   expect(box).not.toBeNull();
 
@@ -330,6 +359,14 @@ test('Map Screen keeps header sections separated and FAB inside viewport', async
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await expectMapLayoutFits();
+  await page.getByTestId('seller-filter-trigger').click();
+  filterBox = await filter.boundingBox();
+  expect(filterBox).not.toBeNull();
+  expect(filterBox!.x).toBeGreaterThanOrEqual(0);
+  expect(filterBox!.y).toBeGreaterThanOrEqual(0);
+  expect(filterBox!.x + filterBox!.width).toBeLessThanOrEqual(1440);
+  expect(filterBox!.y + filterBox!.height).toBeLessThanOrEqual(900);
+  await page.keyboard.press('Escape');
   box = await panel.boundingBox();
   expect(box).not.toBeNull();
   expect(box!.x).toBeGreaterThanOrEqual(0);

@@ -26,8 +26,6 @@ const navItems = [
   { to: '/green-board', label: 'О Green Board' },
 ];
 
-const FULL_SCREEN_ROUTES = new Set(['/map']);
-
 function LegacyCatalogRedirect() {
   const location = useLocation();
   return <Navigate to={`/${location.search}`} replace />;
@@ -78,15 +76,14 @@ export function NavigationContainer() {
     return <Navigate to={storeModeLandingPath(storeMode.storeId)} replace />;
   }
 
-  const isFullScreenRoute = !storeMode.active && FULL_SCREEN_ROUTES.has(location.pathname);
+  const isMapRoute = !storeMode.active && location.pathname === '/map';
 
   return (
     <>
-      {!isFullScreenRoute && !storeMode.active && <TopNav />}
-      {isFullScreenRoute ? (
+      {!storeMode.active && <TopNav />}
+      {isMapRoute ? (
         <Routes>
           <Route path="/map" element={<MapScreenView />} />
-          <Route path="/seller-list" element={<SellerListScreenView />} />
         </Routes>
       ) : (
         <Page>

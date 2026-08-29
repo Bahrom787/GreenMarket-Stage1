@@ -1,9 +1,10 @@
 import { useEffect, useRef } from "react";
-import { MapContainer, TileLayer, Marker, CircleMarker, useMap, useMapEvents } from "react-leaflet";
+import { AttributionControl, MapContainer, TileLayer, Marker, CircleMarker, useMap, useMapEvents } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
 import type { MapAdapterProps } from "@/platform-core/map/gis/MapAdapterTypes";
 import { defaultMapConfig } from "@/platform-core/map/gis/MapConfig";
+import { CleanMapTileProvider } from "@/platform-core/map/gis/TileProvider";
 import "leaflet/dist/leaflet.css";
 
 /** IMP-003.1 §3/§4: единственный файл во всём репозитории, которому
@@ -133,7 +134,10 @@ export function LeafletAdapter({
   onSellerSelect,
   onMapBackgroundClick,
   centerRequestToken,
+  hideMapPois = false,
 }: MapAdapterProps) {
+  const tileProvider = hideMapPois ? CleanMapTileProvider : defaultMapConfig.tileProvider;
+
   return (
     // data-testid on a wrapper div (rather than on MapContainer itself, whose typed
     // props don't include arbitrary data-* attributes) — IMP-003.1 §3: this remains
@@ -150,14 +154,15 @@ export function LeafletAdapter({
         touchZoom
         style={{ width: "100%", height: "100%" }}
         zoomControl={false}
-        attributionControl={true}
+        attributionControl={false}
       >
+        <AttributionControl prefix={false} />
         <TileLayer
-          url={defaultMapConfig.tileProvider.urlTemplate}
-          attribution={defaultMapConfig.tileProvider.attribution}
-          maxZoom={defaultMapConfig.tileProvider.maxZoom}
-          maxNativeZoom={defaultMapConfig.tileProvider.maxZoom}
-          minZoom={defaultMapConfig.tileProvider.minZoom}
+          url={tileProvider.urlTemplate}
+          attribution={tileProvider.attribution}
+          maxZoom={tileProvider.maxZoom}
+          maxNativeZoom={tileProvider.maxZoom}
+          minZoom={tileProvider.minZoom}
         />
         <MapEventsBridge
           onCameraChange={onCameraChange}

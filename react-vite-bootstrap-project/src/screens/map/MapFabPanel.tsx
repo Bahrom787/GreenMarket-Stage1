@@ -3,7 +3,7 @@ import { useDraggablePanel } from '@/screens/map/useDraggablePanel';
 import './map.css';
 
 const STORAGE_KEY = 'gm.fab-panel.position';
-const OBSTACLE_SELECTORS = ['.gm-header', '[data-testid="current-area-label"]', '.gm-map-search-slot', '.gm-map-legend'] as const;
+const OBSTACLE_SELECTORS = ['.gm-site-header', '.gm-map-controls', '[data-testid="current-area-label"]', '.gm-map-legend'] as const;
 
 export interface MapFabPanelHandle {
   resetPosition: () => void;
