@@ -287,6 +287,25 @@
   min-width: 0;
 }
 
+.gm-catalog-search-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.gm-catalog-search-row .gm-buyer-search {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.gm-catalog-category-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex: none;
+}
+
 .gm-catalog-category-panel {
   min-width: 0;
 }
@@ -334,6 +353,7 @@
   width: 18px;
   height: 18px;
   flex: 0 0 auto;
+  color: var(--color-brand-primary-strong);
 }
 
 .gm-catalog-category-icon::before,
@@ -357,13 +377,40 @@
 }
 
 .gm-catalog-category-icon--greens::before {
+  color: var(--color-success);
   inset: 2px 8px 2px 2px;
   transform: rotate(-35deg);
 }
 
 .gm-catalog-category-icon--greens::after {
+  color: var(--color-success);
   inset: 2px 2px 2px 8px;
   transform: rotate(35deg);
+}
+
+.gm-catalog-category-icon--vegetables {
+  color: var(--color-brand-primary-light);
+}
+
+.gm-catalog-category-icon--fruit {
+  color: var(--color-warning);
+}
+
+.gm-catalog-category-icon--berries,
+.gm-catalog-category-icon--sweets {
+  color: var(--color-danger);
+}
+
+.gm-catalog-category-icon--nuts,
+.gm-catalog-category-icon--dried,
+.gm-catalog-category-icon--pickles,
+.gm-catalog-category-icon--grocery {
+  color: var(--color-text-secondary);
+}
+
+.gm-catalog-category-chip.gm-chip--selected .gm-catalog-category-icon,
+.gm-catalog-selected-category.gm-chip--selected .gm-catalog-category-icon {
+  color: var(--color-brand-primary-strong);
 }
 
 .gm-catalog-category-icon--fruit::before {
@@ -414,6 +461,24 @@
 .gm-catalog-category-icon--grocery::before {
   inset: 4px 2px 3px;
   border-radius: 3px;
+}
+
+.gm-catalog-selected-category--icons {
+  width: 36px;
+  height: 36px;
+  justify-content: center;
+  padding: var(--space-none);
+}
+
+@media (max-width: 480px) {
+  .gm-catalog-search-row--icons {
+    gap: var(--space-xs);
+  }
+
+  .gm-catalog-search-row--icons .gm-buyer-search__button {
+    padding-right: var(--space-md);
+    padding-left: var(--space-md);
+  }
 }
 
 .gm-catalog-filter {

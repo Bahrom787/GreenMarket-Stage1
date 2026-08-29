@@ -51,12 +51,22 @@ function categoryIconKind(name: string) {
   return categoryIconRules.find((rule) => rule.test.test(name))?.kind ?? 'grocery';
 }
 
-function CategoryIcon({ name }: { name: string }) {
+function CategoryIcon({ kind }: { kind: string }) {
   return (
     <span
       aria-hidden="true"
-      className={`gm-catalog-category-icon gm-catalog-category-icon--${categoryIconKind(name)}`}
+      className={`gm-catalog-category-icon gm-catalog-category-icon--${kind}`}
     />
+  );
+}
+
+function CategoryToggleContent({ mode, count }: { mode: CategoryPanelMode; count: number }) {
+  return (
+    <>
+      <CategoryIcon kind="grocery" />
+      {mode === 'text' && <span>Категории</span>}
+      {count > 0 && <span>{mode === 'text' ? `(${count})` : count}</span>}
+    </>
   );
 }
 
@@ -110,6 +120,14 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
   const isStore = isStoreContext(context);
   const storeId = isStore ? context.storeId : undefined;
   const groups = catalogGroupOptions(groupsState.groups);
+  const categoryItems = groups.map(({ group, depth }) => ({
+    group,
+    depth,
+    iconKind: categoryIconKind(group.name),
+    label: catalogGroupOptionLabel({ group, depth }),
+    selected: groupIds.includes(group.id),
+  }));
+  const selectedCategoryItems = categoryItems.filter((item) => item.selected);
   const selectedGroups = selectedCatalogGroups(groupsState.groups, groupIds);
   const selectedGroupIds = new Set(groupIds);
   const hasFilters = Boolean(search || groupIds.length || sellerIds.length || hasInvalidGroupId || hasInvalidSellerId || sort !== 'name' || page !== 1);
@@ -265,7 +283,23 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
       )}
 
       <Stack gap="sm" className="gm-catalog-filters">
-        <SearchBar initialValue={search} onSearch={(value) => updateParam('search', value || null)} />
+        <div className={`gm-catalog-search-row gm-catalog-search-row--${categoryMode}`}>
+          {!isStore && categoryMode === 'icons' && (
+            <Button
+              variant="secondary"
+              size="sm"
+              aria-label={`Категории, выбрано ${selectedCategoryItems.length}`}
+              aria-controls="catalog-category-list"
+              aria-expanded={categoriesOpen}
+              onClick={toggleCategoriesOpen}
+              data-testid="catalog-category-toggle"
+              className="gm-catalog-category-toggle"
+            >
+              <CategoryToggleContent mode={categoryMode} count={selectedCategoryItems.length} />
+            </Button>
+          )}
+          <SearchBar initialValue={search} onSearch={(value) => updateParam('search', value || null)} />
+        </div>
 
         {isStore ? (
           <Row gap="sm" wrap align="center" aria-label="Категории">
@@ -287,18 +321,22 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
           </Row>
         ) : (
           <div className="gm-catalog-category-panel" data-testid="catalog-category-panel">
-            <Row gap="sm" wrap align="center">
-              <Button
-                variant="secondary"
-                size="sm"
-                aria-controls="catalog-category-list"
-                aria-expanded={categoriesOpen}
-                onClick={toggleCategoriesOpen}
-                data-testid="catalog-category-toggle"
-              >
-                Категории{selectedGroups.length ? ` (${selectedGroups.length})` : ''}
-              </Button>
-            </Row>
+            {categoryMode === 'text' && (
+              <Row gap="sm" wrap align="center">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  aria-label={`Категории, выбрано ${selectedCategoryItems.length}`}
+                  aria-controls="catalog-category-list"
+                  aria-expanded={categoriesOpen}
+                  onClick={toggleCategoriesOpen}
+                  data-testid="catalog-category-toggle"
+                  className="gm-catalog-category-toggle"
+                >
+                  <CategoryToggleContent mode={categoryMode} count={selectedCategoryItems.length} />
+                </Button>
+              </Row>
+            )}
 
             {categoriesOpen && (
               <Stack
@@ -342,7 +380,7 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
                   aria-label="Категории"
                   data-testid="catalog-category-list"
                 >
-                  {groups.map(({ group, depth }) => (
+                  {categoryItems.map(({ group, depth, iconKind, label }) => (
                     <Chip
                       key={group.id}
                       selected={selectedGroupIds.has(group.id)}
@@ -353,10 +391,10 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
                       className="gm-catalog-category-chip"
                       style={{ '--gm-category-depth': depth } as CSSProperties}
                     >
-                      <CategoryIcon name={group.name} />
+                      <CategoryIcon kind={iconKind} />
                       {categoryMode === 'text' && (
                         <span className="gm-catalog-category-chip__label">
-                          {catalogGroupOptionLabel({ group, depth })}
+                          {label}
                         </span>
                       )}
                     </Chip>
@@ -393,9 +431,17 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
 
         <Row gap="sm" wrap align="center" aria-label="Активные фильтры">
           {search && <Chip onClick={() => updateParam('search', null)}>Поиск: {search} ×</Chip>}
-          {selectedGroups.map((group) => (
-            <Chip key={group.id} selected onClick={() => toggleGroup(group.id)}>
-              {group.name} ×
+          {selectedCategoryItems.map(({ group, iconKind }) => (
+            <Chip
+              key={group.id}
+              selected
+              onClick={() => toggleGroup(group.id)}
+              title={group.name}
+              aria-label={categoryMode === 'icons' ? `Убрать категорию ${group.name}` : undefined}
+              className={`gm-catalog-selected-category gm-catalog-selected-category--${categoryMode}`}
+            >
+              <CategoryIcon kind={iconKind} />
+              {categoryMode === 'text' && <span>{group.name} ×</span>}
             </Chip>
           ))}
           {sellerIds.length > 0 && <Chip onClick={() => updateParam('seller_id', null)}>Продавцы: {sellerIds.join(', ')} ×</Chip>}
