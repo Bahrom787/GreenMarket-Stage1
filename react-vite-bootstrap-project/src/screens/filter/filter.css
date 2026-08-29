@@ -49,14 +49,32 @@
   top: calc(100% + var(--space-xs));
   right: 0;
   min-width: 240px;
-  max-height: 380px;
+  max-width: calc(100vw - 2 * var(--space-md));
+  max-height: min(380px, calc(100dvh - 104px));
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: var(--space-xs);
   border-radius: var(--radius-md);
   background: var(--color-surface-raised);
   border: var(--border-width-hairline) solid var(--color-border-default);
   box-shadow: var(--elevation-3);
-  z-index: var(--z-stickyHeader);
+  z-index: var(--z-tooltip);
+}
+
+.gm-map-screen .gm-seller-filter__popover {
+  position: fixed;
+  top: calc(72px + max(var(--space-sm), env(safe-area-inset-top)) + 52px);
+  right: var(--space-lg);
+}
+
+@media (max-width: 480px) {
+  .gm-map-screen .gm-seller-filter__popover {
+    top: calc(64px + max(var(--space-sm), env(safe-area-inset-top)) + 52px);
+    right: var(--space-md);
+    left: var(--space-md);
+    width: auto;
+    max-height: calc(100dvh - 128px);
+  }
 }
 
 .gm-seller-filter__group + .gm-seller-filter__group {

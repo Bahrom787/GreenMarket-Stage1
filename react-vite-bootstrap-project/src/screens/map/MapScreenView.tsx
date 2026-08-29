@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { Content, Header, Row, Stack } from '@/layout';
+import { Content, Row, Stack } from '@/layout';
 import { Text, IconButton, Icon, BottomSheetSurface, Snackbar } from '@/design-system/components';
 import { BottomSheetContainer, SnackbarContainer } from '@/containers';
 import { useGreenMarketRuntime } from '@/platform-core/navigation-runtime-layer/hooks/useGreenMarketRuntime';
@@ -19,6 +19,7 @@ import { MapLegend, type MapLegendHandle } from '@/screens/map/MapLegend';
 import { MapSearchAutocomplete } from '@/screens/map/MapSearchAutocomplete';
 import type { MapSearchMode } from '@/screens/map/MapSearchAutocomplete.logic';
 import { SellerFilter } from '@/screens/filter/SellerFilter';
+import { useTheme } from '@/design-system/useTheme';
 
 /** Зум при центрировании на конкретного продавца (поиск / выбор из списка). */
 const ZOOM_ON_SELLER = 15;
@@ -58,8 +59,11 @@ function parseRadiusKmToMeters(value: string): number | null {
 export function MapScreenView() {
   const { dispatch } = useGreenMarketRuntime();
   const mapState = useSyncExternalStore(MapRuntime.subscribe, MapRuntime.getState);
+  const theme = useTheme();
 
   const [centerRequestToken, setCenterRequestToken] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [hideMapPois, setHideMapPois] = useState(false);
   const [searchMode, setSearchMode] = useState<MapSearchMode>('seller');
   const [searchQuery, setSearchQuery] = useState('');
   const [locationNotice, setLocationNotice] = useState<'unavailable' | 'no-permission' | null>(null);
@@ -67,6 +71,7 @@ export function MapScreenView() {
   const [searchRadiusKm, setSearchRadiusKm] = useState('5');
   const fabPanelRef = useRef<MapFabPanelHandle>(null);
   const legendRef = useRef<MapLegendHandle>(null);
+  const mapScreenRef = useRef<HTMLDivElement | null>(null);
   const [returnTarget, setReturnTarget] = useState<'panel' | 'legend' | null>(null);
   const returnMessageTimerRef = useRef<number | null>(null);
 
@@ -117,6 +122,12 @@ export function MapScreenView() {
     },
     [],
   );
+
+  useEffect(() => {
+    const syncFullscreen = () => setIsFullscreen(document.fullscreenElement === mapScreenRef.current);
+    document.addEventListener('fullscreenchange', syncFullscreen);
+    return () => document.removeEventListener('fullscreenchange', syncFullscreen);
+  }, []);
 
   const handleReturnRequest = useCallback((target: 'panel' | 'legend', show: boolean) => {
     if (returnMessageTimerRef.current !== null) window.clearTimeout(returnMessageTimerRef.current);
@@ -175,6 +186,12 @@ export function MapScreenView() {
 
   const handleOpenSellerList = useCallback(() => dispatch({ type: 'OPEN_SELLER_LIST' }), [dispatch]);
   const handleOpenCatalog = useCallback(() => dispatch({ type: 'OPEN_CATALOG' }), [dispatch]);
+  const handleToggleFullscreen = useCallback(() => {
+    const target = mapScreenRef.current;
+    if (!target) return;
+    if (document.fullscreenElement) void document.exitFullscreen();
+    else void target.requestFullscreen?.();
+  }, []);
 
   /** «Поиск продавцов» (MAP-053/MAP-018). Открывает мастер: выбор точки —
    *  «Моё местоположение» (геолокация с той же обработкой ошибок, что у
@@ -328,23 +345,8 @@ export function MapScreenView() {
   const bottomSheetBlocks = useMemo(() => MapBuilder.build(viewModel), [viewModel]);
 
   return (
-    <div className="gm-map-screen" data-testid="map-screen">
-      <Header className="gm-map-header">
-        <div className="gm-map-header__top">
-          <Text variant="title" as="span" className="gm-map-header__brand">
-            🌿 Green Board
-          </Text>
-          <div className="gm-map-header__actions">
-            <SellerFilter
-              categories={mapState.categories}
-              selectedFilters={mapState.selectedFilters}
-              onChange={handleFilterChange}
-            />
-            <IconButton label="Список продавцов" onClick={handleOpenSellerList}>
-              <Icon label="Список">📋</Icon>
-            </IconButton>
-          </div>
-        </div>
+    <div className="gm-map-screen" data-testid="map-screen" ref={mapScreenRef}>
+      <div className="gm-map-controls" data-testid="map-controls">
         <div className="gm-map-search-slot">
           <MapSearchAutocomplete
             mode={searchMode}
@@ -358,7 +360,17 @@ export function MapScreenView() {
             onProductSelect={handleProductSelect}
           />
         </div>
-      </Header>
+        <div className="gm-map-controls__actions">
+          <SellerFilter
+            categories={mapState.categories}
+            selectedFilters={mapState.selectedFilters}
+            onChange={handleFilterChange}
+          />
+          <IconButton label="Список продавцов" onClick={handleOpenSellerList}>
+            <Icon label="Список">📋</Icon>
+          </IconButton>
+        </div>
+      </div>
 
       {mapState.currentAreaLabel && (
         <div className="gm-map-area-label" data-testid="current-area-label">
@@ -381,15 +393,37 @@ export function MapScreenView() {
             onSellerSelect={handleSellerSelect}
             onMapBackgroundClick={handleUnselect}
             centerRequestToken={centerRequestToken}
+            hideMapPois={hideMapPois}
           />
         </div>
 
         {/* Плавающая панель действий: белая поверхность, чтобы иконки не
             сливались с картой; кнопки равноудалены (gap = --space-sm). */}
         <MapFabPanel ref={fabPanelRef} onReturnRequest={(show) => handleReturnRequest('panel', show)}>
+          <MapFabButton
+            label={hideMapPois ? 'Показать места' : 'Скрыть места'}
+            icon={hideMapPois ? '🗺️' : '🏙️'}
+            onClick={() => setHideMapPois((value) => !value)}
+            testId="toggle-map-pois"
+            selected={hideMapPois}
+          />
           <MapFabButton label="Открыть каталог" icon="🛒" onClick={handleOpenCatalog} testId="open-catalog" />
           <MapFabButton label="Поиск продавцов" icon="🧭" onClick={handleOpenSellerSearch} testId="open-seller-search" />
-          <MapFabButton label="Моё местоположение" icon="📍" onClick={() => void handleCenterOnUser()} />
+          <MapFabButton label="Моё местоположение" icon="📍" onClick={() => void handleCenterOnUser()} testId="center-on-user" />
+          <MapFabButton
+            label={isFullscreen ? 'Выйти из полноэкранного режима' : 'Полноэкранный режим'}
+            icon={isFullscreen ? '⇱' : '⇲'}
+            onClick={handleToggleFullscreen}
+            testId="toggle-fullscreen"
+            selected={isFullscreen}
+          />
+          <MapFabButton
+            label={theme.mode === 'dark' ? 'Светлая тема' : 'Тёмная тема'}
+            icon={theme.mode === 'dark' ? '☀️' : '🌙'}
+            onClick={theme.toggleMode}
+            testId="toggle-theme"
+            selected={theme.mode === 'dark'}
+          />
         </MapFabPanel>
         <div className="gm-map-bottom-left">
           <MapLegend ref={legendRef} onReturnRequest={(show) => handleReturnRequest('legend', show)} />

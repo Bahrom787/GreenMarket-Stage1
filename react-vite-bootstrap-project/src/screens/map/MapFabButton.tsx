@@ -9,13 +9,14 @@ export interface MapFabButtonProps {
   icon: ReactNode;
   onClick: () => void;
   testId?: string;
+  selected?: boolean;
 }
 
 /**
  * Круглая плавающая кнопка над картой (FAB). Показывает тултип слева после
  * короткой задержки при наведении/фокусе — так же, как кнопка геолокации.
  */
-export function MapFabButton({ label, icon, onClick, testId }: MapFabButtonProps) {
+export function MapFabButton({ label, icon, onClick, testId, selected = false }: MapFabButtonProps) {
   const tooltipId = useId();
   const timerRef = useRef<number | null>(null);
   const [tooltipVisible, setTooltipVisible] = useState(false);
@@ -56,6 +57,7 @@ export function MapFabButton({ label, icon, onClick, testId }: MapFabButtonProps
         onBlur={hideTooltip}
         aria-describedby={tooltipVisible ? tooltipId : undefined}
         data-testid={testId}
+        selected={selected}
       >
         <Icon>{icon}</Icon>
       </IconButton>
