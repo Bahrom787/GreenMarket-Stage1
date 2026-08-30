@@ -55,13 +55,20 @@ const storeProducts = {
   total: 3,
 };
 
-async function mockCatalog(page: Page, options: { groups?: typeof groups; products?: typeof globalProducts.products } = {}) {
+async function mockCatalog(
+  page: Page,
+  options: { groups?: typeof groups; products?: typeof globalProducts.products; failGroups?: boolean; failProducts?: boolean } = {},
+) {
   const requests: string[] = [];
   await page.route('**/api/v1/catalog/**', async (route) => {
     const url = new URL(route.request().url());
     requests.push(`${url.pathname}${url.search}`);
 
     if (url.pathname.endsWith('/groups')) {
+      if (options.failGroups) {
+        await route.fulfill({ status: 503, json: { error: { code: 'UNAVAILABLE', message: 'Groups unavailable', details: [] } } });
+        return;
+      }
       await route.fulfill({ json: { groups: options.groups ?? groups } });
       return;
     }
@@ -97,6 +104,10 @@ async function mockCatalog(page: Page, options: { groups?: typeof groups; produc
     }
 
     if (url.pathname.endsWith('/products')) {
+      if (options.failProducts) {
+        await route.fulfill({ status: 503, json: { error: { code: 'UNAVAILABLE', message: 'Products unavailable', details: [] } } });
+        return;
+      }
       if (url.searchParams.get('search') === 'empty') {
         await route.fulfill({ json: { ...globalProducts, products: [], total: 0 } });
         return;
@@ -152,6 +163,37 @@ test('Global Catalog keeps multi-category filters in URL through refresh, pagina
   await expect(page).not.toHaveURL(/group_id=/);
   await expect(page).toHaveURL(/sort=name/);
   await expect(page).toHaveURL(/page=1/);
+});
+
+test('Global Catalog loads products and categories from the same catalog API scope', async ({ page }) => {
+  const requests = await mockCatalog(page);
+
+  await page.goto('/');
+  await expect(page.getByText('Milk')).toBeVisible();
+  await page.getByTestId('catalog-category-toggle').click();
+  await expect(page.getByRole('button', { name: 'Vegetables', exact: true })).toBeVisible();
+
+  expect(requests).toContain('/api/v1/catalog/groups');
+  expect(requests.some((url) => url.startsWith('/api/v1/catalog/products?'))).toBe(true);
+});
+
+test('Global Catalog keeps products visible when groups fail', async ({ page }) => {
+  await mockCatalog(page, { failGroups: true });
+
+  await page.goto('/');
+  await expect(page.getByText('Milk')).toBeVisible();
+  await page.getByTestId('catalog-category-toggle').click();
+  await expect(page.getByText('Groups unavailable')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Vegetables', exact: true })).toHaveCount(0);
+});
+
+test('Global Catalog keeps categories available when products fail', async ({ page }) => {
+  await mockCatalog(page, { failProducts: true });
+
+  await page.goto('/');
+  await expect(page.getByText('Products unavailable')).toBeVisible();
+  await page.getByTestId('catalog-category-toggle').click();
+  await expect(page.getByRole('button', { name: 'Vegetables', exact: true })).toBeVisible();
 });
 
 test('Store Catalog sends one seller-scoped multi-category request and preserves filters with search/sort/page', async ({

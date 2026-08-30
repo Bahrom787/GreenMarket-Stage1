@@ -34,7 +34,10 @@ function response(body: unknown) {
 }
 
 describe('catalog api', () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
 
   it('accepts origin-only and scoped backend env values', () => {
     expect(normalizeCatalogApiBase('https://testapi.vnespecplanpodaz.online')).toBe(
@@ -83,6 +86,22 @@ describe('catalog api', () => {
     await fetchGroups();
 
     expect(fetch).toHaveBeenCalledWith('/api/v1/catalog/groups');
+  });
+
+  it('uses the same normalized backend origin for products and groups', async () => {
+    vi.resetModules();
+    vi.stubEnv('VITE_API_BASE', 'https://backend.example.com');
+    const fetch = vi.fn().mockImplementation(() =>
+      Promise.resolve(response({ groups: [], products: [], page: 1, limit: 20, total: 0 })),
+    );
+    vi.stubGlobal('fetch', fetch);
+    const api = await import('../api');
+
+    await api.fetchGroups();
+    await api.fetchProducts();
+
+    expect(fetch).toHaveBeenNthCalledWith(1, 'https://backend.example.com/api/v1/catalog/groups');
+    expect(fetch).toHaveBeenNthCalledWith(2, 'https://backend.example.com/api/v1/catalog/products?sort=name&page=1');
   });
 
   it('loads Seller List through Buyer market seller endpoints', async () => {
