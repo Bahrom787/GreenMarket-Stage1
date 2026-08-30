@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
-import { Diagnostics } from '@/platform-core/diagnostics/Diagnostics';
+import { reportException, screenFromPath } from '@/shared/telemetry/ErrorReporter';
+import { telemetryRelease } from '@/shared/telemetry/sentryTelemetry';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -18,7 +19,12 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    Diagnostics.track('app.crash', { message: error.message, componentStack: errorInfo.componentStack });
+    reportException(error, {
+      screen: screenFromPath(),
+      operation: 'react_error_boundary',
+      release: telemetryRelease(),
+      data: { componentStack: errorInfo.componentStack },
+    });
   }
 
   render(): ReactNode {

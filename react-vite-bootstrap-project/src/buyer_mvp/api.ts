@@ -11,6 +11,15 @@ import type {
   SellerCatalogItem,
   SellerCatalogResponse,
 } from './types';
+import {
+  addBreadcrumb,
+  classifyError,
+  normalizeEndpoint,
+  operationFromEndpoint,
+  reportException,
+  screenFromPath,
+} from '@/shared/telemetry/ErrorReporter';
+import { telemetryRelease } from '@/shared/telemetry/sentryTelemetry';
 
 const CATALOG_API_SCOPE = '/api/v1/catalog';
 const SELLER_PRODUCT_LOOKUP_LIMIT = 100;
@@ -57,35 +66,85 @@ export class CatalogApiError extends Error {
 }
 
 async function request<T>(path: string): Promise<T> {
+  const started = performance.now();
+  const endpoint = normalizeEndpoint(path);
+  const operation = operationFromEndpoint(endpoint);
+  const baseContext = {
+    screen: screenFromPath(),
+    operation,
+    endpoint,
+    method: 'GET',
+    release: telemetryRelease(),
+  };
+  addBreadcrumb({ category: 'api', message: `${operation}:start`, level: 'info', data: baseContext });
+
   if (apiBaseConfigError) {
-    throw new CatalogApiError(apiBaseConfigError, 0, 'API_BASE_INVALID');
+    const error = new CatalogApiError(apiBaseConfigError, 0, 'API_BASE_INVALID');
+    reportException(error, { ...baseContext, status: 0, durationMs: 0, errorType: 'unknown' });
+    throw error;
   }
 
   if (!API_BASE) {
-    throw new CatalogApiError(
+    const error = new CatalogApiError(
       'Production API не настроен: задайте VITE_API_BASE для Catalog API.',
       0,
       'API_BASE_MISSING',
     );
+    reportException(error, { ...baseContext, status: 0, durationMs: 0, errorType: 'unknown' });
+    throw error;
   }
 
   let response: Response;
   try {
     response = await fetch(`${API_BASE}${path}`);
-  } catch {
-    throw new CatalogApiError('Не удалось связаться с сервером. Проверьте подключение.', 0);
+  } catch (err) {
+    const errorType = classifyError(err);
+    if (errorType === 'abort') {
+      addBreadcrumb({
+        category: 'api',
+        message: `${operation}:abort`,
+        level: 'info',
+        data: { ...baseContext, status: null, durationMs: Math.round(performance.now() - started), errorType },
+      });
+      throw err;
+    }
+    const error = new CatalogApiError('Не удалось связаться с сервером. Проверьте подключение.', 0);
+    const durationMs = Math.round(performance.now() - started);
+    reportException(err instanceof Error ? err : error, {
+      ...baseContext,
+      status: null,
+      durationMs,
+      errorType,
+    });
+    throw error;
   }
 
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as ApiErrorBody | null;
-    throw new CatalogApiError(
+    const error = new CatalogApiError(
       body?.error?.message ?? `Запрос завершился ошибкой (${response.status})`,
       response.status,
       body?.error?.code,
     );
+    const durationMs = Math.round(performance.now() - started);
+    reportException(error, { ...baseContext, status: response.status, durationMs, errorType: 'http' });
+    throw error;
   }
 
-  return response.json() as Promise<T>;
+  try {
+    const json = await response.json() as T;
+    addBreadcrumb({
+      category: 'api',
+      message: `${operation}:success`,
+      level: 'info',
+      data: { ...baseContext, status: response.status, durationMs: Math.round(performance.now() - started) },
+    });
+    return json;
+  } catch (err) {
+    const durationMs = Math.round(performance.now() - started);
+    reportException(err, { ...baseContext, status: response.status, durationMs, errorType: classifyError(err) });
+    throw err;
+  }
 }
 
 export function fetchGroups(): Promise<ProductGroupsResponse> {
