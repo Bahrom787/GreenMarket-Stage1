@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Content, Header, Row, Stack } from '@/layout';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Content, Header, Stack } from '@/layout';
 import { Avatar, Button, EmptyState, ErrorState, ListItem, Text } from '@/design-system/components';
 import { CatalogApiError, fetchSellers } from '@/buyer_mvp/api';
 import { toBuyerSellerListRow, type BuyerSellerListRow } from '@/buyer_mvp/sellerListPresentation';
 import { catalogSellerIds } from '@/buyer_mvp/catalogUrlState';
 import { trackEvent } from '@/shared/analytics/AnalyticsReporter';
+import { SearchFilterBar } from '@/components/search-filter/SearchFilterBar';
+import { loadStoredSearchFilters, saveStoredSearchFilters } from '@/components/search-filter/filterStorage';
 import './seller-list.css';
 
 type LoadState =
@@ -17,14 +19,17 @@ const SEARCH_DEBOUNCE_MS = 300;
 
 export function SellerListScreenView() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const search = searchParams.get('search') ?? '';
   const parsedSellerIds = useMemo(() => catalogSellerIds(searchParams.get('seller_id')), [searchParams]);
-  const selectedSellerIds = parsedSellerIds ?? [];
-  const selectedSellerIdSet = new Set(selectedSellerIds.map(String));
+  const selectedSellerIds = useMemo(() => parsedSellerIds ?? [], [parsedSellerIds]);
+  const selectedSellerIdSet = useMemo(() => new Set(selectedSellerIds.map(String)), [selectedSellerIds]);
   const [searchInput, setSearchInput] = useState(search);
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const requestSeq = useRef(0);
+  const restoredStoredFilters = useRef(false);
+  const skipStoredFiltersSave = useRef(false);
 
   const loadSellers = useCallback(() => {
     const seq = ++requestSeq.current;
@@ -53,6 +58,27 @@ export function SellerListScreenView() {
   }, []);
 
   useEffect(() => setSearchInput(search), [search]);
+
+  useEffect(() => {
+    if (restoredStoredFilters.current) return;
+    restoredStoredFilters.current = true;
+    if (location.key !== 'default') return;
+    if (searchParams.has('seller_id')) return;
+    const stored = loadStoredSearchFilters();
+    if (!stored.sellerIds.length) return;
+    const next = new URLSearchParams(searchParams);
+    next.set('seller_id', stored.sellerIds.join(','));
+    skipStoredFiltersSave.current = true;
+    setSearchParams(next, { replace: true });
+  }, [location.key, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (skipStoredFiltersSave.current) {
+      skipStoredFiltersSave.current = false;
+      return;
+    }
+    saveStoredSearchFilters({ sellerIds: selectedSellerIds });
+  }, [selectedSellerIds]);
 
   useEffect(() => {
     const value = searchInput.trim();
@@ -90,6 +116,13 @@ export function SellerListScreenView() {
     setSearchParams(next);
   }
 
+  function clearSellerFilters() {
+    const next = new URLSearchParams(searchParams);
+    next.delete('seller_id');
+    next.delete('filter');
+    setSearchParams(next);
+  }
+
   function toggleSeller(sellerId: string) {
     const id = Number(sellerId);
     if (!Number.isInteger(id) || id <= 0) return;
@@ -110,39 +143,66 @@ export function SellerListScreenView() {
   return (
     <div data-testid="seller-list-screen" className="gm-seller-list-screen">
       <Header>
-        <Row gap="lg" align="center" justify="between" wrap style={{ width: '100%' }}>
-          <Stack gap="xs">
-            <Text variant="caption" tone="secondary" data-testid="seller-list-count">
-              {state.status === 'ready' ? `${count} продавцов` : 'Загрузка продавцов'}
-              {selectedCount > 0 ? `, выбрано: ${selectedCount}` : ''}
-            </Text>
-          </Stack>
-          <form onSubmit={(e) => e.preventDefault()} role="search" style={{ width: 'min(100%, 360px)' }}>
-            <input
-              type="search"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Найти продавца"
-              aria-label="Поиск продавца"
-              data-testid="seller-list-search"
-              className="gm-focusable"
-              style={{
-                width: '100%',
-                height: 36,
-                borderRadius: 'var(--radius-full)',
-                border: '1px solid var(--color-border-default)',
-                padding: '0 var(--space-md)',
-                fontFamily: 'var(--font-family-body)',
-                fontSize: 'var(--font-size-sm)',
-                background: 'var(--color-surface-sunken)',
-                color: 'var(--color-text-primary)',
-              }}
-            />
-          </form>
-          <Button onClick={showProducts} size="sm" data-testid="seller-list-show-products">
-            Показать товары{selectedCount > 0 ? ` (${selectedCount})` : ''}
-          </Button>
-        </Row>
+        <SearchFilterBar
+          searchSlot={
+            <form className="gm-buyer-search" onSubmit={(e) => e.preventDefault()} role="search">
+              <span className="gm-buyer-search__icon" aria-hidden="true" />
+              <input
+                className="gm-buyer-search__input"
+                type="search"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Найти продавца"
+                aria-label="Поиск продавца"
+                data-testid="seller-list-search"
+              />
+            </form>
+          }
+          groups={[
+            {
+              id: 'sellers',
+              label: 'Продавцы',
+              count: selectedCount,
+              panel: (
+                <Stack gap="xs" data-testid="seller-list-filter-panel">
+                  {state.status === 'ready' &&
+                    state.sellers.map((seller) => (
+                      <label key={seller.sellerId} className="gm-seller-list-filter-option">
+                        <input
+                          type="checkbox"
+                          checked={selectedSellerIdSet.has(seller.sellerId)}
+                          onChange={() => toggleSeller(seller.sellerId)}
+                        />
+                        <span>{seller.name}</span>
+                      </label>
+                    ))}
+                  {state.status === 'loading' && <Text tone="secondary">Загрузка продавцов</Text>}
+                  {state.status === 'ready' && state.sellers.length === 0 && <Text tone="secondary">Продавцы не найдены</Text>}
+                </Stack>
+              ),
+            },
+          ]}
+          openGroupId={searchParams.get('filter') === 'sellers' ? 'sellers' : null}
+          onOpenGroupChange={(id) => {
+            const next = new URLSearchParams(searchParams);
+            if (id) next.set('filter', id);
+            else next.delete('filter');
+            setSearchParams(next);
+          }}
+          hasFilters={selectedCount > 0}
+          onClearFilters={clearSellerFilters}
+          actionsSlot={
+            <>
+              <Text variant="caption" tone="secondary" data-testid="seller-list-count">
+                {state.status === 'ready' ? `${count} продавцов` : 'Загрузка продавцов'}
+                {selectedCount > 0 ? `, выбрано: ${selectedCount}` : ''}
+              </Text>
+              <Button onClick={showProducts} size="sm" data-testid="seller-list-show-products">
+                Показать товары{selectedCount > 0 ? ` (${selectedCount})` : ''}
+              </Button>
+            </>
+          }
+        />
       </Header>
 
       <Content style={{ overflowY: 'auto' }}>

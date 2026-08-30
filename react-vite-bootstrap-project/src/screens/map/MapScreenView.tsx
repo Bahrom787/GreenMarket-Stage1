@@ -21,6 +21,9 @@ import { MapSearchAutocomplete } from '@/screens/map/MapSearchAutocomplete';
 import type { MapSearchMode } from '@/screens/map/MapSearchAutocomplete.logic';
 import { SellerFilter } from '@/screens/filter/SellerFilter';
 import { useTheme } from '@/design-system/useTheme';
+import { SearchFilterBar } from '@/components/search-filter/SearchFilterBar';
+import { loadStoredSearchFilters, saveStoredSearchFilters } from '@/components/search-filter/filterStorage';
+import { buildSellerFilters } from '@/platform-core/map/filters/SellerFilters';
 
 /** Зум при центрировании на конкретного продавца (поиск / выбор из списка). */
 const ZOOM_ON_SELLER = 15;
@@ -67,6 +70,7 @@ export function MapScreenView() {
   const [hideMapPois, setHideMapPois] = useState(false);
   const [searchMode, setSearchMode] = useState<MapSearchMode>('seller');
   const [searchQuery, setSearchQuery] = useState('');
+  const [mapOpenGroupId, setMapOpenGroupId] = useState<string | null>(null);
   const [locationNotice, setLocationNotice] = useState<'unavailable' | 'no-permission' | null>(null);
   const locationNoticeTimerRef = useRef<number | null>(null);
   const [searchRadiusKm, setSearchRadiusKm] = useState('5');
@@ -75,6 +79,8 @@ export function MapScreenView() {
   const mapScreenRef = useRef<HTMLDivElement | null>(null);
   const [returnTarget, setReturnTarget] = useState<'panel' | 'legend' | null>(null);
   const returnMessageTimerRef = useRef<number | null>(null);
+  const restoredMapFiltersRef = useRef(false);
+  const skipNextMapFilterSaveRef = useRef(false);
 
   /** Показывает snackbar об ошибке геолокации (MAP-005 §4) и автоматически
    *  скрывает его через несколько секунд. Повторное нажатие кнопки
@@ -114,6 +120,26 @@ export function MapScreenView() {
   useEffect(() => {
     MapRuntime.loadCategories();
   }, []);
+
+  useEffect(() => {
+    if (restoredMapFiltersRef.current) return;
+    restoredMapFiltersRef.current = true;
+    const storedFilters = loadStoredSearchFilters().mapFilters;
+    const entries = Object.entries(storedFilters);
+    if (!entries.length) return;
+    skipNextMapFilterSaveRef.current = true;
+    for (const [groupId, optionIds] of entries) {
+      MapRuntime.dispatch({ type: 'SET_FILTER_OPTIONS', groupId, optionIds });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (skipNextMapFilterSaveRef.current) {
+      skipNextMapFilterSaveRef.current = false;
+      return;
+    }
+    saveStoredSearchFilters({ mapFilters: mapState.selectedFilters });
+  }, [mapState.selectedFilters]);
 
   // Сброс таймера snackbar об ошибке геолокации при размонтировании экрана
   // (остальные таймеры/дебаунсы принадлежат MapRuntime).
@@ -348,33 +374,76 @@ export function MapScreenView() {
   );
 
   const bottomSheetBlocks = useMemo(() => MapBuilder.build(viewModel), [viewModel]);
+  const activeMapFilterCount = Object.values(mapState.selectedFilters).reduce((sum, ids) => sum + ids.length, 0);
+  const mapFilterGroups = buildSellerFilters(mapState.categories);
 
   return (
     <div className="gm-map-screen" data-testid="map-screen" ref={mapScreenRef}>
       <div className="gm-map-controls" data-testid="map-controls">
-        <div className="gm-map-search-slot">
-          <MapSearchAutocomplete
-            mode={searchMode}
-            query={searchQuery}
-            productSearch={viewModel.productSearch}
-            onModeChange={handleSearchModeChange}
-            onQueryChange={setSearchQuery}
-            onSellerSubmit={handleSellerSearch}
-            onProductSearch={handleProductSearch}
-            onClear={handleProductSearchClear}
-            onProductSelect={handleProductSelect}
-          />
-        </div>
-        <div className="gm-map-controls__actions">
-          <SellerFilter
-            categories={mapState.categories}
-            selectedFilters={mapState.selectedFilters}
-            onChange={handleFilterChange}
-          />
-          <IconButton label="Список продавцов" onClick={handleOpenSellerList}>
-            <Icon label="Список">📋</Icon>
-          </IconButton>
-        </div>
+        <SearchFilterBar
+          className="gm-map-search-filter"
+          searchSlot={
+            <div className="gm-map-search-slot">
+              <MapSearchAutocomplete
+                mode={searchMode}
+                query={searchQuery}
+                productSearch={viewModel.productSearch}
+                onModeChange={handleSearchModeChange}
+                onQueryChange={setSearchQuery}
+                onSellerSubmit={handleSellerSearch}
+                onProductSearch={handleProductSearch}
+                onClear={handleProductSearchClear}
+                onProductSelect={handleProductSelect}
+              />
+            </div>
+          }
+          groups={[
+            {
+              id: 'filters',
+              label: 'Фильтры',
+              count: activeMapFilterCount,
+              panel: (
+                <Stack gap="sm">
+                  {mapFilterGroups.map((group) => (
+                    <Stack key={group.id} gap="xs">
+                      <Text variant="bodyStrong">{group.label}</Text>
+                      {group.allLabel && (
+                        <label className="gm-map-filter-option">
+                          <input
+                            type="checkbox"
+                            checked={(mapState.selectedFilters[group.id] ?? []).length === 0}
+                            onChange={() => handleFilterChange(group.id, [])}
+                          />
+                          <span>{group.allLabel}</span>
+                        </label>
+                      )}
+                      {group.options.map((option) => {
+                        const selected = mapState.selectedFilters[group.id] ?? [];
+                        return (
+                          <label key={option.id} className="gm-map-filter-option">
+                            <input
+                              type="checkbox"
+                              checked={selected.includes(option.id)}
+                              onChange={() => handleFilterChange(group.id, selected.includes(option.id) ? selected.filter((id) => id !== option.id) : [...selected, option.id])}
+                            />
+                            <span>{option.label}</span>
+                          </label>
+                        );
+                      })}
+                    </Stack>
+                  ))}
+                </Stack>
+              ),
+            },
+          ]}
+          openGroupId={mapOpenGroupId}
+          onOpenGroupChange={setMapOpenGroupId}
+          actionsSlot={
+            <IconButton label="Список продавцов" onClick={handleOpenSellerList}>
+              <Icon label="Список">📋</Icon>
+            </IconButton>
+          }
+        />
       </div>
 
       {mapState.currentAreaLabel && (

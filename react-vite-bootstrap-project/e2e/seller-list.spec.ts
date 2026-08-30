@@ -177,6 +177,24 @@ test('Seller List without selection opens Global Catalog without seller filter',
   await expect(page).toHaveURL('/');
 });
 
+test('Seller List restores selected sellers from LocalStorage and lets URL override them', async ({ page }) => {
+  await mockSellerList(page);
+
+  await page.goto('/seller-list');
+  await page.evaluate(() => {
+    localStorage.setItem('gm.searchFilterBar.filters.v1', JSON.stringify({ categoryIds: [], sellerIds: [6, 7] }));
+  });
+
+  await page.goto('/seller-list');
+  await expect(page).toHaveURL(/seller_id=6%2C7|seller_id=6,7/);
+  await expect(page.getByTestId('seller-list-row-6')).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByTestId('seller-list-row-7')).toHaveAttribute('aria-selected', 'true');
+
+  await page.goto('/seller-list?seller_id=6');
+  await expect(page.getByTestId('seller-list-row-6')).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByTestId('seller-list-row-7')).toHaveAttribute('aria-selected', 'false');
+});
+
 test('Map to Seller List returns to Map through browser Back', async ({ page }) => {
   await mockSellerList(page);
 

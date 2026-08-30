@@ -304,7 +304,7 @@ test('Map Screen keeps header sections separated and FAB inside viewport', async
     const mode = await page.locator('.gm-map-search__mode').boundingBox();
     const search = await page.locator('.gm-map-search-slot').boundingBox();
     const input = await page.getByTestId('map-search').boundingBox();
-    const actions = await page.locator('.gm-map-controls__actions').boundingBox();
+    const actions = await page.locator('.gm-search-filter-bar__actions').boundingBox();
     expect(mode).not.toBeNull();
     expect(search).not.toBeNull();
     expect(input).not.toBeNull();
@@ -323,8 +323,8 @@ test('Map Screen keeps header sections separated and FAB inside viewport', async
   await page.getByRole('tab', { name: 'Продавцы' }).click();
   await expect(page.getByTestId('map-search')).toHaveAttribute('placeholder', 'Найти продавца');
 
-  await page.getByTestId('seller-filter-trigger').click();
-  const filter = page.getByTestId('seller-filter-popover');
+  await page.getByTestId('search-filter-group-filters').click();
+  const filter = page.getByTestId('search-filter-panel-filters');
   await expect(filter).toBeVisible();
   let filterBox = await filter.boundingBox();
   expect(filterBox).not.toBeNull();
@@ -358,7 +358,7 @@ test('Map Screen keeps header sections separated and FAB inside viewport', async
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await expectMapLayoutFits();
-  await page.getByTestId('seller-filter-trigger').click();
+  await page.getByTestId('search-filter-group-filters').click();
   filterBox = await filter.boundingBox();
   expect(filterBox).not.toBeNull();
   expect(filterBox!.x).toBeGreaterThanOrEqual(0);
@@ -372,4 +372,63 @@ test('Map Screen keeps header sections separated and FAB inside viewport', async
   expect(box!.y).toBeGreaterThanOrEqual(0);
   expect(box!.x + box!.width).toBeLessThanOrEqual(1440);
   expect(box!.y + box!.height).toBeLessThanOrEqual(900);
+});
+
+test('Global Catalog, Seller List and Map share the SearchFilterBar structure', async ({ page }) => {
+  await mockBuyerApi(page);
+
+  async function expectInOneBar(selectors: string[]) {
+    const bar = page.locator('.gm-search-filter-bar').first();
+    await expect(bar).toBeVisible();
+    await expect(page.locator('.gm-search-filter-bar')).toHaveCount(1);
+    for (const selector of selectors) {
+      await expect(bar.locator(selector)).toBeVisible();
+    }
+  }
+
+  await page.goto('/');
+  await expectInOneBar([
+    '.gm-search-filter-bar__search',
+    '[data-testid="catalog-category-toggle"]',
+  ]);
+  await expect(page.locator('.gm-search-filter-bar').first().locator('.gm-search-filter-bar__meta button')).toHaveCount(2);
+
+  await page.goto('/seller-list');
+  await expectInOneBar([
+    '.gm-search-filter-bar__search',
+    '[data-testid="search-filter-group-sellers"]',
+    '[data-testid="seller-list-search"]',
+    '[data-testid="seller-list-show-products"]',
+  ]);
+
+  await page.goto('/map');
+  await expectInOneBar([
+    '.gm-search-filter-bar__search',
+    '.gm-map-search__mode',
+    '[data-testid="search-filter-group-filters"]',
+  ]);
+});
+
+test('Map SearchFilterBar persists selected filters through shared storage', async ({ page }) => {
+  await mockBuyerApi(page);
+
+  await page.goto('/map');
+  await page.getByTestId('search-filter-group-filters').click();
+  const filters = page.getByTestId('search-filter-panel-filters').locator('input[type="checkbox"]');
+  await expect.poll(() => filters.count()).toBeGreaterThan(4);
+  await expect(filters.nth(1)).toBeVisible();
+  await filters.nth(1).check();
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const stored = JSON.parse(localStorage.getItem('gm.searchFilterBar.filters.v1') ?? '{}') as { mapFilters?: Record<string, string[]> };
+        return stored.mapFilters?.category?.length ?? 0;
+      }),
+    )
+    .toBe(1);
+
+  await page.reload();
+  await page.getByTestId('search-filter-group-filters').click();
+  await expect(page.getByTestId('search-filter-panel-filters').locator('input[type="checkbox"]').nth(1)).toBeChecked();
 });
