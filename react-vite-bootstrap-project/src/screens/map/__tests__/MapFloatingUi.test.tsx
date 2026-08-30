@@ -30,11 +30,20 @@ it('renders panel, legend and fab button accessibility hooks', () => {
   assert.match(buttonHtml, /aria-label="Поиск продавцов"/);
 });
 
-it('keeps map header sections separate from search layout', () => {
+it('keeps map controls separate from the shared app header', () => {
   const view = readFileSync(join(process.cwd(), 'src/screens/map/MapScreenView.tsx'), 'utf8');
   const css = readFileSync(join(process.cwd(), 'src/screens/map/map.css'), 'utf8');
-  assert.match(view, /className="gm-map-header"/);
-  assert.match(view, /className="gm-map-header__top"/);
+  assert.match(view, /className="gm-map-controls"/);
   assert.match(view, /className="gm-map-search-slot"/);
+  assert.doesNotMatch(view, /gm-map-header__brand/);
+  assert.doesNotMatch(view, /🌿 Green Board/);
   assert.doesNotMatch(css, /\.gm-map-search-slot\s*{[^}]*position:\s*absolute/s);
+  assert.match(css, /\.gm-map-search\s*{[^}]*display:\s*flex/s);
+});
+
+it('keeps restored working map tools in the floating panel', () => {
+  const view = readFileSync(join(process.cwd(), 'src/screens/map/MapScreenView.tsx'), 'utf8');
+  for (const testId of ['toggle-map-pois', 'open-catalog', 'open-seller-search', 'center-on-user', 'toggle-fullscreen', 'toggle-theme']) {
+    assert.match(view, new RegExp(`testId="${testId}"`));
+  }
 });
