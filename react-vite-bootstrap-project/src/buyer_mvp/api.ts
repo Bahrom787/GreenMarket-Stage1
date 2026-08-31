@@ -11,10 +11,20 @@ import type {
   SellerCatalogItem,
   SellerCatalogResponse,
 } from './types';
+import {
+  addBreadcrumb,
+  classifyError,
+  normalizeEndpoint,
+  operationFromEndpoint,
+  reportException,
+  screenFromPath,
+} from '@/shared/telemetry/ErrorReporter';
+import { telemetryRelease } from '@/shared/telemetry/sentryTelemetry';
 
 const CATALOG_API_SCOPE = '/api/v1/catalog';
 const SELLER_PRODUCT_LOOKUP_LIMIT = 100;
 const configuredApiBase = import.meta.env.VITE_API_BASE as string | undefined;
+let sellerListRequestSeq = 0;
 
 // In production the backend origin must be configured explicitly. Falling back to
 // the frontend origin hides deployment errors and makes API connectivity unverifiable.
@@ -56,36 +66,106 @@ export class CatalogApiError extends Error {
   }
 }
 
-async function request<T>(path: string): Promise<T> {
+async function request<T>(path: string, telemetryData?: Record<string, unknown>): Promise<T> {
+  const started = performance.now();
+  const endpoint = normalizeEndpoint(path);
+  const operation = operationFromEndpoint(endpoint);
+  const baseContext = {
+    screen: screenFromPath(),
+    operation,
+    endpoint,
+    method: 'GET',
+    release: telemetryRelease(),
+    data: telemetryData,
+  };
+  addBreadcrumb({ category: 'api', message: `${operation}:start`, level: 'info', data: baseContext });
+
   if (apiBaseConfigError) {
-    throw new CatalogApiError(apiBaseConfigError, 0, 'API_BASE_INVALID');
+    const error = new CatalogApiError(apiBaseConfigError, 0, 'API_BASE_INVALID');
+    reportException(error, { ...baseContext, status: 0, durationMs: 0, errorType: 'unknown' });
+    throw error;
   }
 
   if (!API_BASE) {
-    throw new CatalogApiError(
+    const error = new CatalogApiError(
       'Production API не настроен: задайте VITE_API_BASE для Catalog API.',
       0,
       'API_BASE_MISSING',
     );
+    reportException(error, { ...baseContext, status: 0, durationMs: 0, errorType: 'unknown' });
+    throw error;
   }
 
   let response: Response;
   try {
     response = await fetch(`${API_BASE}${path}`);
-  } catch {
-    throw new CatalogApiError('Не удалось связаться с сервером. Проверьте подключение.', 0);
+  } catch (err) {
+    const errorType = classifyError(err);
+    if (errorType === 'abort') {
+      addBreadcrumb({
+        category: 'api',
+        message: `${operation}:abort`,
+        level: 'info',
+        data: { ...baseContext, status: null, durationMs: Math.round(performance.now() - started), errorType },
+      });
+      throw err;
+    }
+    const error = new CatalogApiError('Не удалось связаться с сервером. Проверьте подключение.', 0);
+    const durationMs = Math.round(performance.now() - started);
+    reportException(err instanceof Error ? err : error, {
+      ...baseContext,
+      status: null,
+      durationMs,
+      errorType,
+      data: { ...telemetryData, ...errorTelemetryData(err) },
+    });
+    throw error;
   }
 
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as ApiErrorBody | null;
-    throw new CatalogApiError(
+    const error = new CatalogApiError(
       body?.error?.message ?? `Запрос завершился ошибкой (${response.status})`,
       response.status,
       body?.error?.code,
     );
+    const durationMs = Math.round(performance.now() - started);
+    reportException(error, {
+      ...baseContext,
+      status: response.status,
+      durationMs,
+      errorType: 'http',
+      data: { ...telemetryData, ...errorTelemetryData(error) },
+    });
+    throw error;
   }
 
-  return response.json() as Promise<T>;
+  try {
+    const json = await response.json() as T;
+    addBreadcrumb({
+      category: 'api',
+      message: `${operation}:success`,
+      level: 'info',
+      data: { ...baseContext, status: response.status, durationMs: Math.round(performance.now() - started) },
+    });
+    return json;
+  } catch (err) {
+    const durationMs = Math.round(performance.now() - started);
+    reportException(err, {
+      ...baseContext,
+      status: response.status,
+      durationMs,
+      errorType: classifyError(err),
+      data: { ...telemetryData, ...errorTelemetryData(err) },
+    });
+    throw err;
+  }
+}
+
+function errorTelemetryData(error: unknown) {
+  return error instanceof Error
+    ? { error_name: error.name, error_message: error.message }
+    : { error_name: 'NonError', error_message: String(error) };
 }
 
 export function fetchGroups(): Promise<ProductGroupsResponse> {
@@ -105,17 +185,31 @@ export function fetchMarketSellers(marketId: number): Promise<MarketSellerListRe
 }
 
 export async function fetchSellers(query: { search?: string } = {}): Promise<BuyerSellerListResponse> {
-  const markets = await fetchMarkets();
+  const sellerListRequestId = ++sellerListRequestSeq;
+  addBreadcrumb({
+    category: 'seller-list',
+    message: 'seller_list:load_start',
+    level: 'info',
+    data: { request_id: sellerListRequestId, stage: 'markets' },
+  });
+  const markets = await request<CatalogMarketsResponse>('/markets', {
+    request_id: sellerListRequestId,
+    stage: 'markets',
+  });
   const perMarket = await Promise.all(
     markets.markets.map(async (market) => {
-      const res = await fetchMarketSellers(market.id);
+      const res = await request<MarketSellerListResponse>(`/markets/${market.id}/sellers`, {
+        request_id: sellerListRequestId,
+        stage: 'sellers',
+        market_id: market.id,
+      });
       return res.sellers.map((seller) => ({ ...seller, market }));
     }),
   );
   const needle = query.search?.trim().toLocaleLowerCase();
   const sellers = perMarket.flat();
 
-  return {
+  const result = {
     sellers: needle
       ? sellers.filter((seller) =>
           [
@@ -132,6 +226,18 @@ export async function fetchSellers(query: { search?: string } = {}): Promise<Buy
         )
       : sellers,
   };
+  addBreadcrumb({
+    category: 'seller-list',
+    message: 'seller_list:load_success',
+    level: 'info',
+    data: {
+      request_id: sellerListRequestId,
+      stage: 'complete',
+      market_count: markets.markets.length,
+      seller_count: result.sellers.length,
+    },
+  });
+  return result;
 }
 
 export function fetchSeller(storeId: string): Promise<SellerCardResponse> {

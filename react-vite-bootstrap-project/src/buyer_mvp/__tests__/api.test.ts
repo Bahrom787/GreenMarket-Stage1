@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  CatalogApiError,
   fetchGroups,
   fetchSellers,
   fetchProducts,
@@ -9,6 +10,7 @@ import {
   normalizeCatalogApiBase,
 } from '../api';
 import type { SellerCatalogItem } from '../types';
+import { setErrorReporter } from '@/shared/telemetry/ErrorReporter';
 
 const sellerProduct: SellerCatalogItem = {
   seller_product_id: 404,
@@ -34,7 +36,15 @@ function response(body: unknown) {
 }
 
 describe('catalog api', () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+    setErrorReporter({
+      captureException: () => undefined,
+      captureMessage: () => undefined,
+      addBreadcrumb: () => undefined,
+    });
+  });
 
   it('accepts origin-only and scoped backend env values', () => {
     expect(normalizeCatalogApiBase('https://testapi.vnespecplanpodaz.online')).toBe(
@@ -85,6 +95,76 @@ describe('catalog api', () => {
     expect(fetch).toHaveBeenCalledWith('/api/v1/catalog/groups');
   });
 
+  it('reports API success breadcrumbs and failed request context separately', async () => {
+    const telemetry = {
+      captureException: vi.fn(),
+      captureMessage: vi.fn(),
+      addBreadcrumb: vi.fn(),
+    };
+    setErrorReporter(telemetry);
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(response({ groups: [] }))
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    vi.stubGlobal('fetch', fetch);
+
+    await fetchGroups();
+    await expect(fetchProducts()).rejects.toMatchObject({ status: 0 });
+
+    expect(telemetry.addBreadcrumb).toHaveBeenCalledWith(expect.objectContaining({ message: 'load_groups:start' }));
+    expect(telemetry.addBreadcrumb).toHaveBeenCalledWith(expect.objectContaining({ message: 'load_groups:success' }));
+    expect(telemetry.captureException).toHaveBeenCalledWith(
+      expect.any(TypeError),
+      expect.objectContaining({ operation: 'load_products', endpoint: '/products?sort=name&page=1', errorType: 'network' }),
+    );
+  });
+
+  it('reports HTTP and parse failures without duplicating successful breadcrumbs', async () => {
+    const telemetry = {
+      captureException: vi.fn(),
+      captureMessage: vi.fn(),
+      addBreadcrumb: vi.fn(),
+    };
+    setErrorReporter(telemetry);
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ error: { code: 'SERVER_ERROR', message: 'Server error', details: [] } }), { status: 500 }))
+      .mockResolvedValueOnce(new Response('not-json', { status: 200 }));
+    vi.stubGlobal('fetch', fetch);
+
+    await expect(fetchGroups()).rejects.toMatchObject({ status: 500, code: 'SERVER_ERROR' });
+    await expect(fetchProducts()).rejects.toBeInstanceOf(SyntaxError);
+
+    expect(telemetry.captureException).toHaveBeenNthCalledWith(
+      1,
+      expect.any(CatalogApiError),
+      expect.objectContaining({ operation: 'load_groups', endpoint: '/groups', status: 500, errorType: 'http' }),
+    );
+    expect(telemetry.captureException).toHaveBeenNthCalledWith(
+      2,
+      expect.any(SyntaxError),
+      expect.objectContaining({ operation: 'load_products', endpoint: '/products?sort=name&page=1', status: 200, errorType: 'parse' }),
+    );
+  });
+
+  it('records AbortError as an API breadcrumb instead of an error event', async () => {
+    const telemetry = {
+      captureException: vi.fn(),
+      captureMessage: vi.fn(),
+      addBreadcrumb: vi.fn(),
+    };
+    setErrorReporter(telemetry);
+    const abort = new DOMException('cancelled', 'AbortError');
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(abort));
+
+    await expect(fetchGroups()).rejects.toBe(abort);
+
+    expect(telemetry.captureException).not.toHaveBeenCalled();
+    expect(telemetry.addBreadcrumb).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'load_groups:abort', data: expect.objectContaining({ errorType: 'abort' }) }),
+    );
+  });
+
   it('loads Seller List through Buyer market seller endpoints', async () => {
     const fetch = vi
       .fn()
@@ -125,6 +205,49 @@ describe('catalog api', () => {
     });
     expect(fetch).toHaveBeenNthCalledWith(1, '/api/v1/catalog/markets');
     expect(fetch).toHaveBeenNthCalledWith(2, '/api/v1/catalog/markets/1/sellers');
+  });
+
+  it('reports Seller List seller-stage failures with request and market diagnostics', async () => {
+    const telemetry = {
+      captureException: vi.fn(),
+      captureMessage: vi.fn(),
+      addBreadcrumb: vi.fn(),
+    };
+    setErrorReporter(telemetry);
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        response({
+          markets: [{ id: 7, name: 'Dev market', type: 'SHOP', address: 'Kazan', latitude: '0', longitude: '0' }],
+        }),
+      )
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    vi.stubGlobal('fetch', fetch);
+
+    await expect(fetchSellers()).rejects.toMatchObject({ status: 0 });
+
+    expect(telemetry.addBreadcrumb).toHaveBeenCalledWith(
+      expect.objectContaining({
+        category: 'seller-list',
+        message: 'seller_list:load_start',
+        data: expect.objectContaining({ request_id: expect.any(Number), stage: 'markets' }),
+      }),
+    );
+    expect(telemetry.captureException).toHaveBeenCalledWith(
+      expect.any(TypeError),
+      expect.objectContaining({
+        operation: 'load_market_sellers',
+        endpoint: '/markets/7/sellers',
+        errorType: 'network',
+        data: expect.objectContaining({
+          request_id: expect.any(Number),
+          stage: 'sellers',
+          market_id: 7,
+          error_name: 'TypeError',
+          error_message: 'Failed to fetch',
+        }),
+      }),
+    );
   });
 
   it('filters Seller List search inside the Buyer API facade', async () => {

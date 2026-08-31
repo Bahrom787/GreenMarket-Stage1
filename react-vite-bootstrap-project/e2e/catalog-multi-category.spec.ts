@@ -55,13 +55,20 @@ const storeProducts = {
   total: 3,
 };
 
-async function mockCatalog(page: Page, options: { groups?: typeof groups; products?: typeof globalProducts.products } = {}) {
+async function mockCatalog(
+  page: Page,
+  options: { groups?: typeof groups; products?: typeof globalProducts.products; failGroupsNetwork?: boolean } = {},
+) {
   const requests: string[] = [];
   await page.route('**/api/v1/catalog/**', async (route) => {
     const url = new URL(route.request().url());
     requests.push(`${url.pathname}${url.search}`);
 
     if (url.pathname.endsWith('/groups')) {
+      if (options.failGroupsNetwork) {
+        await route.abort('failed');
+        return;
+      }
       await route.fulfill({ json: { groups: options.groups ?? groups } });
       return;
     }
@@ -152,6 +159,32 @@ test('Global Catalog keeps multi-category filters in URL through refresh, pagina
   await expect(page).not.toHaveURL(/group_id=/);
   await expect(page).toHaveURL(/sort=name/);
   await expect(page).toHaveURL(/page=1/);
+});
+
+test('Global Catalog reports /groups network failure independently from successful /products', async ({ page }) => {
+  await page.addInitScript(() => {
+    (window as unknown as { __GM_TELEMETRY_EVENTS__: unknown[] }).__GM_TELEMETRY_EVENTS__ = [];
+  });
+  await mockCatalog(page, { failGroupsNetwork: true });
+
+  await page.goto('/');
+  await expect(page.getByText('Milk')).toBeVisible();
+  await page.getByTestId('catalog-category-toggle').click();
+
+  const events = await page.evaluate(() =>
+    (window as unknown as { __GM_TELEMETRY_EVENTS__: Array<{ type: string; payload: { message?: string; context?: Record<string, unknown>; data?: Record<string, unknown> } }> }).__GM_TELEMETRY_EVENTS__,
+  );
+
+  expect(events.some((event) => event.type === 'breadcrumb' && event.payload.message === 'load_products:success')).toBe(true);
+  expect(
+    events.some(
+      (event) =>
+        event.type === 'exception' &&
+        event.payload.context?.operation === 'load_groups' &&
+        event.payload.context?.endpoint === '/groups' &&
+        event.payload.context?.errorType === 'network',
+    ),
+  ).toBe(true);
 });
 
 test('Store Catalog sends one seller-scoped multi-category request and preserves filters with search/sort/page', async ({
