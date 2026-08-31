@@ -361,6 +361,18 @@
   min-width: 0;
 }
 
+.gm-catalog-title-skeleton {
+  width: min(280px, 72vw);
+  height: 38px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-raised),
+    var(--color-surface-sunken),
+    var(--color-surface-raised)
+  );
+}
+
 .gm-catalog-search-row {
   display: flex;
   align-items: center;

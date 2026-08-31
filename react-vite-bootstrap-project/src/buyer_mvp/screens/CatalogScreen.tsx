@@ -72,7 +72,7 @@ function CategoryToggleContent({ mode, count }: { mode: CategoryPanelMode; count
 
 type LoadState =
   | { status: 'loading' }
-  | { status: 'error'; message: string }
+  | { status: 'error'; title?: string; message?: string }
   | ({ status: 'ready' } & ReadyPayload);
 
 type ReadyPayload = {
@@ -184,9 +184,14 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
       })
       .catch((err: unknown) => {
         if (requestId !== catalogRequestId.current) return;
+        const notFound = isStore && err instanceof CatalogApiError && err.status === 404;
         const message =
           err instanceof CatalogApiError ? err.message : 'Не удалось загрузить товары.';
-        setState({ status: 'error', message });
+        setState({
+          status: 'error',
+          title: notFound ? 'Магазин не найден' : undefined,
+          message: notFound ? undefined : message,
+        });
       });
   }
 
@@ -261,9 +266,17 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
       {isStore && (
         <Row align="center" justify="between">
           <Stack gap="xs">
-            <Text variant="headline" as="h1">
-              {state.status === 'ready' ? state.title : 'Каталог магазина'}
-            </Text>
+            {state.status === 'ready' ? (
+              <Text variant="headline" as="h1">
+                {state.title}
+              </Text>
+            ) : state.status === 'loading' ? (
+              <div
+                aria-label="Загрузка магазина"
+                className="gm-catalog-title-skeleton"
+                data-testid="store-catalog-title-skeleton"
+              />
+            ) : null}
             {state.status === 'ready' && state.subtitle && (
               <Text tone="secondary">{state.subtitle}</Text>
             )}
@@ -459,7 +472,7 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
 
       {state.status === 'error' && (
         <ErrorState
-          title="Не удалось загрузить каталог"
+          title={state.title ?? 'Не удалось загрузить каталог'}
           description={state.message}
           action={<Button onClick={load}>Повторить</Button>}
         />
