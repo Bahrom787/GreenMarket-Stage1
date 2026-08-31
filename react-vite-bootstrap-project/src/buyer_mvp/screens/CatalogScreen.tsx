@@ -236,7 +236,6 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
 
   function toggleGroup(groupId: number) {
     updateParam('group_id', toggleCatalogGroupParam(groupIds, groupId));
-    trackEvent('category_select', { screen: analyticsScreen, category_id: groupId });
     trackEvent('catalog_category_select', { screen: analyticsScreen, category_id: groupId });
     setCategoryPanelActivity((value) => value + 1);
   }

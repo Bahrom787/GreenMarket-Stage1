@@ -96,7 +96,6 @@ export function SellerListScreenView() {
     const nextIds = selectedSellerIdSet.has(sellerId) ? selectedSellerIds.filter((item) => item !== id) : [...selectedSellerIds, id];
     setSelectedSellerIds(nextIds);
     trackEvent('seller_select', { seller_id: id, selected_count: nextIds.length });
-    trackEvent('seller_selected', { seller_id: id, selected_count: nextIds.length });
   }
 
   function showProducts() {

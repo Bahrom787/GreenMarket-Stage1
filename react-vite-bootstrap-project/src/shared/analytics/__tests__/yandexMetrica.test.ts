@@ -11,11 +11,11 @@ describe('yandexMetrica adapter', () => {
     const adapter = createYandexMetricaAdapter(123456, ym);
 
     adapter.trackPageView('GlobalCatalog', '/?group_id=17', { group_id: '17' });
-    adapter.trackEvent('category_select', { category_id: 17 });
+    adapter.trackEvent('catalog_category_select', { category_id: 17 });
 
     expect(ym).toHaveBeenNthCalledWith(1, 123456, 'hit', '/?group_id=17', {
       params: { screen: 'GlobalCatalog', group_id: '17' },
     });
-    expect(ym).toHaveBeenNthCalledWith(2, 123456, 'reachGoal', 'category_select', { category_id: 17 });
+    expect(ym).toHaveBeenNthCalledWith(2, 123456, 'reachGoal', 'catalog_category_select', { category_id: 17 });
   });
 });

@@ -71,7 +71,7 @@ export function initYandexMetrica(): boolean {
     clickmap: true,
     trackLinks: true,
     accurateTrackBounce: true,
-    webvisor: true,
+    webvisor: false,
   });
   configureAnalytics(createYandexMetricaAdapter(counterId, ym));
   return true;

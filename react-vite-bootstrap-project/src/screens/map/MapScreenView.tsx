@@ -168,7 +168,7 @@ export function MapScreenView() {
     (sellerId: SellerId) => {
       dispatch({ type: 'SELECT_SELLER', payload: { sellerId } });
       MapRuntime.dispatch({ type: 'SELECT_SELLER', sellerId });
-      trackEvent('map_marker_open', { seller_id: Number(sellerId) });
+      trackEvent('map_seller_open', { seller_id: Number(sellerId) });
     },
     [dispatch],
   );
@@ -316,7 +316,7 @@ export function MapScreenView() {
   const handleProductSelect = useCallback((match: ProductSellerMatch) => {
     setSearchQuery(match.productName);
     Diagnostics.track('map.product_search_selected', { sellerId: match.seller.sellerId, productName: match.productName });
-    trackEvent('map_marker_open', { seller_id: Number(match.seller.sellerId) });
+    trackEvent('map_product_open', { seller_id: Number(match.seller.sellerId) });
   }, []);
   const handleSearchModeChange = useCallback(
     (nextMode: MapSearchMode) => {
