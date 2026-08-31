@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { ThemeProvider } from '@/design-system/ThemeProvider';
 import { GreenMarketRuntimeProvider } from '@/platform-core/navigation-runtime-layer/hooks/useGreenMarketRuntime';
 import { ErrorBoundary } from '@/app/ErrorBoundary';
+import { AnalyticsRouteSync } from '@/app/AnalyticsRouteSync';
 import { NavigationContainer } from '@/app/NavigationContainer';
 import { RuntimeRouteSync } from '@/app/RuntimeRouteSync';
 import { Screen } from '@/layout';
@@ -36,6 +37,7 @@ export function App() {
           <BrowserRouter>
             <NavigationTelemetry />
             <RuntimeRouteSync />
+            <AnalyticsRouteSync />
             <Screen>
               <NavigationContainer />
             </Screen>

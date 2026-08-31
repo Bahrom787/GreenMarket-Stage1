@@ -5,6 +5,7 @@ import { Avatar, Button, EmptyState, ErrorState, ListItem, Text } from '@/design
 import { CatalogApiError, fetchSellers } from '@/buyer_mvp/api';
 import { toBuyerSellerListRow, type BuyerSellerListRow } from '@/buyer_mvp/sellerListPresentation';
 import { catalogSellerIds } from '@/buyer_mvp/catalogUrlState';
+import { trackEvent } from '@/shared/analytics/AnalyticsReporter';
 import './seller-list.css';
 
 type LoadState =
@@ -47,6 +48,10 @@ export function SellerListScreenView() {
 
   useEffect(loadSellers, [loadSellers]);
 
+  useEffect(() => {
+    trackEvent('seller_list_open');
+  }, []);
+
   useEffect(() => setSearchInput(search), [search]);
 
   useEffect(() => {
@@ -88,10 +93,18 @@ export function SellerListScreenView() {
   function toggleSeller(sellerId: string) {
     const id = Number(sellerId);
     if (!Number.isInteger(id) || id <= 0) return;
-    setSelectedSellerIds(selectedSellerIdSet.has(sellerId) ? selectedSellerIds.filter((item) => item !== id) : [...selectedSellerIds, id]);
+    const nextIds = selectedSellerIdSet.has(sellerId) ? selectedSellerIds.filter((item) => item !== id) : [...selectedSellerIds, id];
+    setSelectedSellerIds(nextIds);
+    trackEvent('seller_select', { seller_id: id, selected_count: nextIds.length });
+    trackEvent('seller_selected', { seller_id: id, selected_count: nextIds.length });
   }
 
   function showProducts() {
+    trackEvent('seller_products_open', { selected_count: selectedSellerIds.length });
+    if (selectedSellerIds.length) {
+      trackEvent('seller_filter_applied', { selected_count: selectedSellerIds.length });
+      trackEvent('seller_filter_catalog_open', { selected_count: selectedSellerIds.length });
+    }
     navigate(selectedSellerIds.length ? `/?seller_id=${selectedSellerIds.join(',')}` : '/');
   }
 
