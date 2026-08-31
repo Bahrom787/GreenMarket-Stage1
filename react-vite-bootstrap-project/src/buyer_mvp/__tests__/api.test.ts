@@ -207,6 +207,49 @@ describe('catalog api', () => {
     expect(fetch).toHaveBeenNthCalledWith(2, '/api/v1/catalog/markets/1/sellers');
   });
 
+  it('reports Seller List seller-stage failures with request and market diagnostics', async () => {
+    const telemetry = {
+      captureException: vi.fn(),
+      captureMessage: vi.fn(),
+      addBreadcrumb: vi.fn(),
+    };
+    setErrorReporter(telemetry);
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        response({
+          markets: [{ id: 7, name: 'Dev market', type: 'SHOP', address: 'Kazan', latitude: '0', longitude: '0' }],
+        }),
+      )
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    vi.stubGlobal('fetch', fetch);
+
+    await expect(fetchSellers()).rejects.toMatchObject({ status: 0 });
+
+    expect(telemetry.addBreadcrumb).toHaveBeenCalledWith(
+      expect.objectContaining({
+        category: 'seller-list',
+        message: 'seller_list:load_start',
+        data: expect.objectContaining({ request_id: expect.any(Number), stage: 'markets' }),
+      }),
+    );
+    expect(telemetry.captureException).toHaveBeenCalledWith(
+      expect.any(TypeError),
+      expect.objectContaining({
+        operation: 'load_market_sellers',
+        endpoint: '/markets/7/sellers',
+        errorType: 'network',
+        data: expect.objectContaining({
+          request_id: expect.any(Number),
+          stage: 'sellers',
+          market_id: 7,
+          error_name: 'TypeError',
+          error_message: 'Failed to fetch',
+        }),
+      }),
+    );
+  });
+
   it('filters Seller List search inside the Buyer API facade', async () => {
     const fetch = vi
       .fn()

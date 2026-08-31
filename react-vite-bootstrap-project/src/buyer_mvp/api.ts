@@ -24,6 +24,7 @@ import { telemetryRelease } from '@/shared/telemetry/sentryTelemetry';
 const CATALOG_API_SCOPE = '/api/v1/catalog';
 const SELLER_PRODUCT_LOOKUP_LIMIT = 100;
 const configuredApiBase = import.meta.env.VITE_API_BASE as string | undefined;
+let sellerListRequestSeq = 0;
 
 // In production the backend origin must be configured explicitly. Falling back to
 // the frontend origin hides deployment errors and makes API connectivity unverifiable.
@@ -65,7 +66,7 @@ export class CatalogApiError extends Error {
   }
 }
 
-async function request<T>(path: string): Promise<T> {
+async function request<T>(path: string, telemetryData?: Record<string, unknown>): Promise<T> {
   const started = performance.now();
   const endpoint = normalizeEndpoint(path);
   const operation = operationFromEndpoint(endpoint);
@@ -75,6 +76,7 @@ async function request<T>(path: string): Promise<T> {
     endpoint,
     method: 'GET',
     release: telemetryRelease(),
+    data: telemetryData,
   };
   addBreadcrumb({ category: 'api', message: `${operation}:start`, level: 'info', data: baseContext });
 
@@ -115,6 +117,7 @@ async function request<T>(path: string): Promise<T> {
       status: null,
       durationMs,
       errorType,
+      data: { ...telemetryData, ...errorTelemetryData(err) },
     });
     throw error;
   }
@@ -127,7 +130,13 @@ async function request<T>(path: string): Promise<T> {
       body?.error?.code,
     );
     const durationMs = Math.round(performance.now() - started);
-    reportException(error, { ...baseContext, status: response.status, durationMs, errorType: 'http' });
+    reportException(error, {
+      ...baseContext,
+      status: response.status,
+      durationMs,
+      errorType: 'http',
+      data: { ...telemetryData, ...errorTelemetryData(error) },
+    });
     throw error;
   }
 
@@ -142,9 +151,21 @@ async function request<T>(path: string): Promise<T> {
     return json;
   } catch (err) {
     const durationMs = Math.round(performance.now() - started);
-    reportException(err, { ...baseContext, status: response.status, durationMs, errorType: classifyError(err) });
+    reportException(err, {
+      ...baseContext,
+      status: response.status,
+      durationMs,
+      errorType: classifyError(err),
+      data: { ...telemetryData, ...errorTelemetryData(err) },
+    });
     throw err;
   }
+}
+
+function errorTelemetryData(error: unknown) {
+  return error instanceof Error
+    ? { error_name: error.name, error_message: error.message }
+    : { error_name: 'NonError', error_message: String(error) };
 }
 
 export function fetchGroups(): Promise<ProductGroupsResponse> {
@@ -164,17 +185,31 @@ export function fetchMarketSellers(marketId: number): Promise<MarketSellerListRe
 }
 
 export async function fetchSellers(query: { search?: string } = {}): Promise<BuyerSellerListResponse> {
-  const markets = await fetchMarkets();
+  const sellerListRequestId = ++sellerListRequestSeq;
+  addBreadcrumb({
+    category: 'seller-list',
+    message: 'seller_list:load_start',
+    level: 'info',
+    data: { request_id: sellerListRequestId, stage: 'markets' },
+  });
+  const markets = await request<CatalogMarketsResponse>('/markets', {
+    request_id: sellerListRequestId,
+    stage: 'markets',
+  });
   const perMarket = await Promise.all(
     markets.markets.map(async (market) => {
-      const res = await fetchMarketSellers(market.id);
+      const res = await request<MarketSellerListResponse>(`/markets/${market.id}/sellers`, {
+        request_id: sellerListRequestId,
+        stage: 'sellers',
+        market_id: market.id,
+      });
       return res.sellers.map((seller) => ({ ...seller, market }));
     }),
   );
   const needle = query.search?.trim().toLocaleLowerCase();
   const sellers = perMarket.flat();
 
-  return {
+  const result = {
     sellers: needle
       ? sellers.filter((seller) =>
           [
@@ -191,6 +226,18 @@ export async function fetchSellers(query: { search?: string } = {}): Promise<Buy
         )
       : sellers,
   };
+  addBreadcrumb({
+    category: 'seller-list',
+    message: 'seller_list:load_success',
+    level: 'info',
+    data: {
+      request_id: sellerListRequestId,
+      stage: 'complete',
+      market_count: markets.markets.length,
+      seller_count: result.sellers.length,
+    },
+  });
+  return result;
 }
 
 export function fetchSeller(storeId: string): Promise<SellerCardResponse> {
