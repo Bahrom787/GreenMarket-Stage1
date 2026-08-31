@@ -1,11 +1,14 @@
 import type { SellerCardResponse } from './types';
+import { getStorePublicIdentity, type StorePublicIdentity } from './publicStoreIdentity';
 
 export interface StoreHomeViewModel {
+  sellerId: string;
   title: string;
   description?: string;
   market?: string;
   place?: string;
   workingHours?: string;
+  publicIdentity?: StorePublicIdentity;
 }
 
 function value(text?: string | null) {
@@ -23,11 +26,15 @@ export function toStoreHome(seller: SellerCardResponse): StoreHomeViewModel {
     .filter(Boolean)
     .join(', ');
 
+  const publicIdentity = getStorePublicIdentity(seller);
+
   return {
+    sellerId: String(seller.seller_id),
     title: seller.name,
     description: value(seller.short_description),
     market: market || undefined,
     place: place || undefined,
     workingHours: value(seller.working_hours),
+    ...(publicIdentity ? { publicIdentity } : {}),
   };
 }

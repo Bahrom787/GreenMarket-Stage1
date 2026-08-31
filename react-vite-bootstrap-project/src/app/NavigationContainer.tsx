@@ -11,6 +11,7 @@ import { SellerCardScreen } from '@/buyer_mvp/screens/SellerCardScreen';
 import { StoreHomeScreen } from '@/buyer_mvp/screens/StoreHomeScreen';
 import { GreenBoardScreen } from '@/buyer_mvp/screens/GreenBoardScreen';
 import { globalCatalogContext, storeCatalogContext } from '@/buyer_mvp/catalogContext';
+import { resolvePublicStoreIdentity } from '@/buyer_mvp/publicStoreIdentity';
 import {
   isStoreModePathAllowed,
   storeModeAfterNavigation,
@@ -67,6 +68,10 @@ export function NavigationContainer() {
   const location = useLocation();
   const [storeMode, setStoreMode] = useState<StoreMode>(() => storeModeFromPath(location.pathname, location.search));
   const routeStoreMode = useMemo(() => storeModeFromPath(location.pathname, location.search), [location.pathname, location.search]);
+  const publicStoreIdentity = useMemo(
+    () => (typeof window === 'undefined' ? undefined : resolvePublicStoreIdentity(window.location.origin)),
+    [],
+  );
 
   useEffect(() => {
     if (routeStoreMode.active) setStoreMode((current) => storeModeAfterNavigation(current, location.pathname, location.search));
@@ -74,6 +79,18 @@ export function NavigationContainer() {
 
   if (storeMode.active && !isStoreModePathAllowed(location.pathname, storeMode.storeId, location.search)) {
     return <Navigate to={storeModeLandingPath(storeMode.storeId)} replace />;
+  }
+
+  if (publicStoreIdentity && (location.pathname === '/' || location.pathname === '/catalog')) {
+    const publicStoreId = String(publicStoreIdentity.sellerId);
+    return (
+      <Page>
+        <Routes>
+          <Route path="/" element={<StoreHomeScreen storeIdOverride={publicStoreId} publicCatalogPath="/catalog" />} />
+          <Route path="/catalog" element={<CatalogScreen context={storeCatalogContext(publicStoreId)} />} />
+        </Routes>
+      </Page>
+    );
   }
 
   const isMapRoute = !storeMode.active && location.pathname === '/map';

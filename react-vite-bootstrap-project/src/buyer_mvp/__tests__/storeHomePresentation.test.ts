@@ -24,6 +24,7 @@ const seller: SellerCardResponse = {
 describe('storeHomePresentation', () => {
   it('uses only seller API fields for Store Home', () => {
     expect(toStoreHome(seller)).toEqual({
+      sellerId: '6',
       title: 'Лавка зелени',
       description: 'Зелень и овощи',
       market: 'Центральный рынок, ул. Мира, 1',
@@ -42,6 +43,20 @@ describe('storeHomePresentation', () => {
         working_hours: null,
         short_description: null,
       }),
-    ).toEqual({ title: 'Лавка зелени' });
+    ).toEqual({ sellerId: '6', title: 'Лавка зелени' });
+  });
+
+  it('adds public identity only when API or configuration provides it', () => {
+    expect(
+      toStoreHome({
+        ...seller,
+        public_slug: 'lavka-zeleni',
+        public_url: 'https://lavka-zeleni.example/',
+      }).publicIdentity,
+    ).toEqual({
+      sellerId: 6,
+      publicSlug: 'lavka-zeleni',
+      publicUrl: 'https://lavka-zeleni.example/',
+    });
   });
 });

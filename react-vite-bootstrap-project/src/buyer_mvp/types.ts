@@ -73,6 +73,8 @@ export interface BuyerSellerListResponse {
 export interface SellerCardResponse {
   seller_id: number;
   name: string;
+  public_slug?: string | null;
+  public_url?: string | null;
   market: CatalogMarket | null;
   row: string | null;
   place: string | null;

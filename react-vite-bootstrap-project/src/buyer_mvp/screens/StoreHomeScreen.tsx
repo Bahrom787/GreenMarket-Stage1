@@ -4,6 +4,7 @@ import { Button, ErrorState, Loader, Text } from '@/design-system/components';
 import { Row, Stack } from '@/layout';
 import { CatalogApiError, fetchSeller } from '../api';
 import { catalogPath, globalStoreModeSearch, storeCatalogContext } from '../catalogContext';
+import { StoreQrPrint } from '../components/StoreQrPrint';
 import { toStoreHome, type StoreHomeViewModel } from '../storeHomePresentation';
 
 type LoadState =
@@ -20,8 +21,14 @@ function StoreInfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function StoreHomeScreen() {
-  const { storeId } = useParams<{ storeId: string }>();
+export interface StoreHomeScreenProps {
+  storeIdOverride?: string;
+  publicCatalogPath?: string;
+}
+
+export function StoreHomeScreen({ storeIdOverride, publicCatalogPath }: StoreHomeScreenProps = {}) {
+  const { storeId: routeStoreId } = useParams<{ storeId: string }>();
+  const storeId = storeIdOverride ?? routeStoreId;
   const navigate = useNavigate();
   const location = useLocation();
   const [state, setState] = useState<LoadState>({ status: 'loading' });
@@ -63,7 +70,7 @@ export function StoreHomeScreen() {
     if (!storeId) return;
 
     const modeSearch = globalStoreModeSearch(location.search);
-    navigate(catalogPath(storeCatalogContext(storeId), modeSearch), { replace: Boolean(modeSearch) });
+    navigate(publicCatalogPath ?? catalogPath(storeCatalogContext(storeId), modeSearch), { replace: Boolean(modeSearch) });
   }
 
   return (
@@ -91,6 +98,7 @@ export function StoreHomeScreen() {
             )}
             <Row gap="sm" wrap>
               <Button onClick={openCatalog}>Перейти в каталог</Button>
+              <StoreQrPrint store={state.store} />
             </Row>
           </Stack>
 
