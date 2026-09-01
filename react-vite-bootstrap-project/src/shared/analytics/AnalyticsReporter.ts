@@ -12,7 +12,7 @@ export type AnalyticsScreenId =
 export type AnalyticsEventName =
   | 'catalog_search'
   | 'catalog_category_select'
-  | 'catalog_product_open'
+  | 'catalog_product_select'
   | 'catalog_filter_use'
   | 'catalog_sort_use'
   | 'seller_list_open'
@@ -22,6 +22,7 @@ export type AnalyticsEventName =
   | 'seller_filter_catalog_open'
   | 'store_open'
   | 'store_catalog_open'
+  | 'store_product_select'
   | 'store_product_open'
   | 'product_open'
   | 'product_offer_store_open'

@@ -134,7 +134,7 @@ export function SellerCardScreen() {
                     key={product.key}
                     product={product}
                     onOpen={(p) => {
-                      trackEvent('store_product_open', {
+                      trackEvent('store_product_select', {
                         seller_id: Number(state.seller.sellerId),
                         product_id: Number(p.id),
                       });

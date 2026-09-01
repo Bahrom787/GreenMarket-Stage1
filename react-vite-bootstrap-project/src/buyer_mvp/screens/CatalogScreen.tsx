@@ -523,7 +523,7 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
                 product={p}
                 onOpen={(product) => {
                   const productId = Number(product.id);
-                  trackEvent(isStore ? 'store_product_open' : 'catalog_product_open', {
+                  trackEvent(isStore ? 'store_product_select' : 'catalog_product_select', {
                     screen: analyticsScreen,
                     product_id: Number.isFinite(productId) ? productId : undefined,
                     seller_id: storeId ? Number(storeId) : undefined,
