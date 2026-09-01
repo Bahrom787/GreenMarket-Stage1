@@ -2,6 +2,7 @@ import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Text, ErrorState, EmptyState, Button, Chip } from '@/design-system/components';
 import { Grid, Stack, Row } from '@/layout';
+import { trackEvent } from '@/shared/analytics/AnalyticsReporter';
 import { fetchProducts, fetchSeller, fetchSellerProducts, fetchGroups, CatalogApiError } from '../api';
 import { SearchBar } from '../components/SearchBar';
 import { ProductCard, ProductCardSkeleton } from '../components/ProductCard';
@@ -118,6 +119,7 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
   const sort = catalogSort(searchParams.get('sort'));
   const page = catalogPage(searchParams.get('page'));
   const isStore = isStoreContext(context);
+  const analyticsScreen = isStore ? 'StoreCatalog' : 'GlobalCatalog';
   const storeId = isStore ? context.storeId : undefined;
   const groups = catalogGroupOptions(groupsState.groups);
   const categoryItems = groups.map(({ group, depth }) => ({
@@ -217,19 +219,32 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
 
   function updateParam(key: CatalogParam, value: string | null) {
     setSearchParams(updateCatalogSearchParams(searchParams, key, value));
+    if (key === 'search' && value) trackEvent('catalog_search', { screen: analyticsScreen });
+    if (key === 'sort' && value) trackEvent('catalog_sort_use', { screen: analyticsScreen, sort: value });
+    if (key === 'seller_id') {
+      trackEvent('catalog_filter_use', {
+        screen: analyticsScreen,
+        selected_count: value ? value.split(',').filter(Boolean).length : 0,
+      });
+    }
   }
 
   function clearFilters() {
     setSearchParams(clearCatalogSearchParams());
+    trackEvent('catalog_filter_use', { screen: analyticsScreen, filter_action: 'clear' });
   }
 
   function toggleGroup(groupId: number) {
     updateParam('group_id', toggleCatalogGroupParam(groupIds, groupId));
+    trackEvent('catalog_category_select', { screen: analyticsScreen, category_id: groupId });
     setCategoryPanelActivity((value) => value + 1);
   }
 
   function toggleCategoriesOpen() {
-    setCategoriesOpen((open) => !open);
+    setCategoriesOpen((open) => {
+      trackEvent(open ? 'category_panel_collapse' : 'category_panel_open', { screen: analyticsScreen });
+      return !open;
+    });
     setCategoryPanelActivity((value) => value + 1);
   }
 
@@ -239,16 +254,24 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
 
   useEffect(() => {
     if (isStore || !categoriesOpen || !autoCollapseCategories) return;
-    const timer = window.setTimeout(() => setCategoriesOpen(false), 7000);
+    const timer = window.setTimeout(() => {
+      trackEvent('category_autocollapse', { screen: analyticsScreen, reason: 'timer' });
+      trackEvent('category_panel_collapse', { screen: analyticsScreen, reason: 'timer' });
+      setCategoriesOpen(false);
+    }, 7000);
     return () => window.clearTimeout(timer);
-  }, [isStore, categoriesOpen, autoCollapseCategories, categoryPanelActivity]);
+  }, [isStore, categoriesOpen, autoCollapseCategories, categoryPanelActivity, analyticsScreen]);
 
   useEffect(() => {
     if (isStore || !categoriesOpen) return;
-    const collapse = () => setCategoriesOpen(false);
+    const collapse = () => {
+      trackEvent('category_autocollapse', { screen: analyticsScreen, reason: 'catalog_scroll' });
+      trackEvent('category_panel_collapse', { screen: analyticsScreen, reason: 'catalog_scroll' });
+      setCategoriesOpen(false);
+    };
     window.addEventListener('scroll', collapse, { passive: true });
     return () => window.removeEventListener('scroll', collapse);
-  }, [isStore, categoriesOpen]);
+  }, [isStore, categoriesOpen, analyticsScreen]);
 
   function productRoute(product: CatalogProductCardViewModel) {
     const next = new URLSearchParams(searchParams);
@@ -364,14 +387,20 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
                   <Button
                     variant={categoryMode === 'text' ? 'primary' : 'secondary'}
                     size="sm"
-                    onClick={() => setCategoryMode('text')}
+                    onClick={() => {
+                      setCategoryMode('text');
+                      trackEvent('category_view_mode_text', { screen: analyticsScreen });
+                    }}
                   >
                     Текст
                   </Button>
                   <Button
                     variant={categoryMode === 'icons' ? 'primary' : 'secondary'}
                     size="sm"
-                    onClick={() => setCategoryMode('icons')}
+                    onClick={() => {
+                      setCategoryMode('icons');
+                      trackEvent('category_view_mode_icon', { screen: analyticsScreen });
+                    }}
                   >
                     Иконки
                   </Button>
@@ -492,7 +521,15 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
               <ProductCard
                 key={p.key}
                 product={p}
-                onOpen={(product) => navigate(productRoute(product))}
+                onOpen={(product) => {
+                  const productId = Number(product.id);
+                  trackEvent(isStore ? 'store_product_select' : 'catalog_product_select', {
+                    screen: analyticsScreen,
+                    product_id: Number.isFinite(productId) ? productId : undefined,
+                    seller_id: storeId ? Number(storeId) : undefined,
+                  });
+                  navigate(productRoute(product));
+                }}
               />
             ))}
           </Grid>

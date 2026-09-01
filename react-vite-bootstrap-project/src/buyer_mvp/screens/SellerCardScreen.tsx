@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Card, EmptyState, ErrorState, Loader, Text } from '@/design-system/components';
 import { Grid, Row, Stack } from '@/layout';
+import { trackEvent } from '@/shared/analytics/AnalyticsReporter';
 import { CatalogApiError, fetchSeller, fetchSellerProducts } from '../api';
 import { catalogPath, storeCatalogContext } from '../catalogContext';
 import { ProductCard, ProductCardSkeleton } from '../components/ProductCard';
@@ -87,7 +88,12 @@ export function SellerCardScreen() {
               </Text>
             )}
             <Row gap="sm" wrap>
-              <Button onClick={() => navigate(catalogPath(storeCatalogContext(state.seller.sellerId)))}>
+              <Button
+                onClick={() => {
+                  trackEvent('store_catalog_open', { seller_id: Number(state.seller.sellerId) });
+                  navigate(catalogPath(storeCatalogContext(state.seller.sellerId)));
+                }}
+              >
                 Перейти в каталог
               </Button>
               {state.seller.actions.map((action) => (
@@ -127,7 +133,13 @@ export function SellerCardScreen() {
                   <ProductCard
                     key={product.key}
                     product={product}
-                    onOpen={(p) => navigate(sellerCardProductPath(state.seller.sellerId, p))}
+                    onOpen={(p) => {
+                      trackEvent('store_product_select', {
+                        seller_id: Number(state.seller.sellerId),
+                        product_id: Number(p.id),
+                      });
+                      navigate(sellerCardProductPath(state.seller.sellerId, p));
+                    }}
                   />
                 ))}
               </Grid>

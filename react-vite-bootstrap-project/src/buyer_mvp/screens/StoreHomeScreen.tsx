@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Button, ErrorState, Loader, Text } from '@/design-system/components';
 import { Row, Stack } from '@/layout';
+import { trackEvent } from '@/shared/analytics/AnalyticsReporter';
 import { CatalogApiError, fetchSeller } from '../api';
 import { catalogPath, globalStoreModeSearch, storeCatalogContext } from '../catalogContext';
 import { StoreQrPrint } from '../components/StoreQrPrint';
@@ -46,7 +47,10 @@ export function StoreHomeScreen({ storeIdOverride, publicCatalogPath }: StoreHom
 
     setState({ status: 'loading' });
     fetchSeller(storeId)
-      .then((seller) => setState({ status: 'ready', store: toStoreHome(seller) }))
+      .then((seller) => {
+        setState({ status: 'ready', store: toStoreHome(seller) });
+        trackEvent('store_open', { seller_id: Number(storeId) });
+      })
       .catch((err: unknown) => {
         const notFound = err instanceof CatalogApiError && err.status === 404;
         setState({
@@ -70,6 +74,7 @@ export function StoreHomeScreen({ storeIdOverride, publicCatalogPath }: StoreHom
     if (!storeId) return;
 
     const modeSearch = globalStoreModeSearch(location.search);
+    trackEvent('store_catalog_open', { seller_id: Number(storeId) });
     navigate(publicCatalogPath ?? catalogPath(storeCatalogContext(storeId), modeSearch), { replace: Boolean(modeSearch) });
   }
 

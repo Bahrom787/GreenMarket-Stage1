@@ -7,10 +7,11 @@ interface OfferCardProps {
   offer: ProductDetailOfferViewModel;
   showSellerName?: boolean;
   showPhotos?: boolean;
+  onStoreOpen?: () => void;
 }
 
 /** Product Detail offer block. Data semantics are prepared before JSX. */
-export function OfferCard({ offer, showSellerName = true, showPhotos = true }: OfferCardProps) {
+export function OfferCard({ offer, showSellerName = true, showPhotos = true, onStoreOpen }: OfferCardProps) {
   return (
     <Card className="gm-buyer-offer-card">
       {showPhotos && <PhotoStrip photos={offer.photos} label={offer.sellerName ?? 'Фото товара'} />}
@@ -40,6 +41,7 @@ export function OfferCard({ offer, showSellerName = true, showPhotos = true }: O
           to={offer.storePath}
           className="gm-button gm-button--secondary gm-button--sm gm-focusable gm-buyer-offer-card__store-link"
           aria-label={offer.storeActionLabel}
+          onClick={onStoreOpen}
         >
           Перейти в магазин
         </Link>

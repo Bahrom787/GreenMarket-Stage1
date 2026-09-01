@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Text, Loader, ErrorState, Button } from '@/design-system/components';
 import { Stack, Row } from '@/layout';
+import { trackEvent } from '@/shared/analytics/AnalyticsReporter';
 import { fetchProduct, fetchSeller, fetchSellerProduct, CatalogApiError } from '../api';
 import { OfferCard } from '../components/OfferCard';
 import {
@@ -77,7 +78,13 @@ export function ProductScreen({ context = globalCatalogContext }: ProductScreenP
         : fetchProduct(id).then(toGlobalProductDetail);
 
     request
-      .then((product) => setState({ status: 'ready', product }))
+      .then((product) => {
+        setState({ status: 'ready', product });
+        trackEvent(isStore ? 'store_product_open' : 'product_open', {
+          product_id: id,
+          seller_id: storeId ? Number(storeId) : undefined,
+        });
+      })
       .catch((err: unknown) => {
         const notFound = err instanceof CatalogApiError && err.status === 404;
         const unavailable =
@@ -151,6 +158,7 @@ export function ProductScreen({ context = globalCatalogContext }: ProductScreenP
                   key={offer.key}
                   offer={offer}
                   showSellerName={state.product.context === 'GLOBAL'}
+                  onStoreOpen={() => trackEvent('product_offer_store_open', { product_id: Number(productId) })}
                 />
               ))}
             </Stack>

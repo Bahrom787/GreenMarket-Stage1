@@ -10,6 +10,7 @@ import type { CameraChangeReason } from '@/platform-core/map/gis/MapAdapterTypes
 import { MapBuilder } from '@/platform-core/map/builders/MapBuilder';
 import { DEFAULT_SELLER_SEARCH_RADIUS_METERS, MapRuntime } from '@/platform-core/map/runtime/MapRuntime';
 import { Diagnostics } from '@/platform-core/diagnostics/Diagnostics';
+import { trackEvent } from '@/shared/analytics/AnalyticsReporter';
 import type { ProductSellerMatch } from '@/platform-core/map/product-search/ProductSearch';
 import type { CameraParams, GeoPoint, MapBounds, MapViewModel } from '@/platform-core/map/viewmodels/MapViewModel';
 import { MapBottomSheetContent } from '@/screens/map/MapBottomSheetContent';
@@ -101,6 +102,7 @@ export function MapScreenView() {
 
   useEffect(() => {
     dispatch({ type: 'MAP_LOADED' });
+    trackEvent('map_open');
     // Начальная загрузка продавцов запускается из onVisibleBoundsChange —
     // он приходит от LeafletAdapter сразу при монтировании карты с реальными
     // границами (а не приближением через радиус, IMP-003.1.2 §3).
@@ -166,6 +168,7 @@ export function MapScreenView() {
     (sellerId: SellerId) => {
       dispatch({ type: 'SELECT_SELLER', payload: { sellerId } });
       MapRuntime.dispatch({ type: 'SELECT_SELLER', sellerId });
+      trackEvent('map_seller_open', { seller_id: Number(sellerId) });
     },
     [dispatch],
   );
@@ -265,10 +268,10 @@ export function MapScreenView() {
     [mapState.sellerSearch, mapState.visibleSellers, dispatch],
   );
 
-  const handleFilterChange = useCallback(
-    (groupId: string, optionIds: string[]) => MapRuntime.dispatch({ type: 'SET_FILTER_OPTIONS', groupId, optionIds }),
-    [],
-  );
+  const handleFilterChange = useCallback((groupId: string, optionIds: string[]) => {
+    MapRuntime.dispatch({ type: 'SET_FILTER_OPTIONS', groupId, optionIds });
+    trackEvent('map_filter_use', { selected_count: optionIds.length });
+  }, []);
 
   const handleOpenSellerCard = useCallback(() => {
     if (!mapState.selectedSellerId) return;
@@ -313,10 +316,12 @@ export function MapScreenView() {
   const handleProductSelect = useCallback((match: ProductSellerMatch) => {
     setSearchQuery(match.productName);
     Diagnostics.track('map.product_search_selected', { sellerId: match.seller.sellerId, productName: match.productName });
+    trackEvent('map_product_open', { seller_id: Number(match.seller.sellerId) });
   }, []);
   const handleSearchModeChange = useCallback(
     (nextMode: MapSearchMode) => {
       setSearchMode(nextMode);
+      trackEvent('map_mode_switch', { mode: nextMode });
       if (nextMode === 'seller') MapRuntime.clearProductSearch();
     },
     [],
