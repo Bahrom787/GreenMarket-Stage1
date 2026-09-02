@@ -6,6 +6,20 @@ const groups = [
   { id: 19, parent_id: null, name: 'Fruit', sort_order: 30, product_count: 4 },
 ];
 
+const market = {
+  id: 1,
+  name: 'Dev market',
+  type: 'SHOP',
+  address: 'Kazan',
+  latitude: '55.7',
+  longitude: '49.1',
+};
+
+const sellers = [
+  { seller_id: 6, name: 'Dev marker', row: 'A', place: '12', working_hours: '10-18', short_description: null, product_count: 12 },
+  { seller_id: 7, name: 'Fruit seller', row: 'B', place: '8', working_hours: null, short_description: null, product_count: 3 },
+];
+
 const manyGroups = Array.from({ length: 60 }, (_, index) => ({
   id: 30 + index,
   parent_id: null,
@@ -73,6 +87,16 @@ async function mockCatalog(
       return;
     }
 
+    if (url.pathname.endsWith('/markets')) {
+      await route.fulfill({ json: { markets: [market] } });
+      return;
+    }
+
+    if (url.pathname.endsWith('/markets/1/sellers')) {
+      await route.fulfill({ json: { sellers } });
+      return;
+    }
+
     if (url.pathname.endsWith('/sellers/6')) {
       await route.fulfill({
         json: {
@@ -134,6 +158,15 @@ async function selectCategories(page: Page) {
   await page.getByRole('button', { name: 'Greens and Salads', exact: true }).click();
 }
 
+async function selectSellers(page: Page) {
+  const toggle = page.getByTestId('catalog-seller-toggle');
+  if ((await toggle.getAttribute('aria-expanded')) !== 'true') {
+    await toggle.click();
+  }
+  await page.getByLabel('Dev marker').check();
+  await page.getByLabel('Fruit seller').check();
+}
+
 test('Global Catalog keeps multi-category filters in URL through refresh, pagination and clear', async ({ page }) => {
   const requests = await mockCatalog(page);
 
@@ -157,7 +190,6 @@ test('Global Catalog keeps multi-category filters in URL through refresh, pagina
 
   await page.getByRole('button', { name: 'Очистить фильтры' }).click();
   await expect(page).not.toHaveURL(/group_id=/);
-  await expect(page).toHaveURL(/sort=name/);
   await expect(page).toHaveURL(/page=1/);
 });
 
@@ -228,6 +260,65 @@ test('Catalog hides pagination for one page and empty results', async ({ page })
 
   await page.goto('/store/6/catalog?search=empty');
   await expect(page.getByTestId('catalog-pagination')).toBeHidden();
+});
+
+test('Global Catalog restores filters from LocalStorage but keeps explicit URL first', async ({ page }) => {
+  const requests = await mockCatalog(page);
+
+  await page.goto('/');
+  await page.evaluate(() => {
+    localStorage.setItem('gm.searchFilterBar.filters.v1', JSON.stringify({ categoryIds: [17, 18], sellerIds: [6] }));
+  });
+
+  await page.goto('/');
+  await expect(page).toHaveURL(/group_id=17%2C18|group_id=17,18/);
+  await expect(page).toHaveURL(/seller_id=6/);
+  expect(lastProductRequest(requests)).toContain('/api/v1/catalog/products?group_id=17,18&seller_id=6');
+
+  await page.goto('/?group_id=19');
+  await expect(page).toHaveURL(/group_id=19/);
+  await expect(page).not.toHaveURL(/seller_id=/);
+});
+
+test('Global Catalog combines category and seller groups and keeps URL priority over storage', async ({ page }) => {
+  const requests = await mockCatalog(page);
+
+  await page.goto('/');
+  await selectCategories(page);
+  await selectSellers(page);
+
+  await expect(page).toHaveURL(/group_id=17%2C18|group_id=17,18/);
+  await expect(page).toHaveURL(/seller_id=6%2C7|seller_id=6,7/);
+  expect(lastProductRequest(requests)).toContain('/api/v1/catalog/products?group_id=17,18&seller_id=6,7');
+
+  await page.reload();
+  await expect(page).toHaveURL(/group_id=17%2C18|group_id=17,18/);
+  await expect(page).toHaveURL(/seller_id=6%2C7|seller_id=6,7/);
+
+  await page.goto('/?group_id=19&seller_id=7');
+  await expect(page).toHaveURL(/group_id=19/);
+  await expect(page).toHaveURL(/seller_id=7/);
+  expect(lastProductRequest(requests)).toContain('/api/v1/catalog/products?group_id=19&seller_id=7');
+});
+
+test('Global Catalog does not show Clear Filters for search sort or page without selected filters', async ({ page }) => {
+  await mockCatalog(page);
+
+  await page.goto('/?search=milk&sort=price&page=2');
+  await expect(page.getByTestId('search-filter-clear')).toHaveCount(0);
+});
+
+test('Global Catalog Clear Filters preserves search and sort only clearing filters', async ({ page }) => {
+  await mockCatalog(page);
+
+  await page.goto('/?search=milk&group_id=17,18&seller_id=6&sort=price&page=3');
+  await page.getByTestId('search-filter-clear').click();
+
+  await expect(page).toHaveURL(/search=milk/);
+  await expect(page).toHaveURL(/sort=price/);
+  await expect(page).toHaveURL(/page=1/);
+  await expect(page).not.toHaveURL(/group_id=/);
+  await expect(page).not.toHaveURL(/seller_id=/);
 });
 
 test('Global Catalog category panel opens compactly, scrolls internally and keeps URL filters', async ({ page }) => {

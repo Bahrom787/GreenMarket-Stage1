@@ -3,9 +3,12 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Text, ErrorState, EmptyState, Button, Chip } from '@/design-system/components';
 import { Grid, Stack, Row } from '@/layout';
 import { trackEvent } from '@/shared/analytics/AnalyticsReporter';
-import { fetchProducts, fetchSeller, fetchSellerProducts, fetchGroups, CatalogApiError } from '../api';
+import { fetchProducts, fetchSeller, fetchSellerProducts, fetchGroups, fetchSellers, CatalogApiError } from '../api';
 import { SearchBar } from '../components/SearchBar';
+import { SearchFilterBar } from '@/components/search-filter/SearchFilterBar';
+import { loadStoredSearchFilters, saveStoredSearchFilters } from '@/components/search-filter/filterStorage';
 import { ProductCard, ProductCardSkeleton } from '../components/ProductCard';
+import { toBuyerSellerListRow, type BuyerSellerListRow } from '../sellerListPresentation';
 import {
   globalCatalogContext,
   isStoreContext,
@@ -27,7 +30,6 @@ import {
   catalogPage,
   catalogSort,
   clearCatalogSearchParams,
-  selectedCatalogGroups,
   toggleCatalogGroupParam,
   updateCatalogSearchParams,
   type CatalogParam,
@@ -90,6 +92,11 @@ type GroupsState =
   | { status: 'error'; groups: ProductGroup[]; message: string }
   | { status: 'ready'; groups: ProductGroup[] };
 
+type SellersState =
+  | { status: 'loading'; sellers: BuyerSellerListRow[] }
+  | { status: 'error'; sellers: BuyerSellerListRow[]; message: string }
+  | { status: 'ready'; sellers: BuyerSellerListRow[] };
+
 /** Экран 2 (Buyer_MVP.md): список товаров, поиск, фильтр по категории. */
 interface CatalogScreenProps {
   context?: CatalogContext;
@@ -101,11 +108,14 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
   const [searchParams, setSearchParams] = useSearchParams();
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const [groupsState, setGroupsState] = useState<GroupsState>({ status: 'loading', groups: [] });
-  const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const [sellersState, setSellersState] = useState<SellersState>({ status: 'loading', sellers: [] });
+  const [openFilterGroupId, setOpenFilterGroupId] = useState<string | null>(null);
   const [categoryMode, setCategoryMode] = useState<CategoryPanelMode>('text');
   const [autoCollapseCategories, setAutoCollapseCategories] = useState(true);
   const [categoryPanelActivity, setCategoryPanelActivity] = useState(0);
   const catalogRequestId = useRef(0);
+  const restoredStoredFilters = useRef(false);
+  const skipStoredFiltersSave = useRef(false);
 
   const search = searchParams.get('search') ?? '';
   const groupId = searchParams.get('group_id');
@@ -121,6 +131,7 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
   const isStore = isStoreContext(context);
   const analyticsScreen = isStore ? 'StoreCatalog' : 'GlobalCatalog';
   const storeId = isStore ? context.storeId : undefined;
+  const categoriesOpen = openFilterGroupId === 'categories';
   const groups = catalogGroupOptions(groupsState.groups);
   const categoryItems = groups.map(({ group, depth }) => ({
     group,
@@ -130,9 +141,12 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
     selected: groupIds.includes(group.id),
   }));
   const selectedCategoryItems = categoryItems.filter((item) => item.selected);
-  const selectedGroups = selectedCatalogGroups(groupsState.groups, groupIds);
+  const sellerItems = sellersState.sellers.map((seller) => ({ seller, selected: sellerIds.includes(Number(seller.sellerId)) }));
+  const selectedSellerItems = sellerItems.filter((item) => item.selected);
   const selectedGroupIds = new Set(groupIds);
-  const hasFilters = Boolean(search || groupIds.length || sellerIds.length || hasInvalidGroupId || hasInvalidSellerId || sort !== 'name' || page !== 1);
+  const selectedSellerIds = new Set(sellerIds.map(String));
+  const hasAppliedFilters = Boolean(groupIds.length || sellerIds.length || hasInvalidGroupId || hasInvalidSellerId);
+  const hasFilters = Boolean(search || hasAppliedFilters || sort !== 'name' || page !== 1);
 
   function load() {
     const requestId = catalogRequestId.current + 1;
@@ -200,6 +214,31 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
   useEffect(load, [search, groupIds, sellerIds, sort, page, isStore, storeId, hasInvalidGroupId, hasInvalidSellerId]);
 
   useEffect(() => {
+    if (isStore || restoredStoredFilters.current) return;
+    restoredStoredFilters.current = true;
+    if (location.key !== 'default') return;
+    if (searchParams.has('group_id') || searchParams.has('seller_id')) return;
+    const stored = loadStoredSearchFilters();
+    if (!stored.categoryIds.length && !stored.sellerIds.length) return;
+    const next = new URLSearchParams(searchParams);
+    if (stored.categoryIds.length) next.set('group_id', stored.categoryIds.join(','));
+    if (stored.sellerIds.length) next.set('seller_id', stored.sellerIds.join(','));
+    next.set('page', '1');
+    skipStoredFiltersSave.current = true;
+    setSearchParams(next, { replace: true });
+  }, [isStore, location.key, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (skipStoredFiltersSave.current) {
+      skipStoredFiltersSave.current = false;
+      return;
+    }
+    if (!isStore && !hasInvalidGroupId && !hasInvalidSellerId) {
+      saveStoredSearchFilters({ categoryIds: groupIds, sellerIds });
+    }
+  }, [groupIds, hasInvalidGroupId, hasInvalidSellerId, isStore, sellerIds]);
+
+  useEffect(() => {
     let active = true;
     setGroupsState((current) => ({ status: 'loading', groups: current.groups }));
     fetchGroups()
@@ -217,6 +256,25 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
     };
   }, []);
 
+  useEffect(() => {
+    if (isStore) return;
+    let active = true;
+    setSellersState((current) => ({ status: 'loading', sellers: current.sellers }));
+    fetchSellers()
+      .then((res) => {
+        if (active) setSellersState({ status: 'ready', sellers: res.sellers.map(toBuyerSellerListRow) });
+      })
+      .catch((err: unknown) => {
+        if (!active) return;
+        const message =
+          err instanceof CatalogApiError ? err.message : 'Не удалось загрузить продавцов.';
+        setSellersState((current) => ({ status: 'error', sellers: current.sellers, message }));
+      });
+    return () => {
+      active = false;
+    };
+  }, [isStore]);
+
   function updateParam(key: CatalogParam, value: string | null) {
     setSearchParams(updateCatalogSearchParams(searchParams, key, value));
     if (key === 'search' && value) trackEvent('catalog_search', { screen: analyticsScreen });
@@ -230,7 +288,16 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
   }
 
   function clearFilters() {
-    setSearchParams(clearCatalogSearchParams());
+    if (isStore) {
+      setSearchParams(clearCatalogSearchParams());
+      trackEvent('catalog_filter_use', { screen: analyticsScreen, filter_action: 'clear' });
+      return;
+    }
+    const next = new URLSearchParams(searchParams);
+    next.delete('group_id');
+    next.delete('seller_id');
+    next.set('page', '1');
+    setSearchParams(next);
     trackEvent('catalog_filter_use', { screen: analyticsScreen, filter_action: 'clear' });
   }
 
@@ -240,12 +307,10 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
     setCategoryPanelActivity((value) => value + 1);
   }
 
-  function toggleCategoriesOpen() {
-    setCategoriesOpen((open) => {
-      trackEvent(open ? 'category_panel_collapse' : 'category_panel_open', { screen: analyticsScreen });
-      return !open;
-    });
-    setCategoryPanelActivity((value) => value + 1);
+  function toggleSeller(sellerId: number) {
+    const next = toggleCatalogGroupParam(sellerIds, sellerId);
+    updateParam('seller_id', next);
+    trackEvent('catalog_filter_use', { screen: analyticsScreen, selected_count: next ? next.split(',').length : 0 });
   }
 
   function touchCategoryPanel() {
@@ -257,7 +322,7 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
     const timer = window.setTimeout(() => {
       trackEvent('category_autocollapse', { screen: analyticsScreen, reason: 'timer' });
       trackEvent('category_panel_collapse', { screen: analyticsScreen, reason: 'timer' });
-      setCategoriesOpen(false);
+      setOpenFilterGroupId(null);
     }, 7000);
     return () => window.clearTimeout(timer);
   }, [isStore, categoriesOpen, autoCollapseCategories, categoryPanelActivity, analyticsScreen]);
@@ -267,7 +332,7 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
     const collapse = () => {
       trackEvent('category_autocollapse', { screen: analyticsScreen, reason: 'catalog_scroll' });
       trackEvent('category_panel_collapse', { screen: analyticsScreen, reason: 'catalog_scroll' });
-      setCategoriesOpen(false);
+      setOpenFilterGroupId(null);
     };
     window.addEventListener('scroll', collapse, { passive: true });
     return () => window.removeEventListener('scroll', collapse);
@@ -319,176 +384,191 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
       )}
 
       <Stack gap="sm" className="gm-catalog-filters">
-        <div className={`gm-catalog-search-row gm-catalog-search-row--${categoryMode}`}>
-          {!isStore && categoryMode === 'icons' && (
-            <Button
-              variant="secondary"
-              size="sm"
-              aria-label={`Категории, выбрано ${selectedCategoryItems.length}`}
-              aria-controls="catalog-category-list"
-              aria-expanded={categoriesOpen}
-              onClick={toggleCategoriesOpen}
-              data-testid="catalog-category-toggle"
-              className="gm-catalog-category-toggle"
-            >
-              <CategoryToggleContent mode={categoryMode} count={selectedCategoryItems.length} />
-            </Button>
-          )}
-          <SearchBar initialValue={search} onSearch={(value) => updateParam('search', value || null)} />
-        </div>
-
         {isStore ? (
-          <Row gap="sm" wrap align="center" aria-label="Категории">
-            <Text variant="caption" as="span">
-              Категории
-            </Text>
-            {groups.map(({ group, depth }) => (
-              <Chip
-                key={group.id}
-                selected={selectedGroupIds.has(group.id)}
-                disabled={groupsState.status === 'loading'}
-                onClick={() => toggleGroup(group.id)}
-              >
-                {catalogGroupOptionLabel({ group, depth })}
-              </Chip>
-            ))}
-            {groupsState.status === 'loading' && <Text tone="secondary">Категории загружаются</Text>}
-            {groupsState.status === 'error' && <Text tone="secondary">{groupsState.message}</Text>}
-          </Row>
-        ) : (
-          <div className="gm-catalog-category-panel" data-testid="catalog-category-panel">
-            {categoryMode === 'text' && (
-              <Row gap="sm" wrap align="center">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  aria-label={`Категории, выбрано ${selectedCategoryItems.length}`}
-                  aria-controls="catalog-category-list"
-                  aria-expanded={categoriesOpen}
-                  onClick={toggleCategoriesOpen}
-                  data-testid="catalog-category-toggle"
-                  className="gm-catalog-category-toggle"
+          <>
+            <SearchBar initialValue={search} onSearch={(value) => updateParam('search', value || null)} />
+            <Row gap="sm" wrap align="center" aria-label="Категории">
+              <Text variant="caption" as="span">
+                Категории
+              </Text>
+              {groups.map(({ group, depth }) => (
+                <Chip
+                  key={group.id}
+                  selected={selectedGroupIds.has(group.id)}
+                  disabled={groupsState.status === 'loading'}
+                  onClick={() => toggleGroup(group.id)}
                 >
-                  <CategoryToggleContent mode={categoryMode} count={selectedCategoryItems.length} />
+                  {catalogGroupOptionLabel({ group, depth })}
+                </Chip>
+              ))}
+              {groupsState.status === 'loading' && <Text tone="secondary">Категории загружаются</Text>}
+              {groupsState.status === 'error' && <Text tone="secondary">{groupsState.message}</Text>}
+            </Row>
+            <Row gap="sm" wrap>
+              <Button variant={sort === 'name' ? 'primary' : 'secondary'} size="sm" onClick={() => updateParam('sort', 'name')}>
+                По названию
+              </Button>
+              <Button variant={sort === 'price' ? 'primary' : 'secondary'} size="sm" onClick={() => updateParam('sort', 'price')}>
+                По цене
+              </Button>
+              {hasFilters && (
+                <Button variant="ghost" size="sm" onClick={clearFilters}>
+                  Очистить фильтры
+                </Button>
+              )}
+            </Row>
+          </>
+        ) : (
+          <SearchFilterBar
+            className={`gm-catalog-search-filter gm-catalog-search-filter--${categoryMode}`}
+            searchSlot={<SearchBar initialValue={search} onSearch={(value) => updateParam('search', value || null)} />}
+            groups={[
+              {
+                id: 'categories',
+                label: 'Категории',
+                count: selectedCategoryItems.length,
+                testId: 'catalog-category-toggle',
+                ariaLabel: `Категории, выбрано ${selectedCategoryItems.length}`,
+                triggerContent: <CategoryToggleContent mode={categoryMode} count={selectedCategoryItems.length} />,
+                panel: (
+                  <Stack
+                    gap="sm"
+                    onFocus={touchCategoryPanel}
+                    onKeyDown={touchCategoryPanel}
+                    onPointerDown={touchCategoryPanel}
+                    data-testid="catalog-category-panel-body"
+                  >
+                    <Row gap="sm" wrap align="center">
+                      <Button
+                        variant={categoryMode === 'text' ? 'primary' : 'secondary'}
+                        size="sm"
+                        onClick={() => {
+                          setCategoryMode('text');
+                          trackEvent('category_view_mode_text', { screen: analyticsScreen });
+                        }}
+                      >
+                        Текст
+                      </Button>
+                      <Button
+                        variant={categoryMode === 'icons' ? 'primary' : 'secondary'}
+                        size="sm"
+                        onClick={() => {
+                          setCategoryMode('icons');
+                          trackEvent('category_view_mode_icon', { screen: analyticsScreen });
+                        }}
+                      >
+                        Иконки
+                      </Button>
+                      <label className="gm-catalog-category-panel__toggle">
+                        <input
+                          type="checkbox"
+                          checked={autoCollapseCategories}
+                          onChange={(event) => setAutoCollapseCategories(event.currentTarget.checked)}
+                        />
+                        <Text variant="caption" as="span">
+                          Автосворачивание
+                        </Text>
+                      </label>
+                    </Row>
+                    <div
+                      id="catalog-category-list"
+                      className={`gm-catalog-category-list gm-catalog-category-list--${categoryMode}`}
+                      aria-label="Категории"
+                      data-testid="catalog-category-list"
+                    >
+                      {categoryItems.map(({ group, depth, iconKind, label }) => (
+                        <Chip
+                          key={group.id}
+                          selected={selectedGroupIds.has(group.id)}
+                          disabled={groupsState.status === 'loading'}
+                          onClick={() => toggleGroup(group.id)}
+                          title={group.name}
+                          aria-label={categoryMode === 'icons' ? group.name : undefined}
+                          className="gm-catalog-category-chip"
+                          style={{ '--gm-category-depth': depth } as CSSProperties}
+                        >
+                          <CategoryIcon kind={iconKind} />
+                          {categoryMode === 'text' && <span className="gm-catalog-category-chip__label">{label}</span>}
+                        </Chip>
+                      ))}
+                      {groupsState.status === 'loading' && <Text tone="secondary">Категории загружаются</Text>}
+                      {groupsState.status === 'error' && <Text tone="secondary">{groupsState.message}</Text>}
+                    </div>
+                  </Stack>
+                ),
+              },
+              {
+                id: 'sellers',
+                label: 'Продавцы',
+                count: selectedSellerItems.length,
+                testId: 'catalog-seller-toggle',
+                ariaLabel: `Продавцы, выбрано ${selectedSellerItems.length}`,
+                panel: (
+                  <Stack gap="xs" data-testid="catalog-seller-panel-body">
+                    {sellerItems.map(({ seller }) => (
+                      <label key={seller.sellerId} className="gm-search-filter-option">
+                        <input
+                          type="checkbox"
+                          checked={selectedSellerIds.has(seller.sellerId)}
+                          disabled={sellersState.status === 'loading'}
+                          onChange={() => toggleSeller(Number(seller.sellerId))}
+                        />
+                        <span>{seller.name}</span>
+                      </label>
+                    ))}
+                    {sellersState.status === 'loading' && <Text tone="secondary">Продавцы загружаются</Text>}
+                    {sellersState.status === 'error' && <Text tone="secondary">{sellersState.message}</Text>}
+                    {sellersState.status === 'ready' && sellersState.sellers.length === 0 && (
+                      <Text tone="secondary">Продавцы не найдены</Text>
+                    )}
+                  </Stack>
+                ),
+              },
+            ]}
+            openGroupId={openFilterGroupId}
+            onOpenGroupChange={(id) => {
+              const nextOpen = id === 'categories';
+              if (nextOpen !== categoriesOpen) {
+                trackEvent(nextOpen ? 'category_panel_open' : 'category_panel_collapse', { screen: analyticsScreen });
+              }
+              setOpenFilterGroupId(id);
+              setCategoryPanelActivity((value) => value + 1);
+            }}
+            autoCollapseMs={7000}
+            autoCollapseEnabled={autoCollapseCategories}
+            activityKey={categoryPanelActivity}
+            hasFilters={hasAppliedFilters}
+            onClearFilters={clearFilters}
+            sortSlot={
+              <Row gap="sm" wrap>
+                <Button variant={sort === 'name' ? 'primary' : 'secondary'} size="sm" onClick={() => updateParam('sort', 'name')}>
+                  По названию
+                </Button>
+                <Button variant={sort === 'price' ? 'primary' : 'secondary'} size="sm" onClick={() => updateParam('sort', 'price')}>
+                  По цене
                 </Button>
               </Row>
-            )}
-
-            {categoriesOpen && (
-              <Stack
-                gap="sm"
-                className="gm-catalog-category-panel__body"
-                onFocus={touchCategoryPanel}
-                onKeyDown={touchCategoryPanel}
-                onPointerDown={touchCategoryPanel}
-                data-testid="catalog-category-panel-body"
-              >
-                <Row gap="sm" wrap align="center">
-                  <Button
-                    variant={categoryMode === 'text' ? 'primary' : 'secondary'}
-                    size="sm"
-                    onClick={() => {
-                      setCategoryMode('text');
-                      trackEvent('category_view_mode_text', { screen: analyticsScreen });
-                    }}
+            }
+            chipsSlot={
+              <Row gap="sm" wrap align="center" aria-label="Активные фильтры">
+                {selectedCategoryItems.map(({ group, iconKind }) => (
+                  <Chip
+                    key={group.id}
+                    selected
+                    onClick={() => toggleGroup(group.id)}
+                    title={group.name}
+                    aria-label={categoryMode === 'icons' ? `Убрать категорию ${group.name}` : undefined}
+                    className={`gm-catalog-selected-category gm-catalog-selected-category--${categoryMode}`}
                   >
-                    Текст
-                  </Button>
-                  <Button
-                    variant={categoryMode === 'icons' ? 'primary' : 'secondary'}
-                    size="sm"
-                    onClick={() => {
-                      setCategoryMode('icons');
-                      trackEvent('category_view_mode_icon', { screen: analyticsScreen });
-                    }}
-                  >
-                    Иконки
-                  </Button>
-                  <label className="gm-catalog-category-panel__toggle">
-                    <input
-                      type="checkbox"
-                      checked={autoCollapseCategories}
-                      onChange={(event) => setAutoCollapseCategories(event.currentTarget.checked)}
-                    />
-                    <Text variant="caption" as="span">
-                      Автосворачивание
-                    </Text>
-                  </label>
-                </Row>
-
-                <div
-                  id="catalog-category-list"
-                  className={`gm-catalog-category-list gm-catalog-category-list--${categoryMode}`}
-                  aria-label="Категории"
-                  data-testid="catalog-category-list"
-                >
-                  {categoryItems.map(({ group, depth, iconKind, label }) => (
-                    <Chip
-                      key={group.id}
-                      selected={selectedGroupIds.has(group.id)}
-                      disabled={groupsState.status === 'loading'}
-                      onClick={() => toggleGroup(group.id)}
-                      title={group.name}
-                      aria-label={categoryMode === 'icons' ? group.name : undefined}
-                      className="gm-catalog-category-chip"
-                      style={{ '--gm-category-depth': depth } as CSSProperties}
-                    >
-                      <CategoryIcon kind={iconKind} />
-                      {categoryMode === 'text' && (
-                        <span className="gm-catalog-category-chip__label">
-                          {label}
-                        </span>
-                      )}
-                    </Chip>
-                  ))}
-                  {groupsState.status === 'loading' && <Text tone="secondary">Категории загружаются</Text>}
-                  {groupsState.status === 'error' && <Text tone="secondary">{groupsState.message}</Text>}
-                </div>
-              </Stack>
-            )}
-          </div>
+                    <CategoryIcon kind={iconKind} />
+                    {categoryMode === 'text' && <span>{group.name} ×</span>}
+                  </Chip>
+                ))}
+                {sellerIds.length > 0 && <Chip onClick={() => updateParam('seller_id', null)}>Продавцы: {sellerIds.join(', ')} ×</Chip>}
+              </Row>
+            }
+          />
         )}
-
-        <Row gap="sm" wrap>
-          <Button
-            variant={sort === 'name' ? 'primary' : 'secondary'}
-            size="sm"
-            onClick={() => updateParam('sort', 'name')}
-          >
-            По названию
-          </Button>
-          <Button
-            variant={sort === 'price' ? 'primary' : 'secondary'}
-            size="sm"
-            onClick={() => updateParam('sort', 'price')}
-          >
-            По цене
-          </Button>
-          {hasFilters && (
-            <Button variant="ghost" size="sm" onClick={clearFilters}>
-              Очистить фильтры
-            </Button>
-          )}
-        </Row>
-
-        <Row gap="sm" wrap align="center" aria-label="Активные фильтры">
-          {search && <Chip onClick={() => updateParam('search', null)}>Поиск: {search} ×</Chip>}
-          {selectedCategoryItems.map(({ group, iconKind }) => (
-            <Chip
-              key={group.id}
-              selected
-              onClick={() => toggleGroup(group.id)}
-              title={group.name}
-              aria-label={categoryMode === 'icons' ? `Убрать категорию ${group.name}` : undefined}
-              className={`gm-catalog-selected-category gm-catalog-selected-category--${categoryMode}`}
-            >
-              <CategoryIcon kind={iconKind} />
-              {categoryMode === 'text' && <span>{group.name} ×</span>}
-            </Chip>
-          ))}
-          {sellerIds.length > 0 && <Chip onClick={() => updateParam('seller_id', null)}>Продавцы: {sellerIds.join(', ')} ×</Chip>}
-          {!search && selectedGroups.length === 0 && sellerIds.length === 0 && <Text tone="secondary">Фильтры не применены</Text>}
-        </Row>
       </Stack>
 
       {state.status === 'loading' && (
