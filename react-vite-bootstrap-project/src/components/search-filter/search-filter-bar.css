@@ -1,4 +1,5 @@
 .gm-search-filter-bar {
+  box-sizing: border-box;
   display: grid;
   gap: var(--space-sm);
   width: 100%;
@@ -36,7 +37,14 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  white-space: nowrap;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.gm-search-filter-bar__trigger.gm-button--primary {
+  border-color: var(--color-brand-primary);
+  color: var(--color-text-primary);
+  background: var(--color-selected-subtle);
 }
 
 .gm-search-filter-bar .gm-buyer-search {
@@ -55,6 +63,9 @@
 }
 
 .gm-search-filter-bar__panel {
+  position: static;
+  width: 100%;
+  box-sizing: border-box;
   max-height: min(320px, 45vh);
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -91,20 +102,13 @@
 
   .gm-search-filter-bar__search {
     flex-basis: 100%;
-    order: -1;
-  }
-
-  .gm-catalog-search-filter--icons .gm-search-filter-bar__search {
-    flex: 1 1 0;
-    order: 0;
   }
 
   .gm-search-filter-bar__trigger {
-    flex: 1 1 auto;
+    flex: none;
   }
 
   .gm-search-filter-bar__actions {
-    flex: 1 1 auto;
     justify-content: flex-end;
   }
 }

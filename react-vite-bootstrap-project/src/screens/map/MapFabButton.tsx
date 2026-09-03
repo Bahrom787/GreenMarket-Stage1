@@ -58,6 +58,7 @@ export function MapFabButton({ label, icon, onClick, testId, selected = false }:
         aria-describedby={tooltipVisible ? tooltipId : undefined}
         data-testid={testId}
         selected={selected}
+        className="gm-map-tool-button"
       >
         <Icon>{icon}</Icon>
       </IconButton>
