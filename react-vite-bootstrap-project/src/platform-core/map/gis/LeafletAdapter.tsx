@@ -154,11 +154,10 @@ export function LeafletAdapter({
         touchZoom
         style={{ width: "100%", height: "100%" }}
         zoomControl={false}
-        attributionControl={true}
+        attributionControl={false}
       >
         <TileLayer
           url={tileProvider.urlTemplate}
-          attribution={tileProvider.attribution}
           maxZoom={tileProvider.maxZoom}
           maxNativeZoom={tileProvider.maxZoom}
           minZoom={tileProvider.minZoom}
