@@ -40,7 +40,7 @@ export const MapFabPanel = forwardRef<MapFabPanelHandle, MapFabPanelProps>(funct
       <div className="gm-map-fab-panel__body" data-measure>
         <button
           type="button"
-          className="gm-map-fab-panel__toggle"
+          className="gm-map-tool-button gm-map-fab-panel__toggle"
           onClick={() => setExpanded((current) => !current)}
           aria-label={expanded ? 'Свернуть панель инструментов' : 'Открыть панель инструментов'}
           aria-expanded={expanded}

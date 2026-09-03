@@ -30,11 +30,28 @@
   display: inline-flex;
 }
 
+.gm-map-tool-button {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: var(--radius-lg);
+}
+
+.gm-map-tool-button .gm-icon,
+.gm-map-tool-button .gm-map-legend__flag {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  font-size: 20px;
+  line-height: 1;
+}
+
 .gm-map-search-slot {
   position: relative;
-  flex: 1 1 320px;
+  flex: 1 1 auto;
   min-width: 0;
-  max-width: 720px;
+  max-width: none;
   z-index: 20;
 }
 
@@ -43,6 +60,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-xs);
+  width: 100%;
   min-width: 0;
 }
 
@@ -179,11 +197,7 @@
 
 .gm-map-controls {
   flex: none;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-sm);
+  display: block;
   padding: max(var(--space-sm), env(safe-area-inset-top)) var(--space-lg) var(--space-sm);
   position: relative;
   z-index: var(--z-sticky-header);
@@ -199,11 +213,6 @@
 }
 
 .gm-map-controls .gm-search-filter-bar__panel {
-  position: absolute;
-  top: calc(100% + var(--space-xs));
-  left: 0;
-  right: 0;
-  z-index: var(--z-tooltip);
   max-height: min(360px, calc(100dvh - 160px));
 }
 
@@ -291,12 +300,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
   margin: 0;
-  padding: 0;
   border: none;
-  border-radius: var(--radius-lg);
   background: transparent;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -431,12 +436,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
   margin: 0;
-  padding: 0;
   border: none;
-  border-radius: var(--radius-lg);
   background: transparent;
   cursor: pointer;
   align-self: flex-end;
@@ -444,9 +445,7 @@
 }
 
 .gm-map-legend__flag {
-  display: block;
-  font-size: 18px;
-  line-height: 1;
+  display: grid;
 }
 
 .gm-map-legend__collapse-btn {

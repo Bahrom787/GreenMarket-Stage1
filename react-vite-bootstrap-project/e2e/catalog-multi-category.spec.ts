@@ -369,9 +369,14 @@ test('Global Catalog category UI keeps selector chips and toggle synchronized', 
   await expect(page.getByRole('button', { name: 'Vegetables', exact: true })).toHaveAttribute('aria-pressed', 'true');
   const toggleBox = await page.getByTestId('catalog-category-toggle').boundingBox();
   const searchBox = await page.locator('.gm-buyer-search').boundingBox();
+  const barBox = await page.locator('.gm-search-filter-bar').boundingBox();
   expect(toggleBox).not.toBeNull();
   expect(searchBox).not.toBeNull();
-  expect(Math.abs((toggleBox!.y + toggleBox!.height / 2) - (searchBox!.y + searchBox!.height / 2))).toBeLessThan(8);
+  expect(barBox).not.toBeNull();
+  expect(toggleBox!.x).toBeGreaterThanOrEqual(barBox!.x);
+  expect(searchBox!.x).toBeGreaterThanOrEqual(barBox!.x);
+  expect(toggleBox!.x + toggleBox!.width).toBeLessThanOrEqual(barBox!.x + barBox!.width);
+  expect(searchBox!.x + searchBox!.width).toBeLessThanOrEqual(barBox!.x + barBox!.width);
 
   const beforeUrl = page.url();
   await page.getByRole('button', { name: 'Текст' }).click();

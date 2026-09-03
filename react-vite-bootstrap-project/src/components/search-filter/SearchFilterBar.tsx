@@ -63,6 +63,7 @@ export function SearchFilterBar({
   return (
     <div className={['gm-search-filter-bar', className].filter(Boolean).join(' ')}>
       <div className="gm-search-filter-bar__row">
+        <div className="gm-search-filter-bar__search">{searchSlot}</div>
         {groups.map((group) => (
           <Button
             key={group.id}
@@ -82,7 +83,6 @@ export function SearchFilterBar({
             )}
           </Button>
         ))}
-        <div className="gm-search-filter-bar__search">{searchSlot}</div>
         {actionsSlot && <div className="gm-search-filter-bar__actions">{actionsSlot}</div>}
       </div>
 

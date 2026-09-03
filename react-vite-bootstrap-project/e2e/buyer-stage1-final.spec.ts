@@ -409,6 +409,67 @@ test('Global Catalog, Seller List and Map share the SearchFilterBar structure', 
   ]);
 });
 
+test('SearchFilterBar uses one layout model across Global screens', async ({ page }) => {
+  await mockBuyerApi(page);
+
+  for (const width of [360, 390, 412, 768, 1440]) {
+    await page.setViewportSize({ width, height: width >= 768 ? 900 : 844 });
+    for (const path of ['/', '/seller-list', '/map']) {
+      await page.goto(path);
+      const bar = page.locator('.gm-search-filter-bar').first();
+      await expect(bar).toBeVisible();
+      await expect(page.locator('.gm-search-filter-bar')).toHaveCount(1);
+      await expect(bar.locator('.gm-search-filter-bar__search')).toBeVisible();
+      await expect(bar.locator('.gm-search-filter-bar__trigger').first()).toBeVisible();
+      await expect
+        .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
+        .toBe(true);
+
+      const collapsed = await bar.boundingBox();
+      await bar.locator('.gm-search-filter-bar__trigger').first().click();
+      const panel = bar.locator('.gm-search-filter-bar__panel');
+      await expect(panel).toBeVisible();
+      const expanded = await bar.boundingBox();
+      expect(collapsed).not.toBeNull();
+      expect(expanded).not.toBeNull();
+      expect(expanded!.height).toBeGreaterThan(collapsed!.height);
+
+      if (path === '/map') {
+        const panelBox = await panel.boundingBox();
+        const contentBox = await page.locator('main').boundingBox();
+        expect(panelBox).not.toBeNull();
+        expect(contentBox).not.toBeNull();
+        expect(panelBox!.y + panelBox!.height).toBeLessThanOrEqual(contentBox!.y);
+      }
+    }
+  }
+});
+
+test('SearchFilterBar keeps compact trigger geometry on narrow screens', async ({ page }) => {
+  await mockBuyerApi(page);
+
+  for (const width of [360, 390, 412]) {
+    await page.setViewportSize({ width, height: 844 });
+    for (const path of ['/', '/seller-list', '/map']) {
+      await page.goto(path);
+      const bar = page.locator('.gm-search-filter-bar').first();
+      const barBox = await bar.boundingBox();
+      expect(barBox).not.toBeNull();
+      const triggerBoxes = await bar.locator('.gm-search-filter-bar__trigger').evaluateAll((nodes) =>
+        nodes.map((node) => {
+          const rect = node.getBoundingClientRect();
+          return { width: rect.width, height: rect.height };
+        }),
+      );
+      expect(triggerBoxes.length).toBeGreaterThan(0);
+      for (const box of triggerBoxes) {
+        expect(box.width).toBeLessThan(barBox!.width * 0.8);
+        expect(box.height).toBe(36);
+      }
+    }
+  }
+});
+
 test('Map SearchFilterBar persists selected filters through shared storage', async ({ page }) => {
   await mockBuyerApi(page);
 
@@ -431,4 +492,28 @@ test('Map SearchFilterBar persists selected filters through shared storage', asy
   await page.reload();
   await page.getByTestId('search-filter-group-filters').click();
   await expect(page.getByTestId('search-filter-panel-filters').locator('input[type="checkbox"]').nth(1)).toBeChecked();
+});
+
+test('Map tool buttons keep one shared size', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mockBuyerApi(page);
+
+  await page.goto('/map');
+  await page.getByTestId('fab-panel-toggle').click();
+  const buttons = [
+    page.getByTestId('legend-toggle'),
+    page.getByTestId('fab-panel-toggle'),
+    page.getByTestId('toggle-map-pois'),
+    page.getByTestId('open-catalog'),
+    page.getByTestId('open-seller-search'),
+    page.getByTestId('center-on-user'),
+    page.getByTestId('toggle-fullscreen'),
+    page.getByTestId('toggle-theme'),
+  ];
+  for (const button of buttons) {
+    const box = await button.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.width).toBe(48);
+    expect(box!.height).toBe(48);
+  }
 });

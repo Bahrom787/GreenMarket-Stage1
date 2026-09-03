@@ -40,7 +40,7 @@ export const MapLegend = forwardRef<MapLegendHandle, MapLegendProps>(function Ma
         {!expanded && (
           <button
             type="button"
-            className="gm-map-legend__toggle"
+            className="gm-map-tool-button gm-map-legend__toggle"
             onClick={() => setExpanded(true)}
             aria-label="Развернуть легенду"
             aria-expanded={expanded}
