@@ -16,7 +16,6 @@ interface MapSearchAutocompleteProps {
   mode: MapSearchMode;
   query: string;
   productSearch: ProductSearchState;
-  onModeChange: (mode: MapSearchMode) => void;
   onQueryChange: (value: string) => void;
   onSellerSubmit: (query: string) => void;
   onProductSearch: (query: string) => void;
@@ -28,7 +27,6 @@ export function MapSearchAutocomplete({
   mode,
   query,
   productSearch,
-  onModeChange,
   onQueryChange,
   onSellerSubmit,
   onProductSearch,
@@ -121,33 +119,11 @@ export function MapSearchAutocomplete({
 
   return (
     <div className="gm-map-search" role="search" data-mode={mode}>
-      <div className="gm-map-search__mode" role="tablist" aria-label="Режим поиска на карте">
-        <button
-          type="button"
-          role="tab"
-          className="gm-map-search__mode-button"
-          aria-selected={mode === 'seller'}
-          data-active={mode === 'seller'}
-          onClick={() => onModeChange('seller')}
-        >
-          Продавцы
-        </button>
-        <button
-          type="button"
-          role="tab"
-          className="gm-map-search__mode-button"
-          aria-selected={mode === 'product'}
-          data-active={mode === 'product'}
-          onClick={() => onModeChange('product')}
-        >
-          Товары
-        </button>
-      </div>
-
       <label className="gm-map-search__label" htmlFor="map-search-input">
         {label}
       </label>
       <div className="gm-map-search__field">
+        <span className="gm-buyer-search__icon" aria-hidden="true" />
         <input
           id="map-search-input"
           type="search"

@@ -18,7 +18,6 @@ function html(state: ProductSearchState, mode: 'seller' | 'product' = 'product',
       mode={mode}
       query={query}
       productSearch={state}
-      onModeChange={() => undefined}
       onQueryChange={() => undefined}
       onSellerSubmit={() => undefined}
       onProductSearch={() => undefined}
@@ -36,7 +35,6 @@ afterEach(() => {
 
 describe('MapSearchAutocomplete markup', () => {
   it('renders seller and product search modes', () => {
-    assert.match(html(idle, 'seller'), /Продавцы/);
     assert.match(html(idle, 'seller'), /role="searchbox"/);
     assert.match(html(idle, 'seller'), /Найти продавца/);
 

@@ -301,15 +301,15 @@ test('Map Screen keeps header sections separated and FAB inside viewport', async
   await expect(page.getByTestId('map-controls')).not.toContainText('Green Board');
 
   async function expectMapLayoutFits() {
-    const mode = await page.locator('.gm-map-search__mode').boundingBox();
+    const entitySwitch = await page.locator('.gm-search-filter-bar__entity-switch').boundingBox();
     const search = await page.locator('.gm-map-search-slot').boundingBox();
     const input = await page.getByTestId('map-search').boundingBox();
     const actions = await page.locator('.gm-search-filter-bar__actions').boundingBox();
-    expect(mode).not.toBeNull();
+    expect(entitySwitch).not.toBeNull();
     expect(search).not.toBeNull();
     expect(input).not.toBeNull();
     expect(actions).not.toBeNull();
-    expect(mode!.x + mode!.width).toBeLessThanOrEqual(input!.x + 1);
+    expect(entitySwitch!.x + entitySwitch!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
     expect(search!.x + search!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
     expect(actions!.x + actions!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
     await expect
@@ -318,9 +318,9 @@ test('Map Screen keeps header sections separated and FAB inside viewport', async
   }
 
   await expectMapLayoutFits();
-  await page.getByRole('tab', { name: 'Товары' }).click();
+  await page.locator('.gm-search-filter-bar__entity-option').nth(1).click();
   await expect(page.getByTestId('map-search')).toHaveAttribute('placeholder', 'Найти товар');
-  await page.getByRole('tab', { name: 'Продавцы' }).click();
+  await page.locator('.gm-search-filter-bar__entity-option').first().click();
   await expect(page.getByTestId('map-search')).toHaveAttribute('placeholder', 'Найти продавца');
 
   await page.getByTestId('search-filter-group-filters').click();
@@ -391,7 +391,7 @@ test('Global Catalog, Seller List and Map share the SearchFilterBar structure', 
     '.gm-search-filter-bar__search',
     '[data-testid="catalog-category-toggle"]',
   ]);
-  await expect(page.locator('.gm-search-filter-bar').first().locator('.gm-search-filter-bar__meta button')).toHaveCount(2);
+  await expect(page.locator('.gm-search-filter-bar').first().locator('.gm-search-filter-bar__sort button')).toHaveCount(2);
 
   await page.goto('/seller-list');
   await expectInOneBar([
@@ -404,9 +404,36 @@ test('Global Catalog, Seller List and Map share the SearchFilterBar structure', 
   await page.goto('/map');
   await expectInOneBar([
     '.gm-search-filter-bar__search',
-    '.gm-map-search__mode',
+    '.gm-search-filter-bar__entity-switch',
     '[data-testid="search-filter-group-filters"]',
   ]);
+});
+
+test('SearchFilterBar keeps one slot order across screens', async ({ page }) => {
+  await mockBuyerApi(page);
+
+  async function slotNames() {
+    return page.locator('.gm-search-filter-bar__row').first().evaluate((row) =>
+      Array.from(row.children).map((node) => {
+        const className = (node as HTMLElement).className;
+        if (className.includes('__search')) return 'search';
+        if (className.includes('__entity-switch')) return 'entity';
+        if (className.includes('__trigger')) return 'filter';
+        if (className.includes('__actions')) return 'actions';
+        if (className.includes('__sort')) return 'sort';
+        return 'other';
+      }),
+    );
+  }
+
+  await page.goto('/');
+  expect(await slotNames()).toEqual(['search', 'filter', 'filter', 'sort']);
+
+  await page.goto('/seller-list');
+  expect(await slotNames()).toEqual(['search', 'filter', 'actions']);
+
+  await page.goto('/map');
+  expect(await slotNames()).toEqual(['search', 'entity', 'filter', 'actions']);
 });
 
 test('SearchFilterBar uses one layout model across Global screens', async ({ page }) => {
