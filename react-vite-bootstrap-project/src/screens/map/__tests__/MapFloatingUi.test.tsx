@@ -41,6 +41,16 @@ it('keeps map controls separate from the shared app header', () => {
   assert.match(css, /\.gm-map-search\s*{[^}]*display:\s*flex/s);
 });
 
+it('keeps map labels readable and hides Leaflet attribution overlay', () => {
+  const view = readFileSync(join(process.cwd(), 'src/screens/map/MapScreenView.tsx'), 'utf8');
+  const leaflet = readFileSync(join(process.cwd(), 'src/platform-core/map/gis/LeafletAdapter.tsx'), 'utf8');
+  assert.match(view, /Продавцы/);
+  assert.match(view, /Товары/);
+  assert.doesNotMatch(view, /Рџ|Рў|Р РµР¶РёРј/);
+  assert.match(leaflet, /attributionControl=\{false\}/);
+  assert.doesNotMatch(leaflet, /attribution=\{tileProvider\.attribution\}/);
+});
+
 it('keeps restored working map tools in the floating panel', () => {
   const view = readFileSync(join(process.cwd(), 'src/screens/map/MapScreenView.tsx'), 'utf8');
   for (const testId of ['toggle-map-pois', 'open-catalog', 'open-seller-search', 'center-on-user', 'toggle-fullscreen', 'toggle-theme']) {

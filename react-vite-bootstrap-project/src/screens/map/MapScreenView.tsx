@@ -397,7 +397,7 @@ export function MapScreenView() {
             </div>
           }
           entitySwitchSlot={
-            <div role="tablist" aria-label="Р РµР¶РёРј РїРѕРёСЃРєР° РЅР° РєР°СЂС‚Рµ">
+            <div role="tablist" aria-label="Режим поиска на карте">
               <button
                 type="button"
                 role="tab"
@@ -405,7 +405,7 @@ export function MapScreenView() {
                 aria-selected={searchMode === 'seller'}
                 onClick={() => handleSearchModeChange('seller')}
               >
-                РџСЂРѕРґР°РІС†С‹
+                Продавцы
               </button>
               <button
                 type="button"
@@ -414,7 +414,7 @@ export function MapScreenView() {
                 aria-selected={searchMode === 'product'}
                 onClick={() => handleSearchModeChange('product')}
               >
-                РўРѕРІР°СЂС‹
+                Товары
               </button>
             </div>
           }
