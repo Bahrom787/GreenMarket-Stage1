@@ -14,6 +14,7 @@ export interface SearchFilterGroup {
 
 export interface SearchFilterBarProps {
   searchSlot: ReactNode;
+  entitySwitchSlot?: ReactNode;
   groups?: SearchFilterGroup[];
   openGroupId?: string | null;
   onOpenGroupChange?: (groupId: string | null) => void;
@@ -30,6 +31,7 @@ export interface SearchFilterBarProps {
 
 export function SearchFilterBar({
   searchSlot,
+  entitySwitchSlot,
   groups = [],
   openGroupId = null,
   onOpenGroupChange,
@@ -64,6 +66,7 @@ export function SearchFilterBar({
     <div className={['gm-search-filter-bar', className].filter(Boolean).join(' ')}>
       <div className="gm-search-filter-bar__row">
         <div className="gm-search-filter-bar__search">{searchSlot}</div>
+        {entitySwitchSlot && <div className="gm-search-filter-bar__entity-switch">{entitySwitchSlot}</div>}
         {groups.map((group) => (
           <Button
             key={group.id}
@@ -84,6 +87,7 @@ export function SearchFilterBar({
           </Button>
         ))}
         {actionsSlot && <div className="gm-search-filter-bar__actions">{actionsSlot}</div>}
+        {sortSlot && <div className="gm-search-filter-bar__sort">{sortSlot}</div>}
       </div>
 
       {openGroup && (
@@ -92,9 +96,8 @@ export function SearchFilterBar({
         </div>
       )}
 
-      {(sortSlot || hasFilters || chipsSlot) && (
+      {(hasFilters || chipsSlot) && (
         <div className="gm-search-filter-bar__meta">
-          {sortSlot}
           {hasFilters && onClearFilters && (
             <Button variant="ghost" size="sm" onClick={onClearFilters} data-testid="search-filter-clear">
               Очистить фильтры

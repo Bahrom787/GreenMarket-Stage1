@@ -388,13 +388,34 @@ export function MapScreenView() {
                 mode={searchMode}
                 query={searchQuery}
                 productSearch={viewModel.productSearch}
-                onModeChange={handleSearchModeChange}
                 onQueryChange={setSearchQuery}
                 onSellerSubmit={handleSellerSearch}
                 onProductSearch={handleProductSearch}
                 onClear={handleProductSearchClear}
                 onProductSelect={handleProductSelect}
               />
+            </div>
+          }
+          entitySwitchSlot={
+            <div role="tablist" aria-label="Р РµР¶РёРј РїРѕРёСЃРєР° РЅР° РєР°СЂС‚Рµ">
+              <button
+                type="button"
+                role="tab"
+                className="gm-search-filter-bar__entity-option gm-focusable"
+                aria-selected={searchMode === 'seller'}
+                onClick={() => handleSearchModeChange('seller')}
+              >
+                РџСЂРѕРґР°РІС†С‹
+              </button>
+              <button
+                type="button"
+                role="tab"
+                className="gm-search-filter-bar__entity-option gm-focusable"
+                aria-selected={searchMode === 'product'}
+                onClick={() => handleSearchModeChange('product')}
+              >
+                РўРѕРІР°СЂС‹
+              </button>
             </div>
           }
           groups={[
