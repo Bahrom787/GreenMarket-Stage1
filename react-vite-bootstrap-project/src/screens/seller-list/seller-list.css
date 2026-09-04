@@ -11,19 +11,6 @@
   padding-block: var(--space-sm);
 }
 
-.gm-seller-list-screen .gm-search-filter-bar {
-  width: 100%;
-}
-
-.gm-seller-list-filter-option {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  color: var(--color-text-primary);
-  font-family: var(--font-family-body);
-  font-size: var(--font-size-sm);
-}
-
 .gm-seller-list-skeleton__avatar,
 .gm-seller-list-skeleton__pill,
 .gm-seller-list-skeleton__line {

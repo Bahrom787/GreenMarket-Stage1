@@ -167,7 +167,7 @@ export function SellerListScreenView() {
                 <Stack gap="xs" data-testid="seller-list-filter-panel">
                   {state.status === 'ready' &&
                     state.sellers.map((seller) => (
-                      <label key={seller.sellerId} className="gm-seller-list-filter-option">
+                      <label key={seller.sellerId} className="gm-search-filter-option">
                         <input
                           type="checkbox"
                           checked={selectedSellerIdSet.has(seller.sellerId)}

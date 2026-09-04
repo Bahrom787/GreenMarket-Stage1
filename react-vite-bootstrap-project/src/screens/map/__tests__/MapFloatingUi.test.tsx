@@ -41,12 +41,16 @@ it('keeps map controls separate from the shared app header', () => {
   assert.match(css, /\.gm-map-search\s*{[^}]*display:\s*flex/s);
 });
 
-it('keeps map labels readable and hides Leaflet attribution overlay', () => {
+it('keeps readable search mode labels', () => {
   const view = readFileSync(join(process.cwd(), 'src/screens/map/MapScreenView.tsx'), 'utf8');
-  const leaflet = readFileSync(join(process.cwd(), 'src/platform-core/map/gis/LeafletAdapter.tsx'), 'utf8');
+  assert.match(view, /Режим поиска на карте/);
   assert.match(view, /Продавцы/);
   assert.match(view, /Товары/);
   assert.doesNotMatch(view, /Рџ|Рў|Р РµР¶РёРј/);
+});
+
+it('keeps Leaflet attribution overlay hidden on Map Screen', () => {
+  const leaflet = readFileSync(join(process.cwd(), 'src/platform-core/map/gis/LeafletAdapter.tsx'), 'utf8');
   assert.match(leaflet, /attributionControl=\{false\}/);
   assert.doesNotMatch(leaflet, /attribution=\{tileProvider\.attribution\}/);
 });
