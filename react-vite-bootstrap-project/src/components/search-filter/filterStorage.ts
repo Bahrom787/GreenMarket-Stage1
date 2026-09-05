@@ -3,10 +3,11 @@ const KEY = 'gm.searchFilterBar.filters.v1';
 export interface StoredSearchFilters {
   categoryIds: number[];
   sellerIds: number[];
+  stateIds: string[];
   mapFilters: Record<string, string[]>;
 }
 
-const empty: StoredSearchFilters = { categoryIds: [], sellerIds: [], mapFilters: {} };
+const empty: StoredSearchFilters = { categoryIds: [], sellerIds: [], stateIds: [], mapFilters: {} };
 
 function strings(value: unknown) {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
@@ -23,6 +24,7 @@ export function loadStoredSearchFilters(): StoredSearchFilters {
     return {
       categoryIds: Array.isArray(parsed.categoryIds) ? parsed.categoryIds.filter(Number.isInteger) : [],
       sellerIds: Array.isArray(parsed.sellerIds) ? parsed.sellerIds.filter(Number.isInteger) : [],
+      stateIds: strings(parsed.stateIds).filter((id) => id === 'open' || id === 'available'),
       mapFilters: Object.fromEntries(
         Object.entries(mapFilters).map(([key, value]) => [key, strings(value)]).filter(([, value]) => value.length),
       ),

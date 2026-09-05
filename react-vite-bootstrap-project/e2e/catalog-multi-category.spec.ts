@@ -311,7 +311,7 @@ test('Global Catalog does not show Clear Filters for search sort or page without
 test('Global Catalog Clear Filters preserves search and sort only clearing filters', async ({ page }) => {
   await mockCatalog(page);
 
-  await page.goto('/?search=milk&group_id=17,18&seller_id=6&sort=price&page=3');
+  await page.goto('/?search=milk&group_id=17,18&seller_id=6&state=open&sort=price&page=3');
   await page.getByTestId('search-filter-clear').click();
 
   await expect(page).toHaveURL(/search=milk/);
@@ -319,6 +319,26 @@ test('Global Catalog Clear Filters preserves search and sort only clearing filte
   await expect(page).toHaveURL(/page=1/);
   await expect(page).not.toHaveURL(/group_id=/);
   await expect(page).not.toHaveURL(/seller_id=/);
+  await expect(page).not.toHaveURL(/state=/);
+});
+
+test('Global Catalog uses shared state filter pills without changing search or sort', async ({ page }) => {
+  await mockCatalog(page);
+
+  await page.goto('/?search=milk&sort=price&page=3');
+  await page.getByTestId('catalog-state-toggle').click();
+  await page.getByTestId('catalog-state-filter-open').click();
+  await page.getByTestId('catalog-state-filter-available').click();
+
+  await expect(page).toHaveURL(/search=milk/);
+  await expect(page).toHaveURL(/sort=price/);
+  await expect(page).toHaveURL(/page=1/);
+  await expect(page).toHaveURL(/state=open%2Cavailable|state=open,available/);
+
+  await page.reload();
+  await page.getByTestId('catalog-state-toggle').click();
+  await expect(page.getByTestId('catalog-state-filter-open')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('catalog-state-filter-available')).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('Global Catalog category panel opens compactly, scrolls internally and keeps URL filters', async ({ page }) => {

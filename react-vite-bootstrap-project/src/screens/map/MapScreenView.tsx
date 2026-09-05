@@ -19,9 +19,15 @@ import { MapFabPanel, type MapFabPanelHandle } from '@/screens/map/MapFabPanel';
 import { MapLegend, type MapLegendHandle } from '@/screens/map/MapLegend';
 import { MapSearchAutocomplete } from '@/screens/map/MapSearchAutocomplete';
 import type { MapSearchMode } from '@/screens/map/MapSearchAutocomplete.logic';
-import { SellerFilter } from '@/screens/filter/SellerFilter';
 import { useTheme } from '@/design-system/useTheme';
 import { SearchFilterBar } from '@/components/search-filter/SearchFilterBar';
+import {
+  CategoryFilter,
+  CategoryToggleContent,
+  type CategoryPanelMode,
+} from '@/components/search-filter/CategoryFilter';
+import { StateFilter } from '@/components/search-filter/StateFilter';
+import type { StateFilterId } from '@/components/search-filter/stateFilterModel';
 import { loadStoredSearchFilters, saveStoredSearchFilters } from '@/components/search-filter/filterStorage';
 import { buildSellerFilters } from '@/platform-core/map/filters/SellerFilters';
 
@@ -71,6 +77,9 @@ export function MapScreenView() {
   const [searchMode, setSearchMode] = useState<MapSearchMode>('seller');
   const [searchQuery, setSearchQuery] = useState('');
   const [mapOpenGroupId, setMapOpenGroupId] = useState<string | null>(null);
+  const [categoryMode, setCategoryMode] = useState<CategoryPanelMode>('text');
+  const [autoCollapseFilters, setAutoCollapseFilters] = useState(true);
+  const [filterActivity, setFilterActivity] = useState(0);
   const [locationNotice, setLocationNotice] = useState<'unavailable' | 'no-permission' | null>(null);
   const locationNoticeTimerRef = useRef<number | null>(null);
   const [searchRadiusKm, setSearchRadiusKm] = useState('5');
@@ -297,7 +306,24 @@ export function MapScreenView() {
   const handleFilterChange = useCallback((groupId: string, optionIds: string[]) => {
     MapRuntime.dispatch({ type: 'SET_FILTER_OPTIONS', groupId, optionIds });
     trackEvent('map_filter_use', { selected_count: optionIds.length });
+    setFilterActivity((value) => value + 1);
   }, []);
+
+  const handleMapCategoryToggle = useCallback((id: string | number) => {
+    const value = String(id);
+    const selected = mapState.selectedFilters.category ?? [];
+    handleFilterChange('category', selected.includes(value) ? selected.filter((item) => item !== value) : [...selected, value]);
+  }, [handleFilterChange, mapState.selectedFilters.category]);
+
+  const handleMapStateToggle = useCallback((id: StateFilterId) => {
+    const selected = mapState.selectedFilters.state ?? [];
+    handleFilterChange('state', selected.includes(id) ? selected.filter((item) => item !== id) : [...selected, id]);
+  }, [handleFilterChange, mapState.selectedFilters.state]);
+
+  const handleClearMapFilters = useCallback(() => {
+    handleFilterChange('category', []);
+    handleFilterChange('state', []);
+  }, [handleFilterChange]);
 
   const handleOpenSellerCard = useCallback(() => {
     if (!mapState.selectedSellerId) return;
@@ -376,6 +402,14 @@ export function MapScreenView() {
   const bottomSheetBlocks = useMemo(() => MapBuilder.build(viewModel), [viewModel]);
   const activeMapFilterCount = Object.values(mapState.selectedFilters).reduce((sum, ids) => sum + ids.length, 0);
   const mapFilterGroups = buildSellerFilters(mapState.categories);
+  const mapCategoryGroup = mapFilterGroups.find((group) => group.id === 'category');
+  const mapCategoryItems = (mapCategoryGroup?.options ?? []).map((option) => ({
+    id: option.id,
+    name: option.label,
+    selected: (mapState.selectedFilters.category ?? []).includes(option.id),
+  }));
+  const selectedMapCategories = mapCategoryItems.filter((item) => item.selected);
+  const mapStateIds = ((mapState.selectedFilters.state ?? []).filter((id) => id === 'open' || id === 'available')) as StateFilterId[];
 
   return (
     <div className="gm-map-screen" data-testid="map-screen" ref={mapScreenRef}>
@@ -420,45 +454,47 @@ export function MapScreenView() {
           }
           groups={[
             {
-              id: 'filters',
-              label: 'Фильтры',
-              count: activeMapFilterCount,
+              id: 'categories',
+              label: 'Категории',
+              count: selectedMapCategories.length,
+              testId: 'map-category-toggle',
+              ariaLabel: `Категории, выбрано ${selectedMapCategories.length}`,
+              triggerContent: <CategoryToggleContent mode={categoryMode} count={selectedMapCategories.length} />,
               panel: (
-                <Stack gap="sm">
-                  {mapFilterGroups.map((group) => (
-                    <Stack key={group.id} gap="xs">
-                      <Text variant="bodyStrong">{group.label}</Text>
-                      {group.allLabel && (
-                        <label className="gm-search-filter-option">
-                          <input
-                            type="checkbox"
-                            checked={(mapState.selectedFilters[group.id] ?? []).length === 0}
-                            onChange={() => handleFilterChange(group.id, [])}
-                          />
-                          <span>{group.allLabel}</span>
-                        </label>
-                      )}
-                      {group.options.map((option) => {
-                        const selected = mapState.selectedFilters[group.id] ?? [];
-                        return (
-                          <label key={option.id} className="gm-search-filter-option">
-                            <input
-                              type="checkbox"
-                              checked={selected.includes(option.id)}
-                              onChange={() => handleFilterChange(group.id, selected.includes(option.id) ? selected.filter((id) => id !== option.id) : [...selected, option.id])}
-                            />
-                            <span>{option.label}</span>
-                          </label>
-                        );
-                      })}
-                    </Stack>
-                  ))}
-                </Stack>
+                <CategoryFilter
+                  items={mapCategoryItems}
+                  mode={categoryMode}
+                  autoCollapse={autoCollapseFilters}
+                  onModeChange={setCategoryMode}
+                  onAutoCollapseChange={setAutoCollapseFilters}
+                  onToggle={handleMapCategoryToggle}
+                  onInteract={() => setFilterActivity((value) => value + 1)}
+                  testIdPrefix="map"
+                />
+              ),
+            },
+            {
+              id: 'state',
+              label: 'Состояние',
+              count: mapStateIds.length,
+              testId: 'map-state-toggle',
+              ariaLabel: `Состояние, выбрано ${mapStateIds.length}`,
+              panel: (
+                <StateFilter
+                  selected={mapStateIds}
+                  onToggle={handleMapStateToggle}
+                  testId="map-state-filter"
+                />
               ),
             },
           ]}
           openGroupId={mapOpenGroupId}
           onOpenGroupChange={setMapOpenGroupId}
+          autoCollapseMs={7000}
+          autoCollapseEnabled={autoCollapseFilters}
+          activityKey={filterActivity}
+          hasFilters={activeMapFilterCount > 0}
+          onClearFilters={handleClearMapFilters}
           actionsSlot={
             <IconButton label="Список продавцов" onClick={handleOpenSellerList}>
               <Icon label="Список">📋</Icon>
@@ -595,11 +631,17 @@ export function MapScreenView() {
                         }}
                       />
                     </Stack>
-                    <SellerFilter
-                      categories={mapState.categories}
-                      selectedFilters={mapState.selectedFilters}
-                      onChange={handleFilterChange}
+                    <CategoryFilter
+                      items={mapCategoryItems}
+                      mode={categoryMode}
+                      autoCollapse={autoCollapseFilters}
+                      onModeChange={setCategoryMode}
+                      onAutoCollapseChange={setAutoCollapseFilters}
+                      onToggle={handleMapCategoryToggle}
+                      onInteract={() => setFilterActivity((value) => value + 1)}
+                      testIdPrefix="map-search"
                     />
+                    <StateFilter selected={mapStateIds} onToggle={handleMapStateToggle} testId="map-search-state-filter" />
                   </Stack>
                 </div>
                 <div className="gm-seller-search-results__list">

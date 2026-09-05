@@ -18,7 +18,14 @@ describe('SellerListScreenView architecture', () => {
   });
 
   it('passes selected sellers to Global Catalog instead of opening Map', () => {
-    expect(source).toContain("navigate(selectedSellerIds.length ? `/?seller_id=${selectedSellerIds.join(',')}` : '/')");
+    expect(source).toContain("if (selectedSellerIds.length) next.set('seller_id', selectedSellerIds.join(','))");
+    expect(source).toContain("navigate(next.toString() ? `/?${next.toString()}` : '/')");
     expect(source).toContain('toggleSeller(seller.sellerId)');
+  });
+
+  it('uses shared category, seller and state filter controls', () => {
+    expect(source).toContain('@/components/search-filter/CategoryFilter');
+    expect(source).toContain('@/components/search-filter/SellerFilter');
+    expect(source).toContain('@/components/search-filter/StateFilter');
   });
 });

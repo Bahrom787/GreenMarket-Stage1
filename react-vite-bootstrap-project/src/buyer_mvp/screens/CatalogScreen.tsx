@@ -1,4 +1,4 @@
-import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Text, ErrorState, EmptyState, Button, Chip } from '@/design-system/components';
 import { Grid, Stack, Row } from '@/layout';
@@ -6,6 +6,15 @@ import { trackEvent } from '@/shared/analytics/AnalyticsReporter';
 import { fetchProducts, fetchSeller, fetchSellerProducts, fetchGroups, fetchSellers, CatalogApiError } from '../api';
 import { SearchBar } from '../components/SearchBar';
 import { SearchFilterBar } from '@/components/search-filter/SearchFilterBar';
+import {
+  CategoryFilter,
+  CategoryToggleContent,
+  SelectedCategoryChips,
+  type CategoryPanelMode,
+} from '@/components/search-filter/CategoryFilter';
+import { SellerFilter } from '@/components/search-filter/SellerFilter';
+import { StateFilter } from '@/components/search-filter/StateFilter';
+import { stateFilterLabel, type StateFilterId } from '@/components/search-filter/stateFilterModel';
 import { loadStoredSearchFilters, saveStoredSearchFilters } from '@/components/search-filter/filterStorage';
 import { ProductCard, ProductCardSkeleton } from '../components/ProductCard';
 import { toBuyerSellerListRow, type BuyerSellerListRow } from '../sellerListPresentation';
@@ -25,53 +34,18 @@ import {
 import {
   catalogGroupIds,
   catalogSellerIds,
+  catalogStateIds,
   catalogGroupOptionLabel,
   catalogGroupOptions,
   catalogPage,
   catalogSort,
   clearCatalogSearchParams,
   toggleCatalogGroupParam,
+  toggleCatalogStateParam,
   updateCatalogSearchParams,
   type CatalogParam,
 } from '../catalogUrlState';
 import type { CatalogQuery, ProductGroup } from '../types';
-
-type CategoryPanelMode = 'text' | 'icons';
-
-const categoryIconRules: Array<{ test: RegExp; kind: string }> = [
-  { test: /овощ|vegetable|огур|помид|карто/i, kind: 'vegetables' },
-  { test: /зелень|салат|green|salad/i, kind: 'greens' },
-  { test: /фрукт|fruit|яблок|груш/i, kind: 'fruit' },
-  { test: /ягод|berr/i, kind: 'berries' },
-  { test: /орех|nut/i, kind: 'nuts' },
-  { test: /слад|восточ|sweet/i, kind: 'sweets' },
-  { test: /сухофрукт|цукат|dried/i, kind: 'dried' },
-  { test: /солень|маринад|pickle/i, kind: 'pickles' },
-  { test: /бакале|проч|grocery/i, kind: 'grocery' },
-];
-
-function categoryIconKind(name: string) {
-  return categoryIconRules.find((rule) => rule.test.test(name))?.kind ?? 'grocery';
-}
-
-function CategoryIcon({ kind }: { kind: string }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={`gm-catalog-category-icon gm-catalog-category-icon--${kind}`}
-    />
-  );
-}
-
-function CategoryToggleContent({ mode, count }: { mode: CategoryPanelMode; count: number }) {
-  return (
-    <>
-      <CategoryIcon kind="grocery" />
-      {mode === 'text' && <span>Категории</span>}
-      {count > 0 && <span>{mode === 'text' ? `(${count})` : count}</span>}
-    </>
-  );
-}
 
 type LoadState =
   | { status: 'loading' }
@@ -120,12 +94,16 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
   const search = searchParams.get('search') ?? '';
   const groupId = searchParams.get('group_id');
   const sellerId = searchParams.get('seller_id');
+  const stateId = searchParams.get('state');
   const parsedGroupIds = useMemo(() => catalogGroupIds(groupId), [groupId]);
   const parsedSellerIds = useMemo(() => catalogSellerIds(sellerId), [sellerId]);
+  const parsedStateIds = useMemo(() => catalogStateIds(stateId), [stateId]);
   const groupIds = useMemo(() => parsedGroupIds ?? [], [parsedGroupIds]);
   const sellerIds = useMemo(() => parsedSellerIds ?? [], [parsedSellerIds]);
+  const stateIds = useMemo(() => (parsedStateIds ?? []) as StateFilterId[], [parsedStateIds]);
   const hasInvalidGroupId = Boolean(groupId && !parsedGroupIds);
   const hasInvalidSellerId = Boolean(sellerId && !parsedSellerIds);
+  const hasInvalidStateId = Boolean(stateId && !parsedStateIds);
   const sort = catalogSort(searchParams.get('sort'));
   const page = catalogPage(searchParams.get('page'));
   const isStore = isStoreContext(context);
@@ -133,27 +111,38 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
   const storeId = isStore ? context.storeId : undefined;
   const categoriesOpen = openFilterGroupId === 'categories';
   const groups = catalogGroupOptions(groupsState.groups);
-  const categoryItems = groups.map(({ group, depth }) => ({
-    group,
-    depth,
-    iconKind: categoryIconKind(group.name),
-    label: catalogGroupOptionLabel({ group, depth }),
-    selected: groupIds.includes(group.id),
-  }));
-  const selectedCategoryItems = categoryItems.filter((item) => item.selected);
-  const sellerItems = sellersState.sellers.map((seller) => ({ seller, selected: sellerIds.includes(Number(seller.sellerId)) }));
-  const selectedSellerItems = sellerItems.filter((item) => item.selected);
   const selectedGroupIds = new Set(groupIds);
   const selectedSellerIds = new Set(sellerIds.map(String));
-  const hasAppliedFilters = Boolean(groupIds.length || sellerIds.length || hasInvalidGroupId || hasInvalidSellerId);
+  const categoryItems = groups.map(({ group, depth }) => ({
+    id: group.id,
+    name: group.name,
+    depth,
+    label: catalogGroupOptionLabel({ group, depth }),
+    selected: selectedGroupIds.has(group.id),
+  }));
+  const selectedCategoryItems = categoryItems.filter((item) => item.selected);
+  const sellerItems = sellersState.sellers.map((seller) => ({
+    id: seller.sellerId,
+    name: seller.name,
+    selected: selectedSellerIds.has(seller.sellerId),
+  }));
+  const selectedSellerItems = sellerItems.filter((item) => item.selected);
+  const hasAppliedFilters = Boolean(groupIds.length || sellerIds.length || stateIds.length || hasInvalidGroupId || hasInvalidSellerId || hasInvalidStateId);
   const hasFilters = Boolean(search || hasAppliedFilters || sort !== 'name' || page !== 1);
 
   function load() {
     const requestId = catalogRequestId.current + 1;
     catalogRequestId.current = requestId;
 
-    if (hasInvalidGroupId || hasInvalidSellerId) {
-      setState({ status: 'error', message: hasInvalidGroupId ? 'Некорректный параметр категории.' : 'Некорректный параметр продавца.' });
+    if (hasInvalidGroupId || hasInvalidSellerId || hasInvalidStateId) {
+      setState({
+        status: 'error',
+        message: hasInvalidGroupId
+          ? 'Некорректный параметр категории.'
+          : hasInvalidSellerId
+            ? 'Некорректный параметр продавца.'
+            : 'Некорректный параметр состояния.',
+      });
       return;
     }
 
@@ -211,18 +200,19 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
       });
   }
 
-  useEffect(load, [search, groupIds, sellerIds, sort, page, isStore, storeId, hasInvalidGroupId, hasInvalidSellerId]);
+  useEffect(load, [search, groupIds, sellerIds, stateIds, sort, page, isStore, storeId, hasInvalidGroupId, hasInvalidSellerId, hasInvalidStateId]);
 
   useEffect(() => {
     if (isStore || restoredStoredFilters.current) return;
     restoredStoredFilters.current = true;
     if (location.key !== 'default') return;
-    if (searchParams.has('group_id') || searchParams.has('seller_id')) return;
+    if (searchParams.has('group_id') || searchParams.has('seller_id') || searchParams.has('state')) return;
     const stored = loadStoredSearchFilters();
-    if (!stored.categoryIds.length && !stored.sellerIds.length) return;
+    if (!stored.categoryIds.length && !stored.sellerIds.length && !stored.stateIds.length) return;
     const next = new URLSearchParams(searchParams);
     if (stored.categoryIds.length) next.set('group_id', stored.categoryIds.join(','));
     if (stored.sellerIds.length) next.set('seller_id', stored.sellerIds.join(','));
+    if (stored.stateIds.length) next.set('state', stored.stateIds.join(','));
     next.set('page', '1');
     skipStoredFiltersSave.current = true;
     setSearchParams(next, { replace: true });
@@ -233,10 +223,10 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
       skipStoredFiltersSave.current = false;
       return;
     }
-    if (!isStore && !hasInvalidGroupId && !hasInvalidSellerId) {
-      saveStoredSearchFilters({ categoryIds: groupIds, sellerIds });
+    if (!isStore && !hasInvalidGroupId && !hasInvalidSellerId && !hasInvalidStateId) {
+      saveStoredSearchFilters({ categoryIds: groupIds, sellerIds, stateIds });
     }
-  }, [groupIds, hasInvalidGroupId, hasInvalidSellerId, isStore, sellerIds]);
+  }, [groupIds, hasInvalidGroupId, hasInvalidSellerId, hasInvalidStateId, isStore, sellerIds, stateIds]);
 
   useEffect(() => {
     let active = true;
@@ -296,6 +286,7 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
     const next = new URLSearchParams(searchParams);
     next.delete('group_id');
     next.delete('seller_id');
+    next.delete('state');
     next.set('page', '1');
     setSearchParams(next);
     trackEvent('catalog_filter_use', { screen: analyticsScreen, filter_action: 'clear' });
@@ -311,6 +302,11 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
     const next = toggleCatalogGroupParam(sellerIds, sellerId);
     updateParam('seller_id', next);
     trackEvent('catalog_filter_use', { screen: analyticsScreen, selected_count: next ? next.split(',').length : 0 });
+  }
+
+  function toggleState(stateId: StateFilterId) {
+    updateParam('state', toggleCatalogStateParam(stateIds, stateId));
+    trackEvent('catalog_filter_use', { screen: analyticsScreen, filter: stateId });
   }
 
   function touchCategoryPanel() {
@@ -431,70 +427,21 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
                 ariaLabel: `Категории, выбрано ${selectedCategoryItems.length}`,
                 triggerContent: <CategoryToggleContent mode={categoryMode} count={selectedCategoryItems.length} />,
                 panel: (
-                  <Stack
-                    gap="sm"
-                    onFocus={touchCategoryPanel}
-                    onKeyDown={touchCategoryPanel}
-                    onPointerDown={touchCategoryPanel}
-                    data-testid="catalog-category-panel-body"
-                  >
-                    <Row gap="sm" wrap align="center">
-                      <Button
-                        variant={categoryMode === 'text' ? 'primary' : 'secondary'}
-                        size="sm"
-                        onClick={() => {
-                          setCategoryMode('text');
-                          trackEvent('category_view_mode_text', { screen: analyticsScreen });
-                        }}
-                      >
-                        Текст
-                      </Button>
-                      <Button
-                        variant={categoryMode === 'icons' ? 'primary' : 'secondary'}
-                        size="sm"
-                        onClick={() => {
-                          setCategoryMode('icons');
-                          trackEvent('category_view_mode_icon', { screen: analyticsScreen });
-                        }}
-                      >
-                        Иконки
-                      </Button>
-                      <label className="gm-catalog-category-panel__toggle">
-                        <input
-                          type="checkbox"
-                          checked={autoCollapseCategories}
-                          onChange={(event) => setAutoCollapseCategories(event.currentTarget.checked)}
-                        />
-                        <Text variant="caption" as="span">
-                          Автосворачивание
-                        </Text>
-                      </label>
-                    </Row>
-                    <div
-                      id="catalog-category-list"
-                      className={`gm-catalog-category-list gm-catalog-category-list--${categoryMode}`}
-                      aria-label="Категории"
-                      data-testid="catalog-category-list"
-                    >
-                      {categoryItems.map(({ group, depth, iconKind, label }) => (
-                        <Chip
-                          key={group.id}
-                          selected={selectedGroupIds.has(group.id)}
-                          disabled={groupsState.status === 'loading'}
-                          onClick={() => toggleGroup(group.id)}
-                          title={group.name}
-                          aria-label={categoryMode === 'icons' ? group.name : undefined}
-                          className="gm-catalog-category-chip"
-                          style={{ '--gm-category-depth': depth } as CSSProperties}
-                        >
-                          <CategoryIcon kind={iconKind} />
-                          {categoryMode === 'text' && <span className="gm-catalog-category-chip__label">{label}</span>}
-                        </Chip>
-                      ))}
-                      {groupsState.status === 'loading' && <Text tone="secondary">Категории загружаются</Text>}
-                      {groupsState.status === 'error' && <Text tone="secondary">{groupsState.message}</Text>}
-                    </div>
-                  </Stack>
+                  <CategoryFilter
+                    items={categoryItems}
+                    mode={categoryMode}
+                    autoCollapse={autoCollapseCategories}
+                    onModeChange={(mode) => {
+                      setCategoryMode(mode);
+                      trackEvent(mode === 'text' ? 'category_view_mode_text' : 'category_view_mode_icon', { screen: analyticsScreen });
+                    }}
+                    onAutoCollapseChange={setAutoCollapseCategories}
+                    onToggle={(id) => toggleGroup(Number(id))}
+                    onInteract={touchCategoryPanel}
+                    loading={groupsState.status === 'loading'}
+                    error={groupsState.status === 'error' ? groupsState.message : undefined}
+                    testIdPrefix="catalog"
+                  />
                 ),
               },
               {
@@ -504,24 +451,27 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
                 testId: 'catalog-seller-toggle',
                 ariaLabel: `Продавцы, выбрано ${selectedSellerItems.length}`,
                 panel: (
-                  <Stack gap="xs" data-testid="catalog-seller-panel-body">
-                    {sellerItems.map(({ seller }) => (
-                      <label key={seller.sellerId} className="gm-search-filter-option">
-                        <input
-                          type="checkbox"
-                          checked={selectedSellerIds.has(seller.sellerId)}
-                          disabled={sellersState.status === 'loading'}
-                          onChange={() => toggleSeller(Number(seller.sellerId))}
-                        />
-                        <span>{seller.name}</span>
-                      </label>
-                    ))}
-                    {sellersState.status === 'loading' && <Text tone="secondary">Продавцы загружаются</Text>}
-                    {sellersState.status === 'error' && <Text tone="secondary">{sellersState.message}</Text>}
-                    {sellersState.status === 'ready' && sellersState.sellers.length === 0 && (
-                      <Text tone="secondary">Продавцы не найдены</Text>
-                    )}
-                  </Stack>
+                  <SellerFilter
+                    items={sellerItems}
+                    status={sellersState.status}
+                    error={sellersState.status === 'error' ? sellersState.message : undefined}
+                    onToggle={(id) => toggleSeller(Number(id))}
+                    testId="catalog-seller-panel-body"
+                  />
+                ),
+              },
+              {
+                id: 'state',
+                label: 'Состояние',
+                count: stateIds.length,
+                testId: 'catalog-state-toggle',
+                ariaLabel: `Состояние, выбрано ${stateIds.length}`,
+                panel: (
+                  <StateFilter
+                    selected={stateIds}
+                    onToggle={toggleState}
+                    testId="catalog-state-filter"
+                  />
                 ),
               },
             ]}
@@ -551,20 +501,13 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
             }
             chipsSlot={
               <Row gap="sm" wrap align="center" aria-label="Активные фильтры">
-                {selectedCategoryItems.map(({ group, iconKind }) => (
-                  <Chip
-                    key={group.id}
-                    selected
-                    onClick={() => toggleGroup(group.id)}
-                    title={group.name}
-                    aria-label={categoryMode === 'icons' ? `Убрать категорию ${group.name}` : undefined}
-                    className={`gm-catalog-selected-category gm-catalog-selected-category--${categoryMode}`}
-                  >
-                    <CategoryIcon kind={iconKind} />
-                    {categoryMode === 'text' && <span>{group.name} ×</span>}
+                <SelectedCategoryChips items={selectedCategoryItems} mode={categoryMode} onToggle={(id) => toggleGroup(Number(id))} />
+                {sellerIds.length > 0 && <Chip onClick={() => updateParam('seller_id', null)}>Продавцы: {sellerIds.join(', ')} ×</Chip>}
+                {stateIds.map((id) => (
+                  <Chip key={id} selected onClick={() => toggleState(id)}>
+                    {stateFilterLabel(id)} ×
                   </Chip>
                 ))}
-                {sellerIds.length > 0 && <Chip onClick={() => updateParam('seller_id', null)}>Продавцы: {sellerIds.join(', ')} ×</Chip>}
               </Row>
             }
           />

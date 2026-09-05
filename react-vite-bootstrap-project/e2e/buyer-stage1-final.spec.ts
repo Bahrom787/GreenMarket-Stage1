@@ -323,8 +323,8 @@ test('Map Screen keeps header sections separated and FAB inside viewport', async
   await page.locator('.gm-search-filter-bar__entity-option').first().click();
   await expect(page.getByTestId('map-search')).toHaveAttribute('placeholder', 'Найти продавца');
 
-  await page.getByTestId('search-filter-group-filters').click();
-  const filter = page.getByTestId('search-filter-panel-filters');
+  await page.getByTestId('map-category-toggle').click();
+  const filter = page.getByTestId('search-filter-panel-categories');
   await expect(filter).toBeVisible();
   let filterBox = await filter.boundingBox();
   expect(filterBox).not.toBeNull();
@@ -358,7 +358,7 @@ test('Map Screen keeps header sections separated and FAB inside viewport', async
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await expectMapLayoutFits();
-  await page.getByTestId('search-filter-group-filters').click();
+  await page.getByTestId('map-category-toggle').click();
   filterBox = await filter.boundingBox();
   expect(filterBox).not.toBeNull();
   expect(filterBox!.x).toBeGreaterThanOrEqual(0);
@@ -390,13 +390,17 @@ test('Global Catalog, Seller List and Map share the SearchFilterBar structure', 
   await expectInOneBar([
     '.gm-search-filter-bar__search',
     '[data-testid="catalog-category-toggle"]',
+    '[data-testid="catalog-seller-toggle"]',
+    '[data-testid="catalog-state-toggle"]',
   ]);
   await expect(page.locator('.gm-search-filter-bar').first().locator('.gm-search-filter-bar__sort button')).toHaveCount(2);
 
   await page.goto('/seller-list');
   await expectInOneBar([
     '.gm-search-filter-bar__search',
+    '[data-testid="seller-list-category-toggle"]',
     '[data-testid="search-filter-group-sellers"]',
+    '[data-testid="seller-list-state-toggle"]',
     '[data-testid="seller-list-search"]',
     '[data-testid="seller-list-show-products"]',
   ]);
@@ -405,7 +409,8 @@ test('Global Catalog, Seller List and Map share the SearchFilterBar structure', 
   await expectInOneBar([
     '.gm-search-filter-bar__search',
     '.gm-search-filter-bar__entity-switch',
-    '[data-testid="search-filter-group-filters"]',
+    '[data-testid="map-category-toggle"]',
+    '[data-testid="map-state-toggle"]',
   ]);
 });
 
@@ -427,13 +432,13 @@ test('SearchFilterBar keeps one slot order across screens', async ({ page }) => 
   }
 
   await page.goto('/');
-  expect(await slotNames()).toEqual(['search', 'filter', 'filter', 'sort']);
+  expect(await slotNames()).toEqual(['search', 'filter', 'filter', 'filter', 'sort']);
 
   await page.goto('/seller-list');
-  expect(await slotNames()).toEqual(['search', 'filter', 'actions']);
+  expect(await slotNames()).toEqual(['search', 'filter', 'filter', 'filter', 'actions']);
 
   await page.goto('/map');
-  expect(await slotNames()).toEqual(['search', 'entity', 'filter', 'actions']);
+  expect(await slotNames()).toEqual(['search', 'entity', 'filter', 'filter', 'actions']);
 });
 
 test('SearchFilterBar uses one layout model across Global screens', async ({ page }) => {
@@ -519,24 +524,28 @@ test('Map SearchFilterBar persists selected filters through shared storage', asy
   await mockBuyerApi(page);
 
   await page.goto('/map');
-  await page.getByTestId('search-filter-group-filters').click();
-  const filters = page.getByTestId('search-filter-panel-filters').locator('input[type="checkbox"]');
-  await expect.poll(() => filters.count()).toBeGreaterThan(4);
-  await expect(filters.nth(1)).toBeVisible();
-  await filters.nth(1).check();
+  await page.getByTestId('map-category-toggle').click();
+  const category = page.getByTestId('map-category-list').getByRole('button').first();
+  await expect(category).toBeVisible();
+  const categoryName = await category.textContent();
+  await category.click();
+  await page.getByTestId('map-state-toggle').click();
+  await page.getByTestId('map-state-filter-open').click();
 
   await expect
     .poll(() =>
       page.evaluate(() => {
         const stored = JSON.parse(localStorage.getItem('gm.searchFilterBar.filters.v1') ?? '{}') as { mapFilters?: Record<string, string[]> };
-        return stored.mapFilters?.category?.length ?? 0;
+        return `${stored.mapFilters?.category?.length ?? 0}:${stored.mapFilters?.state?.join(',') ?? ''}`;
       }),
     )
-    .toBe(1);
+    .toBe('1:open');
 
   await page.reload();
-  await page.getByTestId('search-filter-group-filters').click();
-  await expect(page.getByTestId('search-filter-panel-filters').locator('input[type="checkbox"]').nth(1)).toBeChecked();
+  await page.getByTestId('map-category-toggle').click();
+  await expect(page.getByRole('button', { name: categoryName?.trim() ?? '' }).first()).toHaveAttribute('aria-pressed', 'true');
+  await page.getByTestId('map-state-toggle').click();
+  await expect(page.getByTestId('map-state-filter-open')).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('Map tool buttons keep one shared size', async ({ page }) => {
