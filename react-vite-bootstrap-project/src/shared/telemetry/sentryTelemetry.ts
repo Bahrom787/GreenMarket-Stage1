@@ -35,9 +35,7 @@ export function initTelemetry() {
     release: release(),
     environment: import.meta.env.MODE,
     beforeSend(event) {
-      delete event.request?.cookies;
-      delete event.request?.headers;
-      return event;
+      return sanitizeSentryEvent(event);
     },
   });
 
@@ -67,6 +65,35 @@ export function initTelemetry() {
       data: event.payload,
     });
   });
+}
+
+export function sanitizeSentryEvent<T extends {
+  request?: {
+    cookies?: unknown;
+    headers?: unknown;
+    data?: unknown;
+    query_string?: unknown;
+    url?: string;
+  };
+}>(event: T): T {
+  if (!event.request) return event;
+  delete event.request.cookies;
+  delete event.request.headers;
+  delete event.request.data;
+  delete event.request.query_string;
+  if (event.request.url) event.request.url = stripUrlQuery(event.request.url);
+  return event;
+}
+
+function stripUrlQuery(value: string) {
+  try {
+    const url = new URL(value);
+    url.search = '';
+    url.hash = '';
+    return url.toString();
+  } catch {
+    return value.split(/[?#]/, 1)[0];
+  }
 }
 
 function installGlobalErrorHandlers() {
