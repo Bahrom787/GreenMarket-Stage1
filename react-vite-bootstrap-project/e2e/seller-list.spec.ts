@@ -163,8 +163,8 @@ test('Seller List selects sellers, opens Global Catalog filter and browser Back 
   await expect(page.getByText(/выбрано: 2/)).toBeVisible();
 
   await page.getByTestId('seller-list-show-products').click();
-  await expect(page).toHaveURL(/\/\?seller_id=6%2C7|\/\?seller_id=6,7/);
-  expect(lastProductRequest(requests)).toContain('/api/v1/catalog/products?seller_id=6,7');
+  await expect(page).toHaveURL(/\/\?search=fruit&seller_id=6%2C7|\/\?search=fruit&seller_id=6,7/);
+  expect(lastProductRequest(requests)).toContain('/api/v1/catalog/products?seller_id=6,7&search=fruit');
 
   await page.goBack();
   await expect(page).toHaveURL(/\/seller-list/);
@@ -222,6 +222,20 @@ test('Seller List restores selected sellers from LocalStorage and lets URL overr
   await page.goto('/seller-list?seller_id=6');
   await expect(page.getByTestId('seller-list-row-6')).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByTestId('seller-list-row-7')).toHaveAttribute('aria-selected', 'false');
+});
+
+test('Seller List keeps selected sellers through Map navigation and return', async ({ page }) => {
+  await mockSellerList(page);
+
+  await page.goto('/seller-list');
+  await page.getByTestId('seller-list-row-6').click();
+  await expect(page.getByTestId('seller-list-row-6')).toHaveAttribute('aria-selected', 'true');
+
+  await page.goto('/map');
+  await page.goto('/seller-list');
+
+  await expect(page).toHaveURL(/seller_id=6/);
+  await expect(page.getByTestId('seller-list-row-6')).toHaveAttribute('aria-selected', 'true');
 });
 
 test('Map to Seller List returns to Map through browser Back', async ({ page }) => {

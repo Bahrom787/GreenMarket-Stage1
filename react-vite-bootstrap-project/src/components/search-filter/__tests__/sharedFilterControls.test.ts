@@ -1,12 +1,25 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { clearStoredSearchFilters, loadStoredSearchFilters, saveStoredSearchFilters } from '../filterStorage';
 
 function source(path: string) {
   return readFileSync(join(process.cwd(), path), 'utf8');
 }
 
 describe('shared SearchFilterBar controls', () => {
+  beforeEach(() => {
+    const store = new Map<string, string>();
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      value: {
+        getItem: (key: string) => store.get(key) ?? null,
+        setItem: (key: string, value: string) => store.set(key, value),
+        removeItem: (key: string) => store.delete(key),
+      },
+    });
+  });
+
   it('uses the same CategoryFilter on Catalog, Seller List and Map', () => {
     for (const path of [
       'src/buyer_mvp/screens/CatalogScreen.tsx',
@@ -25,5 +38,38 @@ describe('shared SearchFilterBar controls', () => {
     ]) {
       expect(source(path)).toContain('@/components/search-filter/StateFilter');
     }
+  });
+
+  it('persists one global filter state with safe defaults', () => {
+    clearStoredSearchFilters();
+    expect(loadStoredSearchFilters()).toEqual({
+      categoryIds: [],
+      sellerIds: [],
+      stateIds: [],
+      search: '',
+      sort: 'name',
+      mapFilters: {},
+    });
+
+    saveStoredSearchFilters({
+      categoryIds: [17],
+      sellerIds: [6],
+      stateIds: ['open'],
+      search: 'milk',
+      sort: 'price',
+      mapFilters: { state: ['available'] },
+    });
+
+    expect(loadStoredSearchFilters()).toEqual({
+      categoryIds: [17],
+      sellerIds: [6],
+      stateIds: ['open'],
+      search: 'milk',
+      sort: 'price',
+      mapFilters: { state: ['available'] },
+    });
+
+    localStorage.setItem('gm.searchFilterBar.filters.v1', '{broken');
+    expect(loadStoredSearchFilters().sort).toBe('name');
   });
 });

@@ -214,7 +214,7 @@ test('Global Catalog -> Product -> Store Global preserves URL context and histor
   await expect(page).toHaveURL(/\/product\/169/);
 
   await page.locator('.gm-site-nav__link[href="/"]').click();
-  await expect(page).toHaveURL('/');
+  await expect(page).toHaveURL(/\/\?search=apple&group_id=17%2C18&sort=price&page=1|\/\?search=apple&group_id=17,18&sort=price&page=1/);
   await page.goBack();
   await expect(page).toHaveURL(/\/product\/169/);
 
@@ -279,7 +279,7 @@ test('Seller List and Map entry keep Buyer navigation on React routes', async ({
   await expect(page.getByTestId('seller-list-row-6')).toBeVisible();
   await page.getByTestId('seller-list-row-6').click();
   await page.getByTestId('seller-list-show-products').click();
-  await expect(page).toHaveURL('/?seller_id=6');
+  await expect(page).toHaveURL('/?search=marker&seller_id=6');
   await page.goBack();
   await expect(page).toHaveURL(/\/seller-list\?search=marker&seller_id=6|\/seller-list\?seller_id=6&search=marker/);
 
@@ -287,7 +287,7 @@ test('Seller List and Map entry keep Buyer navigation on React routes', async ({
   await expect(page.getByTestId('map-screen')).toBeVisible();
   await page.getByTestId('fab-panel-toggle').click();
   await page.getByTestId('open-catalog').click();
-  await expect(page).toHaveURL('/');
+  await expect(page).toHaveURL('/?search=marker&seller_id=6&page=1');
 });
 
 test('Map Screen keeps header sections separated and FAB inside viewport', async ({ page }) => {
@@ -546,6 +546,48 @@ test('Map SearchFilterBar persists selected filters through shared storage', asy
   await expect(page.getByRole('button', { name: categoryName?.trim() ?? '' }).first()).toHaveAttribute('aria-pressed', 'true');
   await page.getByTestId('map-state-toggle').click();
   await expect(page.getByTestId('map-state-filter-open')).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('shared filters persist from Catalog to Map and back to Catalog', async ({ page }) => {
+  const requests = await mockBuyerApi(page);
+
+  await page.goto('/');
+  await page.locator('.gm-buyer-search__input').fill('apple');
+  await page.locator('.gm-buyer-search__input').press('Enter');
+  await page.getByTestId('catalog-category-toggle').click();
+  await page.getByRole('button', { name: 'Vegetables', exact: true }).click();
+  await page.getByTestId('catalog-seller-toggle').click();
+  await expect(page.getByTestId('catalog-seller-panel-body')).toContainText('Dev marker');
+  await page.getByTestId('catalog-seller-panel-body').getByLabel('Dev marker').check();
+  await page.getByTestId('catalog-state-toggle').click();
+  await page.getByTestId('catalog-state-filter-open').click();
+  await page.locator('.gm-search-filter-bar__sort button').nth(1).click();
+
+  await expect(page).toHaveURL(/search=apple/);
+  await expect(page).toHaveURL(/group_id=17/);
+  await expect(page).toHaveURL(/seller_id=6/);
+  await expect(page).toHaveURL(/state=open/);
+  await expect(page).toHaveURL(/sort=price/);
+  expect(lastProductRequest(requests)).toContain('/api/v1/catalog/products?group_id=17&seller_id=6&search=apple&sort=price&page=1');
+
+  await page.goto('/map');
+  await expect(page.getByTestId('map-search')).toHaveValue('apple');
+  await page.getByTestId('map-state-toggle').click();
+  await expect(page.getByTestId('map-state-filter-open')).toHaveAttribute('aria-pressed', 'true');
+
+  await page.goto('/');
+  await expect(page).toHaveURL(/search=apple/);
+  await expect(page).toHaveURL(/group_id=17/);
+  await expect(page).toHaveURL(/seller_id=6/);
+  await expect(page).toHaveURL(/state=open/);
+  await expect(page).toHaveURL(/sort=price/);
+
+  await page.getByTestId('search-filter-clear').click();
+  await page.reload();
+  await expect(page).not.toHaveURL(/search=/);
+  await expect(page).not.toHaveURL(/group_id=/);
+  await expect(page).not.toHaveURL(/seller_id=/);
+  await expect(page).not.toHaveURL(/state=/);
 });
 
 test('Map tool buttons keep one shared size', async ({ page }) => {

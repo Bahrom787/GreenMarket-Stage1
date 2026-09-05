@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Content, Header, Row, Stack } from '@/layout';
 import { Avatar, Button, Chip, EmptyState, ErrorState, ListItem, Text } from '@/design-system/components';
 import { CatalogApiError, fetchGroups, fetchSellers } from '@/buyer_mvp/api';
@@ -25,7 +25,7 @@ import {
 import { SellerFilter } from '@/components/search-filter/SellerFilter';
 import { StateFilter } from '@/components/search-filter/StateFilter';
 import { stateFilterLabel, type StateFilterId } from '@/components/search-filter/stateFilterModel';
-import { loadStoredSearchFilters, saveStoredSearchFilters } from '@/components/search-filter/filterStorage';
+import { clearStoredSearchFilters, loadStoredSearchFilters, saveStoredSearchFilters } from '@/components/search-filter/filterStorage';
 import './seller-list.css';
 
 type LoadState =
@@ -42,7 +42,6 @@ const SEARCH_DEBOUNCE_MS = 300;
 
 export function SellerListScreenView() {
   const navigate = useNavigate();
-  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const search = searchParams.get('search') ?? '';
   const parsedGroupIds = useMemo(() => catalogGroupIds(searchParams.get('group_id')), [searchParams]);
@@ -114,25 +113,25 @@ export function SellerListScreenView() {
   useEffect(() => {
     if (restoredStoredFilters.current) return;
     restoredStoredFilters.current = true;
-    if (location.key !== 'default') return;
-    if (searchParams.has('group_id') || searchParams.has('seller_id') || searchParams.has('state')) return;
+    if (searchParams.toString()) return;
     const stored = loadStoredSearchFilters();
-    if (!stored.categoryIds.length && !stored.sellerIds.length && !stored.stateIds.length) return;
+    if (!stored.search && !stored.categoryIds.length && !stored.sellerIds.length && !stored.stateIds.length) return;
     const next = new URLSearchParams(searchParams);
+    if (stored.search) next.set('search', stored.search);
     if (stored.categoryIds.length) next.set('group_id', stored.categoryIds.join(','));
     if (stored.sellerIds.length) next.set('seller_id', stored.sellerIds.join(','));
     if (stored.stateIds.length) next.set('state', stored.stateIds.join(','));
     skipStoredFiltersSave.current = true;
     setSearchParams(next, { replace: true });
-  }, [location.key, searchParams, setSearchParams]);
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     if (skipStoredFiltersSave.current) {
       skipStoredFiltersSave.current = false;
       return;
     }
-    saveStoredSearchFilters({ categoryIds: selectedCategoryIds, sellerIds: selectedSellerIds, stateIds: selectedStateIds });
-  }, [selectedCategoryIds, selectedSellerIds, selectedStateIds]);
+    saveStoredSearchFilters({ categoryIds: selectedCategoryIds, sellerIds: selectedSellerIds, stateIds: selectedStateIds, search });
+  }, [search, selectedCategoryIds, selectedSellerIds, selectedStateIds]);
 
   useEffect(() => {
     const value = searchInput.trim();
@@ -187,7 +186,9 @@ export function SellerListScreenView() {
   }
 
   function clearSellerFilters() {
+    clearStoredSearchFilters();
     const next = new URLSearchParams(searchParams);
+    next.delete('search');
     next.delete('group_id');
     next.delete('seller_id');
     next.delete('state');
@@ -226,9 +227,12 @@ export function SellerListScreenView() {
       trackEvent('seller_filter_catalog_open', { selected_count: selectedSellerIds.length });
     }
     const next = new URLSearchParams();
+    if (search) next.set('search', search);
     if (selectedCategoryIds.length) next.set('group_id', selectedCategoryIds.join(','));
     if (selectedSellerIds.length) next.set('seller_id', selectedSellerIds.join(','));
     if (selectedStateIds.length) next.set('state', selectedStateIds.join(','));
+    const storedSort = loadStoredSearchFilters().sort;
+    if (storedSort !== 'name') next.set('sort', storedSort);
     navigate(next.toString() ? `/?${next.toString()}` : '/');
   }
 
@@ -312,7 +316,7 @@ export function SellerListScreenView() {
           autoCollapseMs={7000}
           autoCollapseEnabled={autoCollapseCategories}
           activityKey={filterActivity}
-          hasFilters={selectedCategoryIds.length > 0 || selectedCount > 0 || selectedStateIds.length > 0}
+          hasFilters={Boolean(search || selectedCategoryIds.length > 0 || selectedCount > 0 || selectedStateIds.length > 0)}
           onClearFilters={clearSellerFilters}
           chipsSlot={
             <Row gap="sm" wrap align="center" aria-label="Активные фильтры">

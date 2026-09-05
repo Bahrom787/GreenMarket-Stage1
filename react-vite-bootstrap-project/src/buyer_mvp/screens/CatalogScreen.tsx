@@ -15,7 +15,7 @@ import {
 import { SellerFilter } from '@/components/search-filter/SellerFilter';
 import { StateFilter } from '@/components/search-filter/StateFilter';
 import { stateFilterLabel, type StateFilterId } from '@/components/search-filter/stateFilterModel';
-import { loadStoredSearchFilters, saveStoredSearchFilters } from '@/components/search-filter/filterStorage';
+import { clearStoredSearchFilters, loadStoredSearchFilters, saveStoredSearchFilters } from '@/components/search-filter/filterStorage';
 import { ProductCard, ProductCardSkeleton } from '../components/ProductCard';
 import { toBuyerSellerListRow, type BuyerSellerListRow } from '../sellerListPresentation';
 import {
@@ -128,7 +128,7 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
   }));
   const selectedSellerItems = sellerItems.filter((item) => item.selected);
   const hasAppliedFilters = Boolean(groupIds.length || sellerIds.length || stateIds.length || hasInvalidGroupId || hasInvalidSellerId || hasInvalidStateId);
-  const hasFilters = Boolean(search || hasAppliedFilters || sort !== 'name' || page !== 1);
+  const hasFilters = Boolean(search || hasAppliedFilters || sort !== 'name');
 
   function load() {
     const requestId = catalogRequestId.current + 1;
@@ -205,18 +205,19 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
   useEffect(() => {
     if (isStore || restoredStoredFilters.current) return;
     restoredStoredFilters.current = true;
-    if (location.key !== 'default') return;
-    if (searchParams.has('group_id') || searchParams.has('seller_id') || searchParams.has('state')) return;
+    if (searchParams.toString()) return;
     const stored = loadStoredSearchFilters();
-    if (!stored.categoryIds.length && !stored.sellerIds.length && !stored.stateIds.length) return;
+    if (!stored.search && stored.sort === 'name' && !stored.categoryIds.length && !stored.sellerIds.length && !stored.stateIds.length) return;
     const next = new URLSearchParams(searchParams);
+    if (stored.search) next.set('search', stored.search);
     if (stored.categoryIds.length) next.set('group_id', stored.categoryIds.join(','));
     if (stored.sellerIds.length) next.set('seller_id', stored.sellerIds.join(','));
     if (stored.stateIds.length) next.set('state', stored.stateIds.join(','));
+    if (stored.sort !== 'name') next.set('sort', stored.sort);
     next.set('page', '1');
     skipStoredFiltersSave.current = true;
     setSearchParams(next, { replace: true });
-  }, [isStore, location.key, searchParams, setSearchParams]);
+  }, [isStore, searchParams, setSearchParams]);
 
   useEffect(() => {
     if (skipStoredFiltersSave.current) {
@@ -224,9 +225,9 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
       return;
     }
     if (!isStore && !hasInvalidGroupId && !hasInvalidSellerId && !hasInvalidStateId) {
-      saveStoredSearchFilters({ categoryIds: groupIds, sellerIds, stateIds });
+      saveStoredSearchFilters({ categoryIds: groupIds, sellerIds, stateIds, search, sort });
     }
-  }, [groupIds, hasInvalidGroupId, hasInvalidSellerId, hasInvalidStateId, isStore, sellerIds, stateIds]);
+  }, [groupIds, hasInvalidGroupId, hasInvalidSellerId, hasInvalidStateId, isStore, search, sellerIds, sort, stateIds]);
 
   useEffect(() => {
     let active = true;
@@ -283,10 +284,13 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
       trackEvent('catalog_filter_use', { screen: analyticsScreen, filter_action: 'clear' });
       return;
     }
+    clearStoredSearchFilters();
     const next = new URLSearchParams(searchParams);
+    next.delete('search');
     next.delete('group_id');
     next.delete('seller_id');
     next.delete('state');
+    next.set('sort', 'name');
     next.set('page', '1');
     setSearchParams(next);
     trackEvent('catalog_filter_use', { screen: analyticsScreen, filter_action: 'clear' });
@@ -487,7 +491,7 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
             autoCollapseMs={7000}
             autoCollapseEnabled={autoCollapseCategories}
             activityKey={categoryPanelActivity}
-            hasFilters={hasAppliedFilters}
+            hasFilters={hasFilters}
             onClearFilters={clearFilters}
             sortSlot={
               <Row gap="sm" wrap>

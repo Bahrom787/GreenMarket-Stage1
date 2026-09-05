@@ -28,7 +28,7 @@ import {
 } from '@/components/search-filter/CategoryFilter';
 import { StateFilter } from '@/components/search-filter/StateFilter';
 import type { StateFilterId } from '@/components/search-filter/stateFilterModel';
-import { loadStoredSearchFilters, saveStoredSearchFilters } from '@/components/search-filter/filterStorage';
+import { clearStoredSearchFilters, loadStoredSearchFilters, saveStoredSearchFilters } from '@/components/search-filter/filterStorage';
 import { buildSellerFilters } from '@/platform-core/map/filters/SellerFilters';
 
 /** Зум при центрировании на конкретного продавца (поиск / выбор из списка). */
@@ -75,7 +75,7 @@ export function MapScreenView() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hideMapPois, setHideMapPois] = useState(false);
   const [searchMode, setSearchMode] = useState<MapSearchMode>('seller');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(() => loadStoredSearchFilters().search);
   const [mapOpenGroupId, setMapOpenGroupId] = useState<string | null>(null);
   const [categoryMode, setCategoryMode] = useState<CategoryPanelMode>('text');
   const [autoCollapseFilters, setAutoCollapseFilters] = useState(true);
@@ -133,7 +133,11 @@ export function MapScreenView() {
   useEffect(() => {
     if (restoredMapFiltersRef.current) return;
     restoredMapFiltersRef.current = true;
-    const storedFilters = loadStoredSearchFilters().mapFilters;
+    const stored = loadStoredSearchFilters();
+    const storedFilters = {
+      ...stored.mapFilters,
+      state: stored.mapFilters.state?.length ? stored.mapFilters.state : stored.stateIds,
+    };
     const entries = Object.entries(storedFilters);
     if (!entries.length) return;
     skipNextMapFilterSaveRef.current = true;
@@ -147,8 +151,15 @@ export function MapScreenView() {
       skipNextMapFilterSaveRef.current = false;
       return;
     }
-    saveStoredSearchFilters({ mapFilters: mapState.selectedFilters });
+    saveStoredSearchFilters({
+      mapFilters: mapState.selectedFilters,
+      stateIds: ((mapState.selectedFilters.state ?? []).filter((id) => id === 'open' || id === 'available')) as StateFilterId[],
+    });
   }, [mapState.selectedFilters]);
+
+  useEffect(() => {
+    saveStoredSearchFilters({ search: searchQuery });
+  }, [searchQuery]);
 
   // Сброс таймера snackbar об ошибке геолокации при размонтировании экрана
   // (остальные таймеры/дебаунсы принадлежат MapRuntime).
@@ -321,6 +332,8 @@ export function MapScreenView() {
   }, [handleFilterChange, mapState.selectedFilters.state]);
 
   const handleClearMapFilters = useCallback(() => {
+    clearStoredSearchFilters();
+    setSearchQuery('');
     handleFilterChange('category', []);
     handleFilterChange('state', []);
   }, [handleFilterChange]);
@@ -493,7 +506,7 @@ export function MapScreenView() {
           autoCollapseMs={7000}
           autoCollapseEnabled={autoCollapseFilters}
           activityKey={filterActivity}
-          hasFilters={activeMapFilterCount > 0}
+          hasFilters={Boolean(searchQuery || activeMapFilterCount > 0)}
           onClearFilters={handleClearMapFilters}
           actionsSlot={
             <IconButton label="Список продавцов" onClick={handleOpenSellerList}>
