@@ -75,7 +75,7 @@ export function MapScreenView() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hideMapPois, setHideMapPois] = useState(false);
   const [searchMode, setSearchMode] = useState<MapSearchMode>('seller');
-  const [searchQuery, setSearchQuery] = useState(() => loadStoredSearchFilters().search);
+  const [searchQuery, setSearchQuery] = useState(() => loadStoredSearchFilters().searchQuery);
   const [mapOpenGroupId, setMapOpenGroupId] = useState<string | null>(null);
   const [categoryMode, setCategoryMode] = useState<CategoryPanelMode>('text');
   const [autoCollapseFilters, setAutoCollapseFilters] = useState(true);
@@ -134,11 +134,10 @@ export function MapScreenView() {
     if (restoredMapFiltersRef.current) return;
     restoredMapFiltersRef.current = true;
     const stored = loadStoredSearchFilters();
-    const storedFilters = {
-      ...stored.mapFilters,
-      state: stored.mapFilters.state?.length ? stored.mapFilters.state : stored.stateIds,
-    };
-    const entries = Object.entries(storedFilters);
+    const entries = Object.entries({
+      category: stored.categoryIds.map(String),
+      state: stored.stateIds,
+    }).filter(([, optionIds]) => optionIds.length);
     if (!entries.length) return;
     skipNextMapFilterSaveRef.current = true;
     for (const [groupId, optionIds] of entries) {
@@ -152,13 +151,15 @@ export function MapScreenView() {
       return;
     }
     saveStoredSearchFilters({
-      mapFilters: mapState.selectedFilters,
+      categoryIds: (mapState.selectedFilters.category ?? [])
+        .map(Number)
+        .filter((id) => Number.isInteger(id) && id > 0),
       stateIds: ((mapState.selectedFilters.state ?? []).filter((id) => id === 'open' || id === 'available')) as StateFilterId[],
     });
   }, [mapState.selectedFilters]);
 
   useEffect(() => {
-    saveStoredSearchFilters({ search: searchQuery });
+    saveStoredSearchFilters({ searchQuery });
   }, [searchQuery]);
 
   // Сброс таймера snackbar об ошибке геолокации при размонтировании экрана

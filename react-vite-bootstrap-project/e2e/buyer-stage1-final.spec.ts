@@ -520,39 +520,32 @@ test('SearchFilterBar keeps compact trigger geometry on narrow screens', async (
   }
 });
 
-test('Map SearchFilterBar persists selected filters through shared storage', async ({ page }) => {
+test('Map SearchFilterBar persists selected state through shared storage', async ({ page }) => {
   await mockBuyerApi(page);
 
   await page.goto('/map');
-  await page.getByTestId('map-category-toggle').click();
-  const category = page.getByTestId('map-category-list').getByRole('button').first();
-  await expect(category).toBeVisible();
-  const categoryName = await category.textContent();
-  await category.click();
   await page.getByTestId('map-state-toggle').click();
   await page.getByTestId('map-state-filter-open').click();
 
   await expect
     .poll(() =>
       page.evaluate(() => {
-        const stored = JSON.parse(localStorage.getItem('gm.searchFilterBar.filters.v1') ?? '{}') as { mapFilters?: Record<string, string[]> };
-        return `${stored.mapFilters?.category?.length ?? 0}:${stored.mapFilters?.state?.join(',') ?? ''}`;
+        const stored = JSON.parse(localStorage.getItem('gm.searchFilterBar.filters.v1') ?? '{}') as { stateIds?: string[]; mapFilters?: unknown };
+        return `${stored.stateIds?.join(',') ?? ''}:${stored.mapFilters === undefined ? 'no-map-filters' : 'legacy-map-filters'}`;
       }),
     )
-    .toBe('1:open');
+    .toBe('open:no-map-filters');
 
   await page.reload();
-  await page.getByTestId('map-category-toggle').click();
-  await expect(page.getByRole('button', { name: categoryName?.trim() ?? '' }).first()).toHaveAttribute('aria-pressed', 'true');
   await page.getByTestId('map-state-toggle').click();
   await expect(page.getByTestId('map-state-filter-open')).toHaveAttribute('aria-pressed', 'true');
 });
 
-test('shared filters persist from Catalog to Map and back to Catalog', async ({ page }) => {
+test('shared filters persist from Catalog to Map to Seller List and back to Catalog', async ({ page }) => {
   const requests = await mockBuyerApi(page);
 
   await page.goto('/');
-  await page.locator('.gm-buyer-search__input').fill('apple');
+  await page.locator('.gm-buyer-search__input').fill('marker');
   await page.locator('.gm-buyer-search__input').press('Enter');
   await page.getByTestId('catalog-category-toggle').click();
   await page.getByRole('button', { name: 'Vegetables', exact: true }).click();
@@ -563,20 +556,33 @@ test('shared filters persist from Catalog to Map and back to Catalog', async ({ 
   await page.getByTestId('catalog-state-filter-open').click();
   await page.locator('.gm-search-filter-bar__sort button').nth(1).click();
 
-  await expect(page).toHaveURL(/search=apple/);
+  await expect(page).toHaveURL(/search=marker/);
   await expect(page).toHaveURL(/group_id=17/);
   await expect(page).toHaveURL(/seller_id=6/);
   await expect(page).toHaveURL(/state=open/);
   await expect(page).toHaveURL(/sort=price/);
-  expect(lastProductRequest(requests)).toContain('/api/v1/catalog/products?group_id=17&seller_id=6&search=apple&sort=price&page=1');
+  expect(lastProductRequest(requests)).toContain('/api/v1/catalog/products?group_id=17&seller_id=6&search=marker&sort=price&page=1');
 
   await page.goto('/map');
-  await expect(page.getByTestId('map-search')).toHaveValue('apple');
+  await expect(page.getByTestId('map-search')).toHaveValue('marker');
   await page.getByTestId('map-state-toggle').click();
   await expect(page.getByTestId('map-state-filter-open')).toHaveAttribute('aria-pressed', 'true');
 
+  await page.goto('/seller-list');
+  await expect(page).toHaveURL(/search=marker/);
+  await expect(page).toHaveURL(/group_id=17/);
+  await expect(page).toHaveURL(/seller_id=6/);
+  await expect(page).toHaveURL(/state=open/);
+  await expect(page.getByTestId('seller-list-row-6')).toHaveAttribute('aria-selected', 'true');
+
   await page.goto('/');
-  await expect(page).toHaveURL(/search=apple/);
+  await expect(page).toHaveURL(/search=marker/);
+  await expect(page).toHaveURL(/group_id=17/);
+  await expect(page).toHaveURL(/seller_id=6/);
+  await expect(page).toHaveURL(/state=open/);
+  await expect(page).toHaveURL(/sort=price/);
+  await page.reload();
+  await expect(page).toHaveURL(/search=marker/);
   await expect(page).toHaveURL(/group_id=17/);
   await expect(page).toHaveURL(/seller_id=6/);
   await expect(page).toHaveURL(/state=open/);

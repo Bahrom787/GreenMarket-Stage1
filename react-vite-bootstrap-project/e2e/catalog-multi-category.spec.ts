@@ -267,7 +267,7 @@ test('Global Catalog restores filters from LocalStorage but keeps explicit URL f
 
   await page.goto('/');
   await page.evaluate(() => {
-    localStorage.setItem('gm.searchFilterBar.filters.v1', JSON.stringify({ categoryIds: [17, 18], sellerIds: [6], search: 'milk', sort: 'price' }));
+    localStorage.setItem('gm.searchFilterBar.filters.v1', JSON.stringify({ searchQuery: 'milk', categoryIds: [17, 18], sellerIds: [6], sort: 'price' }));
   });
 
   await page.goto('/');

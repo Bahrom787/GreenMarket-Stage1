@@ -207,9 +207,9 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
     restoredStoredFilters.current = true;
     if (searchParams.toString()) return;
     const stored = loadStoredSearchFilters();
-    if (!stored.search && stored.sort === 'name' && !stored.categoryIds.length && !stored.sellerIds.length && !stored.stateIds.length) return;
+    if (!stored.searchQuery && stored.sort === 'name' && !stored.categoryIds.length && !stored.sellerIds.length && !stored.stateIds.length) return;
     const next = new URLSearchParams(searchParams);
-    if (stored.search) next.set('search', stored.search);
+    if (stored.searchQuery) next.set('search', stored.searchQuery);
     if (stored.categoryIds.length) next.set('group_id', stored.categoryIds.join(','));
     if (stored.sellerIds.length) next.set('seller_id', stored.sellerIds.join(','));
     if (stored.stateIds.length) next.set('state', stored.stateIds.join(','));
@@ -225,7 +225,7 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
       return;
     }
     if (!isStore && !hasInvalidGroupId && !hasInvalidSellerId && !hasInvalidStateId) {
-      saveStoredSearchFilters({ categoryIds: groupIds, sellerIds, stateIds, search, sort });
+      saveStoredSearchFilters({ searchQuery: search, categoryIds: groupIds, sellerIds, stateIds, sort });
     }
   }, [groupIds, hasInvalidGroupId, hasInvalidSellerId, hasInvalidStateId, isStore, search, sellerIds, sort, stateIds]);
 

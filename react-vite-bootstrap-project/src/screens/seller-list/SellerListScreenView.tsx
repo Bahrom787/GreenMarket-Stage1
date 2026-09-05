@@ -115,9 +115,9 @@ export function SellerListScreenView() {
     restoredStoredFilters.current = true;
     if (searchParams.toString()) return;
     const stored = loadStoredSearchFilters();
-    if (!stored.search && !stored.categoryIds.length && !stored.sellerIds.length && !stored.stateIds.length) return;
+    if (!stored.searchQuery && !stored.categoryIds.length && !stored.sellerIds.length && !stored.stateIds.length) return;
     const next = new URLSearchParams(searchParams);
-    if (stored.search) next.set('search', stored.search);
+    if (stored.searchQuery) next.set('search', stored.searchQuery);
     if (stored.categoryIds.length) next.set('group_id', stored.categoryIds.join(','));
     if (stored.sellerIds.length) next.set('seller_id', stored.sellerIds.join(','));
     if (stored.stateIds.length) next.set('state', stored.stateIds.join(','));
@@ -130,7 +130,7 @@ export function SellerListScreenView() {
       skipStoredFiltersSave.current = false;
       return;
     }
-    saveStoredSearchFilters({ categoryIds: selectedCategoryIds, sellerIds: selectedSellerIds, stateIds: selectedStateIds, search });
+    saveStoredSearchFilters({ searchQuery: search, categoryIds: selectedCategoryIds, sellerIds: selectedSellerIds, stateIds: selectedStateIds });
   }, [search, selectedCategoryIds, selectedSellerIds, selectedStateIds]);
 
   useEffect(() => {

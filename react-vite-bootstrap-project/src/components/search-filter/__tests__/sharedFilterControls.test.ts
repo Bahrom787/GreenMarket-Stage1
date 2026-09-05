@@ -43,30 +43,27 @@ describe('shared SearchFilterBar controls', () => {
   it('persists one global filter state with safe defaults', () => {
     clearStoredSearchFilters();
     expect(loadStoredSearchFilters()).toEqual({
+      searchQuery: '',
       categoryIds: [],
       sellerIds: [],
       stateIds: [],
-      search: '',
       sort: 'name',
-      mapFilters: {},
     });
 
     saveStoredSearchFilters({
+      searchQuery: 'milk',
       categoryIds: [17],
       sellerIds: [6],
       stateIds: ['open'],
-      search: 'milk',
       sort: 'price',
-      mapFilters: { state: ['available'] },
     });
 
     expect(loadStoredSearchFilters()).toEqual({
+      searchQuery: 'milk',
       categoryIds: [17],
       sellerIds: [6],
       stateIds: ['open'],
-      search: 'milk',
       sort: 'price',
-      mapFilters: { state: ['available'] },
     });
 
     localStorage.setItem('gm.searchFilterBar.filters.v1', '{broken');
