@@ -73,27 +73,12 @@
 }
 
 .gm-map-search__field {
-  position: relative;
   flex: 1 1 auto;
   min-width: 0;
 }
 
-.gm-map-search__field input {
-  width: 100%;
-  min-height: 44px;
-  border-radius: var(--radius-full);
-  border: var(--border-width-hairline) solid var(--color-border-subtle);
-  padding: var(--space-sm) 42px var(--space-sm) var(--space-xxxl);
-  font-family: var(--font-family-body);
-  font-size: var(--font-size-sm);
-  background: var(--color-surface-raised);
-  color: var(--color-text-primary);
-  outline: 0;
-}
-
-.gm-map-search__field:focus-within input {
-  border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 3px var(--color-selected-subtle);
+.gm-map-search__field .gm-buyer-search__input {
+  padding-right: 42px;
 }
 
 .gm-map-search__clear {
@@ -187,20 +172,10 @@
 .gm-map-controls .gm-search-filter-bar,
 .gm-map-controls .gm-map-search-filter {
   width: 100%;
-  max-width: 960px;
 }
 
 .gm-map-controls .gm-search-filter-bar__panel {
   max-height: min(360px, calc(100dvh - 160px));
-}
-
-.gm-map-filter-option {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  color: var(--color-text-primary);
-  font-family: var(--font-family-body);
-  font-size: var(--font-size-sm);
 }
 
 .gm-map-area-label {
@@ -224,11 +199,6 @@
   .gm-map-controls {
     padding-right: var(--space-md);
     padding-left: var(--space-md);
-  }
-
-  .gm-map-search-slot {
-    flex-basis: 100%;
-    max-width: none;
   }
 
   .gm-map-search {

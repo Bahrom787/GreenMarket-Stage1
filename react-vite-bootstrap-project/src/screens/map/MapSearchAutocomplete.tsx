@@ -122,9 +122,10 @@ export function MapSearchAutocomplete({
       <label className="gm-map-search__label" htmlFor="map-search-input">
         {label}
       </label>
-      <div className="gm-map-search__field">
+      <div className="gm-map-search__field gm-buyer-search">
         <span className="gm-buyer-search__icon" aria-hidden="true" />
         <input
+          className="gm-buyer-search__input"
           id="map-search-input"
           type="search"
           value={query}

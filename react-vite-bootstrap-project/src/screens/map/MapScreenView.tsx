@@ -429,7 +429,7 @@ export function MapScreenView() {
                     <Stack key={group.id} gap="xs">
                       <Text variant="bodyStrong">{group.label}</Text>
                       {group.allLabel && (
-                        <label className="gm-map-filter-option">
+                        <label className="gm-search-filter-option">
                           <input
                             type="checkbox"
                             checked={(mapState.selectedFilters[group.id] ?? []).length === 0}
@@ -441,7 +441,7 @@ export function MapScreenView() {
                       {group.options.map((option) => {
                         const selected = mapState.selectedFilters[group.id] ?? [];
                         return (
-                          <label key={option.id} className="gm-map-filter-option">
+                          <label key={option.id} className="gm-search-filter-option">
                             <input
                               type="checkbox"
                               checked={selected.includes(option.id)}

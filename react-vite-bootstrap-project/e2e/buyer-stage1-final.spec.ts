@@ -441,6 +441,8 @@ test('SearchFilterBar uses one layout model across Global screens', async ({ pag
 
   for (const width of [360, 390, 412, 768, 1440]) {
     await page.setViewportSize({ width, height: width >= 768 ? 900 : 844 });
+    const searchHeights: number[] = [];
+    const triggerHeights: number[] = [];
     for (const path of ['/', '/seller-list', '/map']) {
       await page.goto(path);
       const bar = page.locator('.gm-search-filter-bar').first();
@@ -451,6 +453,20 @@ test('SearchFilterBar uses one layout model across Global screens', async ({ pag
       await expect
         .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
         .toBe(true);
+      const metrics = await bar.evaluate((node) => {
+        const search = node.querySelector('.gm-search-filter-bar__search')?.getBoundingClientRect();
+        const trigger = node.querySelector('.gm-search-filter-bar__trigger')?.getBoundingClientRect();
+        const row = node.querySelector('.gm-search-filter-bar__row')?.getBoundingClientRect();
+        return {
+          searchHeight: Math.round(search?.height ?? 0),
+          triggerHeight: Math.round(trigger?.height ?? 0),
+          rowTop: Math.round(row?.top ?? 0),
+          searchTop: Math.round(search?.top ?? 0),
+        };
+      });
+      searchHeights.push(metrics.searchHeight);
+      triggerHeights.push(metrics.triggerHeight);
+      expect(metrics.searchTop).toBe(metrics.rowTop);
 
       const collapsed = await bar.boundingBox();
       await bar.locator('.gm-search-filter-bar__trigger').first().click();
@@ -469,6 +485,8 @@ test('SearchFilterBar uses one layout model across Global screens', async ({ pag
         expect(panelBox!.y + panelBox!.height).toBeLessThanOrEqual(contentBox!.y);
       }
     }
+    expect(new Set(searchHeights).size).toBe(1);
+    expect(new Set(triggerHeights).size).toBe(1);
   }
 });
 
