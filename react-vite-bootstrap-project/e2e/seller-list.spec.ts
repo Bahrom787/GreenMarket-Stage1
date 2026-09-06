@@ -30,6 +30,11 @@ const sellers = [
   },
 ];
 
+const groups = [
+  { id: 17, parent_id: null, name: 'Vegetables', sort_order: 10, product_count: 12 },
+  { id: 18, parent_id: null, name: 'Greens and Salads', sort_order: 20, product_count: 8 },
+];
+
 const sellerProducts = {
   products: [
     {
@@ -75,7 +80,7 @@ async function mockSellerList(page: Page, options: { failFirstMarkets?: boolean;
     }
 
     if (url.pathname.endsWith('/groups')) {
-      await route.fulfill({ json: { groups: [] } });
+      await route.fulfill({ json: { groups } });
       return;
     }
 
@@ -158,8 +163,8 @@ test('Seller List selects sellers, opens Global Catalog filter and browser Back 
   await expect(page.getByText(/выбрано: 2/)).toBeVisible();
 
   await page.getByTestId('seller-list-show-products').click();
-  await expect(page).toHaveURL(/\/\?seller_id=6%2C7|\/\?seller_id=6,7/);
-  expect(lastProductRequest(requests)).toContain('/api/v1/catalog/products?seller_id=6,7');
+  await expect(page).toHaveURL(/\/\?search=fruit&seller_id=6%2C7|\/\?search=fruit&seller_id=6,7/);
+  expect(lastProductRequest(requests)).toContain('/api/v1/catalog/products?seller_id=6,7&search=fruit');
 
   await page.goBack();
   await expect(page).toHaveURL(/\/seller-list/);
@@ -175,6 +180,30 @@ test('Seller List without selection opens Global Catalog without seller filter',
   await expect(page.getByTestId('seller-list-row-6')).toBeVisible();
   await page.getByTestId('seller-list-show-products').click();
   await expect(page).toHaveURL('/');
+});
+
+test('Seller List uses shared category and state filters and passes them to Global Catalog', async ({ page }) => {
+  await mockSellerList(page);
+
+  await page.goto('/seller-list');
+  await page.getByTestId('seller-list-category-toggle').click();
+  await page.getByRole('button', { name: 'Vegetables', exact: true }).click();
+  await expect(page).toHaveURL(/group_id=17/);
+
+  await page.getByTestId('seller-list-state-toggle').click();
+  await page.getByTestId('seller-list-state-filter-open').click();
+  await expect(page).toHaveURL(/state=open/);
+
+  await page.getByTestId('seller-list-row-6').click();
+  await page.getByTestId('seller-list-show-products').click();
+  await expect(page).toHaveURL(/group_id=17/);
+  await expect(page).toHaveURL(/seller_id=6/);
+  await expect(page).toHaveURL(/state=open/);
+
+  await page.getByTestId('search-filter-clear').click();
+  await expect(page).not.toHaveURL(/group_id=/);
+  await expect(page).not.toHaveURL(/seller_id=/);
+  await expect(page).not.toHaveURL(/state=/);
 });
 
 test('Seller List restores selected sellers from LocalStorage and lets URL override them', async ({ page }) => {
@@ -193,6 +222,20 @@ test('Seller List restores selected sellers from LocalStorage and lets URL overr
   await page.goto('/seller-list?seller_id=6');
   await expect(page.getByTestId('seller-list-row-6')).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByTestId('seller-list-row-7')).toHaveAttribute('aria-selected', 'false');
+});
+
+test('Seller List keeps selected sellers through Map navigation and return', async ({ page }) => {
+  await mockSellerList(page);
+
+  await page.goto('/seller-list');
+  await page.getByTestId('seller-list-row-6').click();
+  await expect(page.getByTestId('seller-list-row-6')).toHaveAttribute('aria-selected', 'true');
+
+  await page.goto('/map');
+  await page.goto('/seller-list');
+
+  await expect(page).toHaveURL(/seller_id=6/);
+  await expect(page.getByTestId('seller-list-row-6')).toHaveAttribute('aria-selected', 'true');
 });
 
 test('Map to Seller List returns to Map through browser Back', async ({ page }) => {

@@ -1,6 +1,6 @@
 import type { ProductGroup, SortOrder } from './types';
 
-export type CatalogParam = 'search' | 'group_id' | 'seller_id' | 'sort' | 'page';
+export type CatalogParam = 'search' | 'group_id' | 'seller_id' | 'state' | 'sort' | 'page';
 
 export function updateCatalogSearchParams(
   current: URLSearchParams,
@@ -36,6 +36,20 @@ export function catalogGroupIds(value: string | null) {
 }
 
 export const catalogSellerIds = catalogGroupIds;
+
+export function catalogStateIds(value: string | null) {
+  if (!value) return [];
+  const ids = value.split(',').map((part) => part.trim()).filter(Boolean);
+  return ids.every((id) => id === 'open' || id === 'available') ? [...new Set(ids)] : undefined;
+}
+
+export function toggleCatalogStateParam(currentIds: string[], stateId: 'open' | 'available') {
+  const selected = new Set(currentIds);
+  if (selected.has(stateId)) selected.delete(stateId);
+  else selected.add(stateId);
+  const next = [...selected];
+  return next.length ? next.join(',') : null;
+}
 
 export interface CatalogGroupOption {
   group: ProductGroup;

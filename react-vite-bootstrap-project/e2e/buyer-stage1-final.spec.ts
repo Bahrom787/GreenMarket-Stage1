@@ -214,7 +214,7 @@ test('Global Catalog -> Product -> Store Global preserves URL context and histor
   await expect(page).toHaveURL(/\/product\/169/);
 
   await page.locator('.gm-site-nav__link[href="/"]').click();
-  await expect(page).toHaveURL('/');
+  await expect(page).toHaveURL(/\/\?search=apple&group_id=17%2C18&sort=price&page=1|\/\?search=apple&group_id=17,18&sort=price&page=1/);
   await page.goBack();
   await expect(page).toHaveURL(/\/product\/169/);
 
@@ -279,7 +279,7 @@ test('Seller List and Map entry keep Buyer navigation on React routes', async ({
   await expect(page.getByTestId('seller-list-row-6')).toBeVisible();
   await page.getByTestId('seller-list-row-6').click();
   await page.getByTestId('seller-list-show-products').click();
-  await expect(page).toHaveURL('/?seller_id=6');
+  await expect(page).toHaveURL('/?search=marker&seller_id=6');
   await page.goBack();
   await expect(page).toHaveURL(/\/seller-list\?search=marker&seller_id=6|\/seller-list\?seller_id=6&search=marker/);
 
@@ -287,7 +287,7 @@ test('Seller List and Map entry keep Buyer navigation on React routes', async ({
   await expect(page.getByTestId('map-screen')).toBeVisible();
   await page.getByTestId('fab-panel-toggle').click();
   await page.getByTestId('open-catalog').click();
-  await expect(page).toHaveURL('/');
+  await expect(page).toHaveURL('/?search=marker&seller_id=6&page=1');
 });
 
 test('Map Screen keeps header sections separated and FAB inside viewport', async ({ page }) => {
@@ -323,8 +323,8 @@ test('Map Screen keeps header sections separated and FAB inside viewport', async
   await page.locator('.gm-search-filter-bar__entity-option').first().click();
   await expect(page.getByTestId('map-search')).toHaveAttribute('placeholder', 'Найти продавца');
 
-  await page.getByTestId('search-filter-group-filters').click();
-  const filter = page.getByTestId('search-filter-panel-filters');
+  await page.getByTestId('map-category-toggle').click();
+  const filter = page.getByTestId('search-filter-panel-categories');
   await expect(filter).toBeVisible();
   let filterBox = await filter.boundingBox();
   expect(filterBox).not.toBeNull();
@@ -358,7 +358,7 @@ test('Map Screen keeps header sections separated and FAB inside viewport', async
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await expectMapLayoutFits();
-  await page.getByTestId('search-filter-group-filters').click();
+  await page.getByTestId('map-category-toggle').click();
   filterBox = await filter.boundingBox();
   expect(filterBox).not.toBeNull();
   expect(filterBox!.x).toBeGreaterThanOrEqual(0);
@@ -390,13 +390,17 @@ test('Global Catalog, Seller List and Map share the SearchFilterBar structure', 
   await expectInOneBar([
     '.gm-search-filter-bar__search',
     '[data-testid="catalog-category-toggle"]',
+    '[data-testid="catalog-seller-toggle"]',
+    '[data-testid="catalog-state-toggle"]',
   ]);
   await expect(page.locator('.gm-search-filter-bar').first().locator('.gm-search-filter-bar__sort button')).toHaveCount(2);
 
   await page.goto('/seller-list');
   await expectInOneBar([
     '.gm-search-filter-bar__search',
+    '[data-testid="seller-list-category-toggle"]',
     '[data-testid="search-filter-group-sellers"]',
+    '[data-testid="seller-list-state-toggle"]',
     '[data-testid="seller-list-search"]',
     '[data-testid="seller-list-show-products"]',
   ]);
@@ -405,7 +409,8 @@ test('Global Catalog, Seller List and Map share the SearchFilterBar structure', 
   await expectInOneBar([
     '.gm-search-filter-bar__search',
     '.gm-search-filter-bar__entity-switch',
-    '[data-testid="search-filter-group-filters"]',
+    '[data-testid="map-category-toggle"]',
+    '[data-testid="map-state-toggle"]',
   ]);
 });
 
@@ -427,13 +432,13 @@ test('SearchFilterBar keeps one slot order across screens', async ({ page }) => 
   }
 
   await page.goto('/');
-  expect(await slotNames()).toEqual(['search', 'filter', 'filter', 'sort']);
+  expect(await slotNames()).toEqual(['search', 'filter', 'filter', 'filter', 'sort']);
 
   await page.goto('/seller-list');
-  expect(await slotNames()).toEqual(['search', 'filter', 'actions']);
+  expect(await slotNames()).toEqual(['search', 'filter', 'filter', 'filter', 'actions']);
 
   await page.goto('/map');
-  expect(await slotNames()).toEqual(['search', 'entity', 'filter', 'actions']);
+  expect(await slotNames()).toEqual(['search', 'entity', 'filter', 'filter', 'actions']);
 });
 
 test('SearchFilterBar uses one layout model across Global screens', async ({ page }) => {
@@ -515,28 +520,80 @@ test('SearchFilterBar keeps compact trigger geometry on narrow screens', async (
   }
 });
 
-test('Map SearchFilterBar persists selected filters through shared storage', async ({ page }) => {
+test('Map SearchFilterBar persists selected state through shared storage', async ({ page }) => {
   await mockBuyerApi(page);
 
   await page.goto('/map');
-  await page.getByTestId('search-filter-group-filters').click();
-  const filters = page.getByTestId('search-filter-panel-filters').locator('input[type="checkbox"]');
-  await expect.poll(() => filters.count()).toBeGreaterThan(4);
-  await expect(filters.nth(1)).toBeVisible();
-  await filters.nth(1).check();
+  await page.getByTestId('map-state-toggle').click();
+  await page.getByTestId('map-state-filter-open').click();
 
   await expect
     .poll(() =>
       page.evaluate(() => {
-        const stored = JSON.parse(localStorage.getItem('gm.searchFilterBar.filters.v1') ?? '{}') as { mapFilters?: Record<string, string[]> };
-        return stored.mapFilters?.category?.length ?? 0;
+        const stored = JSON.parse(localStorage.getItem('gm.searchFilterBar.filters.v1') ?? '{}') as { stateIds?: string[]; mapFilters?: unknown };
+        return `${stored.stateIds?.join(',') ?? ''}:${stored.mapFilters === undefined ? 'no-map-filters' : 'legacy-map-filters'}`;
       }),
     )
-    .toBe(1);
+    .toBe('open:no-map-filters');
 
   await page.reload();
-  await page.getByTestId('search-filter-group-filters').click();
-  await expect(page.getByTestId('search-filter-panel-filters').locator('input[type="checkbox"]').nth(1)).toBeChecked();
+  await page.getByTestId('map-state-toggle').click();
+  await expect(page.getByTestId('map-state-filter-open')).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('shared filters persist from Catalog to Map to Seller List and back to Catalog', async ({ page }) => {
+  const requests = await mockBuyerApi(page);
+
+  await page.goto('/');
+  await page.locator('.gm-buyer-search__input').fill('marker');
+  await page.locator('.gm-buyer-search__input').press('Enter');
+  await page.getByTestId('catalog-category-toggle').click();
+  await page.getByRole('button', { name: 'Vegetables', exact: true }).click();
+  await page.getByTestId('catalog-seller-toggle').click();
+  await expect(page.getByTestId('catalog-seller-panel-body')).toContainText('Dev marker');
+  await page.getByTestId('catalog-seller-panel-body').getByLabel('Dev marker').check();
+  await page.getByTestId('catalog-state-toggle').click();
+  await page.getByTestId('catalog-state-filter-open').click();
+  await page.locator('.gm-search-filter-bar__sort button').nth(1).click();
+
+  await expect(page).toHaveURL(/search=marker/);
+  await expect(page).toHaveURL(/group_id=17/);
+  await expect(page).toHaveURL(/seller_id=6/);
+  await expect(page).toHaveURL(/state=open/);
+  await expect(page).toHaveURL(/sort=price/);
+  expect(lastProductRequest(requests)).toContain('/api/v1/catalog/products?group_id=17&seller_id=6&search=marker&sort=price&page=1');
+
+  await page.goto('/map');
+  await expect(page.getByTestId('map-search')).toHaveValue('marker');
+  await page.getByTestId('map-state-toggle').click();
+  await expect(page.getByTestId('map-state-filter-open')).toHaveAttribute('aria-pressed', 'true');
+
+  await page.goto('/seller-list');
+  await expect(page).toHaveURL(/search=marker/);
+  await expect(page).toHaveURL(/group_id=17/);
+  await expect(page).toHaveURL(/seller_id=6/);
+  await expect(page).toHaveURL(/state=open/);
+  await expect(page.getByTestId('seller-list-row-6')).toHaveAttribute('aria-selected', 'true');
+
+  await page.goto('/');
+  await expect(page).toHaveURL(/search=marker/);
+  await expect(page).toHaveURL(/group_id=17/);
+  await expect(page).toHaveURL(/seller_id=6/);
+  await expect(page).toHaveURL(/state=open/);
+  await expect(page).toHaveURL(/sort=price/);
+  await page.reload();
+  await expect(page).toHaveURL(/search=marker/);
+  await expect(page).toHaveURL(/group_id=17/);
+  await expect(page).toHaveURL(/seller_id=6/);
+  await expect(page).toHaveURL(/state=open/);
+  await expect(page).toHaveURL(/sort=price/);
+
+  await page.getByTestId('search-filter-clear').click();
+  await page.reload();
+  await expect(page).not.toHaveURL(/search=/);
+  await expect(page).not.toHaveURL(/group_id=/);
+  await expect(page).not.toHaveURL(/seller_id=/);
+  await expect(page).not.toHaveURL(/state=/);
 });
 
 test('Map tool buttons keep one shared size', async ({ page }) => {
