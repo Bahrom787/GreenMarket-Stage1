@@ -1,4 +1,8 @@
-import type { SellerCardResponse } from './types';
+export interface StorePublicIdentitySource {
+  seller_id: number;
+  public_slug?: string | null;
+  public_url?: string | null;
+}
 
 export interface StorePublicIdentity {
   sellerId: number;
@@ -89,7 +93,7 @@ function slugContainsSellerId(slug: string, sellerId: number) {
   return new RegExp(`(^|-)${sellerId}($|-)`).test(slug);
 }
 
-export function getStorePublicIdentity(seller: SellerCardResponse): StorePublicIdentity | undefined {
+export function getStorePublicIdentity(seller: StorePublicIdentitySource): StorePublicIdentity | undefined {
   const config = identityFromConfig(seller.seller_id);
   const publicSlug = normalizeSlug(seller.public_slug ?? config?.public_slug);
   const publicUrl = normalizePublicUrl(seller.public_url) ?? normalizePublicUrl(config?.public_url) ?? publicUrlFromSlug(publicSlug);
@@ -104,7 +108,7 @@ export function getStorePublicIdentity(seller: SellerCardResponse): StorePublicI
   };
 }
 
-export function getPublicStoreUrl(seller: SellerCardResponse) {
+export function getPublicStoreUrl(seller: StorePublicIdentitySource) {
   return getStorePublicIdentity(seller)?.publicUrl;
 }
 

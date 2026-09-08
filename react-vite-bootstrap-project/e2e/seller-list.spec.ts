@@ -13,6 +13,8 @@ const sellers = [
   {
     seller_id: 6,
     name: 'Dev marker',
+    public_slug: 'dev-marker',
+    public_url: 'https://dev-marker.example/',
     row: 'A',
     place: '12',
     working_hours: '10-18',
@@ -22,6 +24,8 @@ const sellers = [
   {
     seller_id: 7,
     name: 'Fruit seller',
+    public_slug: 'fruit-seller',
+    public_url: 'https://fruit-seller.example/',
     row: null,
     place: null,
     working_hours: null,
@@ -180,6 +184,17 @@ test('Seller List without selection opens Global Catalog without seller filter',
   await expect(page.getByTestId('seller-list-row-6')).toBeVisible();
   await page.getByTestId('seller-list-show-products').click();
   await expect(page).toHaveURL('/');
+});
+
+test('Seller List exposes store QR from public seller identity', async ({ page }) => {
+  await mockSellerList(page);
+
+  await page.goto('/seller-list');
+  await page.getByTestId('seller-list-row-6').getByRole('button', { name: 'Печать QR-кода' }).click();
+
+  const payload = await page.getByTestId('store-qr-print-material').getAttribute('data-qr-payload');
+  expect(payload).toBe('https://dev-marker.example/');
+  await expect(page.getByText(/vercel\.app|\/store\/6|seller_id/)).toHaveCount(0);
 });
 
 test('Seller List uses shared category and state filters and passes them to Global Catalog', async ({ page }) => {

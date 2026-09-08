@@ -16,6 +16,8 @@ import {
 import type { ProductGroup } from '@/buyer_mvp/types';
 import { trackEvent } from '@/shared/analytics/AnalyticsReporter';
 import { SearchFilterBar } from '@/components/search-filter/SearchFilterBar';
+import { StoreQrPrint } from '@/buyer_mvp/components/StoreQrPrint';
+import { globalStoreHomePath } from '@/buyer_mvp/catalogContext';
 import {
   CategoryFilter,
   CategoryToggleContent,
@@ -383,10 +385,42 @@ export function SellerListScreenView() {
             {state.sellers.map((seller) => (
               <ListItem
                 key={seller.sellerId}
+                static
+                role="option"
+                aria-selected={selectedSellerIdSet.has(seller.sellerId)}
                 leading={<Avatar initials={seller.initials} alt={`${seller.name}: аватар`} />}
                 selected={selectedSellerIdSet.has(seller.sellerId)}
                 onClick={() => toggleSeller(seller.sellerId)}
-                trailing={<Text variant="caption" as="span">{selectedSellerIdSet.has(seller.sellerId) ? 'Выбран' : 'Выбрать'}</Text>}
+                trailing={
+                  <Row gap="sm" wrap align="center" className="gm-seller-list-card__actions">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        navigate(globalStoreHomePath(seller.sellerId));
+                      }}
+                    >
+                      Открыть магазин
+                    </Button>
+                    <Button
+                      variant={selectedSellerIdSet.has(seller.sellerId) ? 'primary' : 'secondary'}
+                      size="sm"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        toggleSeller(seller.sellerId);
+                      }}
+                      data-testid={`seller-list-select-${seller.sellerId}`}
+                    >
+                      {selectedSellerIdSet.has(seller.sellerId) ? 'Выбран' : 'Выбрать'}
+                    </Button>
+                    {seller.publicIdentity && (
+                      <span onClick={(event) => event.stopPropagation()}>
+                        <StoreQrPrint store={{ sellerId: seller.sellerId, title: seller.name, publicIdentity: seller.publicIdentity }} />
+                      </span>
+                    )}
+                  </Row>
+                }
                 data-testid={`seller-list-row-${seller.sellerId}`}
               >
                 <Stack gap="xs">

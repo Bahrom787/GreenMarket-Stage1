@@ -51,6 +51,8 @@ export interface CatalogMarketsResponse {
 export interface MarketSellerSummary {
   seller_id: number;
   name: string;
+  public_slug?: string | null;
+  public_url?: string | null;
   row: string | null;
   place: string | null;
   working_hours: string | null;

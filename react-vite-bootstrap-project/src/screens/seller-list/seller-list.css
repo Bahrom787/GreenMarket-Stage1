@@ -43,8 +43,20 @@
   width: min(70%, 260px);
 }
 
+.gm-seller-list-card__actions {
+  justify-content: flex-end;
+}
+
+.gm-seller-list-card__actions > span {
+  display: inline-flex;
+}
+
 @media (max-width: 640px) {
   .gm-seller-list-screen .gm-header {
     padding-block: var(--space-md);
+  }
+
+  .gm-seller-list-card__actions {
+    justify-content: flex-start;
   }
 }
