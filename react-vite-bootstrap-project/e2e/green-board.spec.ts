@@ -38,17 +38,27 @@ async function mockBuyerApi(page: Page) {
   return requests;
 }
 
-test('Green Board page is a global static route with navigation and refresh', async ({ page }) => {
+test('robots noindex files are exposed by the app shell', async ({ page, request }) => {
+  const robots = await request.get('/robots.txt');
+  expect(robots.status()).toBe(200);
+  expect(robots.headers()['content-type']).toContain('text/plain');
+  expect((await robots.text()).trim()).toBe('User-agent: *\nDisallow: /');
+
+  await page.goto('/');
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex,nofollow,noarchive');
+});
+
+test('Green Boardex page is a global static route with navigation and refresh', async ({ page }) => {
   const requests = await mockBuyerApi(page);
 
   await page.goto('/green-board');
   await expect(page).toHaveURL('/green-board');
   await expect(page.getByTestId('green-board-screen')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Green Board' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Green Boardex' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Каталог', exact: true })).toHaveAttribute('href', '/');
   await expect(page.getByRole('link', { name: 'Карта' })).toHaveAttribute('href', '/map');
   await expect(page.getByRole('link', { name: 'Продавцы' })).toHaveAttribute('href', '/seller-list');
-  await expect(page.getByRole('link', { name: 'О Green Board' })).toHaveAttribute('href', '/green-board');
+  await expect(page.getByRole('link', { name: 'О Green Boardex' })).toHaveAttribute('href', '/green-board');
   expect(requests).toEqual([]);
 
   await page.reload();
@@ -61,7 +71,7 @@ test('Green Board page is a global static route with navigation and refresh', as
   await expect(page).toHaveURL('/green-board');
 });
 
-test('Green Board route does not load Store Context', async ({ page }) => {
+test('Green Boardex route does not load Store Context', async ({ page }) => {
   const requests = await mockBuyerApi(page);
 
   await page.goto('/green-board');

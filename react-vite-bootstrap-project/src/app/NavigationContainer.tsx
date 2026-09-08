@@ -24,7 +24,7 @@ const navItems = [
   { to: '/', label: 'Каталог' },
   { to: '/map', label: 'Карта' },
   { to: '/seller-list', label: 'Продавцы' },
-  { to: '/green-board', label: 'О Green Board' },
+  { to: '/green-board', label: 'О Green Boardex' },
 ];
 
 function LegacyCatalogRedirect() {
@@ -49,7 +49,7 @@ function TopNav() {
     <Header className="gm-site-header">
       <Page style={{ padding: 0 }}>
         <Row gap="lg" align="center" style={{ height: '100%', justifyContent: 'space-between' }}>
-          <NavLink to="/" className="gm-site-brand" aria-label="Green Board, на главную"><span>G</span> Green Board</NavLink>
+          <NavLink to="/" className="gm-site-brand" aria-label="Green Boardex, на главную"><span>G</span> Green Boardex</NavLink>
           <nav className="gm-site-nav" aria-label="Основная навигация">
             {navItems.map((item) => (
               <NavLink key={item.to} to={item.to} className={({ isActive }) => `gm-site-nav__link${isActive ? ' gm-site-nav__link--active' : ''}`}>
