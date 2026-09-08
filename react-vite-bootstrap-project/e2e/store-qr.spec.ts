@@ -54,8 +54,9 @@ test('Store Home prints QR from public store URL only', async ({ page }) => {
   await page.goto('/store/6');
   await expect(page.locator('h1', { hasText: 'Dev marker' })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Печать QR-кода' }).click();
+  await page.getByRole('button', { name: 'QR-код' }).click();
   await expect(page.getByTestId('store-qr-print-material')).toBeVisible();
+  expect(await page.getByTestId('store-qr-print-material').getAttribute('data-qr-payload')).toBe('https://dev-marker.example/');
   await expect(page.getByLabel('QR-код магазина Dev marker')).toBeVisible();
   await expect(page.getByText('Откройте магазин камерой телефона')).toBeVisible();
   await expect(page.getByText(/vercel\.app|\/store\/6|seller_id/)).toHaveCount(0);
@@ -68,13 +69,13 @@ test('Store QR payload stays isolated per store', async ({ page }) => {
   await mockBuyerApi(page);
 
   await page.goto('/store/6');
-  await page.getByRole('button', { name: 'Печать QR-кода' }).click();
+  await page.getByRole('button', { name: 'QR-код' }).click();
   const qr6 = await page.getByTestId('store-qr-print-material').getAttribute('data-qr-payload');
   await expect(page.locator('h1', { hasText: 'Dev marker' })).toBeVisible();
   await page.getByRole('button', { name: 'Закрыть' }).click();
 
   await page.goto('/store/9');
-  await page.getByRole('button', { name: 'Печать QR-кода' }).click();
+  await page.getByRole('button', { name: 'QR-код' }).click();
   const qr9 = await page.getByTestId('store-qr-print-material').getAttribute('data-qr-payload');
 
   expect(qr6).toBe('https://dev-marker.example/');
@@ -89,7 +90,7 @@ for (const width of [390, 1440]) {
     await mockBuyerApi(page);
 
     await page.goto('/store/6');
-    await page.getByRole('button', { name: 'Печать QR-кода' }).click();
+    await page.getByRole('button', { name: 'QR-код' }).click();
     await expect(page.getByTestId('store-qr-print-material')).toBeVisible();
 
     const hasOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);

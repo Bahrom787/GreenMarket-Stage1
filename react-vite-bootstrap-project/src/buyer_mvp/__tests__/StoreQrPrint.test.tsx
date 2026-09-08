@@ -19,7 +19,7 @@ describe('StoreQrPrint', () => {
   });
 
   it('renders the QR action when public identity is available', () => {
-    expect(renderToStaticMarkup(<StoreQrPrint store={store} />)).toContain('Печать QR-кода');
+    expect(renderToStaticMarkup(<StoreQrPrint store={store} />)).toContain('QR-код');
   });
 
   it('renders a QR material without visible technical URLs or seller ids', () => {

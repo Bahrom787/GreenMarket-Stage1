@@ -103,6 +103,8 @@ async function mockSellerList(page: Page, options: { failFirstMarkets?: boolean;
         json: {
           seller_id: 6,
           name: 'Dev marker',
+          public_slug: 'dev-marker',
+          public_url: 'https://dev-marker.example/',
           market,
           row: 'A',
           place: '12',
@@ -190,12 +192,44 @@ test('Seller List exposes store QR from public seller identity', async ({ page }
   await mockSellerList(page);
 
   await page.goto('/seller-list');
-  await page.getByTestId('seller-list-row-6').getByRole('button', { name: 'Печать QR-кода' }).click();
+  await page.getByTestId('seller-list-row-6').getByRole('button', { name: 'QR-код' }).click();
 
   const payload = await page.getByTestId('store-qr-print-material').getAttribute('data-qr-payload');
   expect(payload).toBe('https://dev-marker.example/');
   await expect(page.getByText(/vercel\.app|\/store\/6|seller_id/)).toHaveCount(0);
 });
+
+test('Seller List opens Store Home without toggling selection and shares QR payload', async ({ page }) => {
+  await mockSellerList(page);
+
+  await page.goto('/seller-list');
+  const row = page.getByTestId('seller-list-row-6');
+  await expect(row).toHaveAttribute('aria-selected', 'false');
+  await row.getByRole('button', { name: 'QR-код' }).click();
+  const listPayload = await page.getByTestId('store-qr-print-material').getAttribute('data-qr-payload');
+  await page.getByRole('button', { name: 'Закрыть' }).click();
+
+  await row.getByRole('button', { name: 'Открыть магазин' }).click();
+  await expect(page).toHaveURL('/store/6?mode=global');
+  await page.getByRole('button', { name: 'QR-код' }).click();
+  const storePayload = await page.getByTestId('store-qr-print-material').getAttribute('data-qr-payload');
+  expect(storePayload).toBe(listPayload);
+
+  await page.goBack();
+  await expect(page.getByTestId('seller-list-row-6')).toHaveAttribute('aria-selected', 'false');
+});
+
+for (const width of [390, 1440]) {
+  test(`Seller List store actions fit ${width}px viewport`, async ({ page }) => {
+    await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
+    await mockSellerList(page);
+
+    await page.goto('/seller-list');
+    await expect(page.getByTestId('seller-list-row-6').getByRole('button', { name: 'Открыть магазин' })).toBeVisible();
+    await expect(page.getByTestId('seller-list-row-6').getByRole('button', { name: 'QR-код' })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  });
+}
 
 test('Seller List uses shared category and state filters and passes them to Global Catalog', async ({ page }) => {
   await mockSellerList(page);

@@ -50,7 +50,7 @@ export function StoreQrPrint({ store }: StoreQrPrintProps) {
   return (
     <>
       <Button variant="secondary" onClick={() => setOpen(true)}>
-        Печать QR-кода
+        QR-код
       </Button>
 
       {open && (
