@@ -45,7 +45,7 @@ export function HomeScreen() {
     <main className="gm-home">
       <section className="gm-home-hero">
         <div className="gm-home-hero__copy">
-          <span className="gm-home-eyebrow">Каталог Green Board</span>
+          <span className="gm-home-eyebrow">Каталог Green Boardex</span>
           <h1>Продукты в удобном каталоге</h1>
           <p>
             Ищите товары по названию или переходите в нужную категорию. Экран использует только
