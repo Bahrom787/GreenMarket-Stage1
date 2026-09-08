@@ -1,9 +1,17 @@
 import { expect, test, type Page } from '@playwright/test';
 import { execFile } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
-const noindexHeader = 'noindex, nofollow, noarchive';
+const vercelConfig = JSON.parse(readFileSync(resolve(process.cwd(), 'vercel.json'), 'utf8')) as {
+  headers?: Array<{ source: string; headers: Array<{ key: string; value: string }> }>;
+};
+const noindexHeader =
+  vercelConfig.headers
+    ?.find((rule) => rule.source === '/(.*)')
+    ?.headers.find((header) => header.key.toLowerCase() === 'x-robots-tag')?.value ?? '';
 
 function deployedBaseUrl() {
   const raw = process.env.E2E_VERCEL_BASE_URL ?? process.env.VERCEL_URL;
