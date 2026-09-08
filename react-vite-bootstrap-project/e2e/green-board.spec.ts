@@ -1,4 +1,39 @@
 import { expect, test, type Page } from '@playwright/test';
+import { createServer, type Server } from 'node:http';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+const appRoot = process.cwd();
+const vercelConfig = JSON.parse(readFileSync(resolve(appRoot, 'vercel.json'), 'utf8')) as {
+  headers?: Array<{ source: string; headers: Array<{ key: string; value: string }> }>;
+};
+const noindexHeader =
+  vercelConfig.headers
+    ?.find((rule) => rule.source === '/(.*)')
+    ?.headers.find((header) => header.key.toLowerCase() === 'x-robots-tag')?.value ?? '';
+
+async function startVercelHeaderServer() {
+  const indexHtml = readFileSync(resolve(appRoot, 'index.html'), 'utf8');
+  const robotsTxt = readFileSync(resolve(appRoot, 'public/robots.txt'), 'utf8');
+  const server = createServer((req, res) => {
+    res.setHeader('X-Robots-Tag', noindexHeader);
+    if (req.url === '/robots.txt') {
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.end(robotsTxt);
+      return;
+    }
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.end(indexHtml);
+  });
+  await new Promise<void>((resolveReady) => server.listen(0, '127.0.0.1', resolveReady));
+  const address = server.address();
+  if (!address || typeof address === 'string') throw new Error('No test server port');
+  return { server, origin: `http://127.0.0.1:${address.port}` };
+}
+
+function closeServer(server: Server) {
+  return new Promise<void>((resolveClose, reject) => server.close((err) => (err ? reject(err) : resolveClose())));
+}
 
 async function mockBuyerApi(page: Page) {
   const requests: string[] = [];
@@ -42,10 +77,23 @@ test('robots noindex files are exposed by the app shell', async ({ page, request
   const robots = await request.get('/robots.txt');
   expect(robots.status()).toBe(200);
   expect(robots.headers()['content-type']).toContain('text/plain');
-  expect((await robots.text()).trim()).toBe('User-agent: *\nDisallow: /');
+  expect((await robots.text()).trim().replace(/\r\n/g, '\n')).toBe('User-agent: *\nDisallow: /');
 
   await page.goto('/');
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex,nofollow,noarchive');
+});
+
+test('X-Robots-Tag is returned for SPA route HTTP responses', async ({ request }) => {
+  const { server, origin } = await startVercelHeaderServer();
+  try {
+    for (const route of ['/', '/map', '/seller-list', '/green-board', '/store/6', '/seller/6', '/product/169']) {
+      const response = await request.get(`${origin}${route}`);
+      expect(response.status()).toBe(200);
+      expect(response.headers()['x-robots-tag']).toBe(noindexHeader);
+    }
+  } finally {
+    await closeServer(server);
+  }
 });
 
 test('Green Boardex page is a global static route with navigation and refresh', async ({ page }) => {

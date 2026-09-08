@@ -6,7 +6,7 @@ const root = resolve(__dirname, '../../..');
 
 describe('noindex configuration', () => {
   it('blocks indexing through robots.txt, HTML meta and Vercel headers', () => {
-    const robots = readFileSync(resolve(root, 'public/robots.txt'), 'utf8').trim();
+    const robots = readFileSync(resolve(root, 'public/robots.txt'), 'utf8').trim().replace(/\r\n/g, '\n');
     const html = readFileSync(resolve(root, 'index.html'), 'utf8');
     const vercel = JSON.parse(readFileSync(resolve(root, 'vercel.json'), 'utf8')) as {
       headers?: Array<{ source: string; headers: Array<{ key: string; value: string }> }>;
