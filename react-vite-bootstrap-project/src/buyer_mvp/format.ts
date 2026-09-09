@@ -24,3 +24,10 @@ export function formatOfferCount(count: number): string {
   }
   return `${count} ${word}`;
 }
+
+export function formatSupplyDate(value?: string | null): string {
+  if (value == null || value.trim() === '') return 'Дата не указана';
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  if (!match) return value;
+  return `${match[3]}.${match[2]}.${match[1]}`;
+}

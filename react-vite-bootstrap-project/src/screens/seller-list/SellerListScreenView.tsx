@@ -231,8 +231,9 @@ export function SellerListScreenView() {
     if (selectedCategoryIds.length) next.set('group_id', selectedCategoryIds.join(','));
     if (selectedSellerIds.length) next.set('seller_id', selectedSellerIds.join(','));
     if (selectedStateIds.length) next.set('state', selectedStateIds.join(','));
-    const storedSort = loadStoredSearchFilters().sort;
+    const { sort: storedSort, sortDirection } = loadStoredSearchFilters();
     if (storedSort !== 'name') next.set('sort', storedSort);
+    if (sortDirection !== 'asc') next.set('sort_dir', sortDirection);
     navigate(next.toString() ? `/?${next.toString()}` : '/');
   }
 

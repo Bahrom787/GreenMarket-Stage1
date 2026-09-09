@@ -294,6 +294,7 @@ function productQueryString(query: CatalogQuery) {
   const params = new URLSearchParams();
   if (query.search) params.set('search', query.search);
   params.set('sort', query.sort ?? 'name');
+  if (query.sortDirection === 'desc') params.set('sort_dir', 'desc');
   params.set('page', String(query.page ?? 1));
   if (query.limit != null) params.set('limit', String(query.limit));
   return [

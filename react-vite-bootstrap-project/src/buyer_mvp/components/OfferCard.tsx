@@ -28,6 +28,9 @@ export function OfferCard({ offer, showSellerName = true, showPhotos = true, onS
           {offer.stockText}
         </Text>
       )}
+      <Text variant="caption" tone="secondary">
+        {offer.supplyText}
+      </Text>
       {offer.description && (
         <>
           <Divider />

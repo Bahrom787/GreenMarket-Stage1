@@ -33,13 +33,14 @@ const manyProducts = Array.from({ length: 24 }, (_, index) => ({
   name: `Product ${index + 1}`,
   min_price: '120.00',
   offer_count: 1,
+  supply_date: '2026-09-12',
   photos: [],
 }));
 
 const globalProducts = {
   products: [
-    { id: 101, name: 'Milk', min_price: '120.00', offer_count: 2, photos: [] },
-    { id: 102, name: 'Cheese', min_price: '220.00', offer_count: 1, photos: [] },
+    { id: 101, name: 'Milk', min_price: '120.00', offer_count: 2, supply_date: '2026-09-12', photos: [] },
+    { id: 102, name: 'Cheese', min_price: '220.00', offer_count: 1, supply_date: null, photos: [] },
   ],
   page: 1,
   limit: 2,
@@ -60,7 +61,7 @@ const storeProducts = {
       stock: '9.000',
       description: null,
       origin_country: null,
-      supply_date: null,
+      supply_date: '2026-09-12',
       photos: [],
     },
   ],
@@ -123,6 +124,30 @@ async function mockCatalog(
         json: url.searchParams.get('search') === 'single'
           ? { ...storeProducts, total: 1 }
           : storeProducts,
+      });
+      return;
+    }
+
+    if (url.pathname.endsWith('/products/101')) {
+      await route.fulfill({
+        json: {
+          id: 101,
+          name: 'Milk',
+          description: null,
+          offers: [
+            {
+              seller_product_id: 653,
+              seller_id: 6,
+              seller_name: 'Dev marker',
+              price: '120.00',
+              unit: 'pcs',
+              stock: '9.000',
+              description: null,
+              supply_date: '2026-09-12',
+              photos: [],
+            },
+          ],
+        },
       });
       return;
     }
@@ -191,6 +216,39 @@ test('Global Catalog keeps multi-category filters in URL through refresh, pagina
   await page.getByRole('button', { name: 'Очистить фильтры' }).click();
   await expect(page).not.toHaveURL(/group_id=/);
   await expect(page).toHaveURL(/page=1/);
+});
+
+test('Global Catalog sort buttons keep field direction URL and supply date display', async ({ page }) => {
+  const requests = await mockCatalog(page);
+
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: /Milk.*Поставка: 12\.09\.2026/ })).toBeVisible();
+  await expect(page.getByText('Поставка: Дата не указана')).toBeVisible();
+
+  await page.getByRole('button', { name: 'По названию ↑' }).click();
+  await expect(page.getByRole('button', { name: 'По названию ↓' })).toBeVisible();
+  await expect(page).toHaveURL(/sort=name/);
+  await expect(page).toHaveURL(/sort_dir=desc/);
+  expect(lastProductRequest(requests)).toContain('/api/v1/catalog/products?sort=name&sort_dir=desc&page=1');
+
+  await page.getByRole('button', { name: 'По цене' }).click();
+  await expect(page.getByRole('button', { name: 'По цене ↑' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'По названию' })).toBeVisible();
+  await expect(page).toHaveURL(/sort=price/);
+  await expect(page).not.toHaveURL(/sort_dir=desc/);
+
+  await page.getByRole('button', { name: 'Поставка', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Поставка ↑' })).toBeVisible();
+  await page.getByRole('button', { name: 'Поставка ↑' }).click();
+  await expect(page.getByRole('button', { name: 'Поставка ↓' })).toBeVisible();
+  await expect(page).toHaveURL(/sort=delivery/);
+  await expect(page).toHaveURL(/sort_dir=desc/);
+
+  await page.getByRole('button', { name: /Milk/ }).click();
+  await expect(page.getByText('Поставка: 12.09.2026')).toBeVisible();
+  await page.goBack();
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Поставка ↓' })).toBeVisible();
 });
 
 test('Global Catalog reports /groups network failure independently from successful /products', async ({ page }) => {

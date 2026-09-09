@@ -1,4 +1,4 @@
-import { formatPrice, formatStock } from './format';
+import { formatPrice, formatStock, formatSupplyDate } from './format';
 import { globalStoreHomePath } from './catalogContext';
 import type { ProductDetail, SellerCardResponse, SellerCatalogItem } from './types';
 
@@ -12,6 +12,7 @@ export interface ProductDetailOfferViewModel {
   photos: string[];
   priceText: string;
   stockText?: string;
+  supplyText: string;
   description?: string | null;
 }
 
@@ -54,6 +55,7 @@ export function toGlobalProductDetail(product: ProductDetail): ProductDetailView
     photos: cleanPhotos(offer.photos),
     priceText: formatUnitPrice(offer.price, offer.unit),
     stockText: toStockText(offer.stock, offer.unit),
+    supplyText: `Поставка: ${formatSupplyDate(offer.supply_date)}`,
     description: offer.description,
   }));
 
@@ -85,6 +87,7 @@ export function toStoreProductDetail(
         photos,
         priceText: formatUnitPrice(product.price, product.unit),
         stockText: toStockText(product.stock, product.unit),
+        supplyText: `Поставка: ${formatSupplyDate(product.supply_date)}`,
         description: product.description,
       },
     ],

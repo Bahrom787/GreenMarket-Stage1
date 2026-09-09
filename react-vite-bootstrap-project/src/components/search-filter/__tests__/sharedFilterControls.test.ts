@@ -48,6 +48,7 @@ describe('shared SearchFilterBar controls', () => {
       sellerIds: [],
       stateIds: [],
       sort: 'name',
+      sortDirection: 'asc',
     });
 
     saveStoredSearchFilters({
@@ -56,6 +57,7 @@ describe('shared SearchFilterBar controls', () => {
       sellerIds: [6],
       stateIds: ['open'],
       sort: 'price',
+      sortDirection: 'desc',
     });
 
     expect(loadStoredSearchFilters()).toEqual({
@@ -64,9 +66,11 @@ describe('shared SearchFilterBar controls', () => {
       sellerIds: [6],
       stateIds: ['open'],
       sort: 'price',
+      sortDirection: 'desc',
     });
 
     localStorage.setItem('gm.searchFilterBar.filters.v1', '{broken');
     expect(loadStoredSearchFilters().sort).toBe('name');
+    expect(loadStoredSearchFilters().sortDirection).toBe('asc');
   });
 });

@@ -24,6 +24,7 @@ export interface ProductListItem {
   name: string;
   min_price: string;
   offer_count: number;
+  supply_date?: string | null;
   photos: string[];
 }
 
@@ -115,6 +116,7 @@ export interface SellerOffer {
   unit: string;
   stock?: string | null;
   description: string | null;
+  supply_date?: string | null;
   photos: string[];
 }
 
@@ -133,13 +135,15 @@ export interface ApiErrorBody {
   };
 }
 
-export type SortOrder = 'name' | 'price';
+export type SortDirection = 'asc' | 'desc';
+export type SortOrder = 'name' | 'price' | 'delivery';
 
 export interface CatalogQuery {
   groupIds?: number[];
   sellerIds?: number[];
   search?: string;
   sort?: SortOrder;
+  sortDirection?: SortDirection;
   page?: number;
   limit?: number;
 }

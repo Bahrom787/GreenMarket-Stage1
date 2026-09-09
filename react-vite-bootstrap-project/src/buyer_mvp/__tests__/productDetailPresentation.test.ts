@@ -45,6 +45,7 @@ describe('product detail presentation', () => {
           unit: 'шт',
           stock: '29.000',
           description: null,
+          supply_date: '2026-09-12',
           photos: ['a1.jpg', 'a2.jpg'],
         },
         {
@@ -55,6 +56,7 @@ describe('product detail presentation', () => {
           unit: 'шт',
           stock: null,
           description: 'Второе предложение',
+          supply_date: null,
           photos: ['b1.jpg', 'b2.jpg'],
         },
       ],
@@ -73,12 +75,14 @@ describe('product detail presentation', () => {
           photos: ['a1.jpg', 'a2.jpg'],
           priceText: '125 ₽ / шт',
           stockText: 'Остаток: 29 шт',
+          supplyText: 'Поставка: 12.09.2026',
         },
         {
           sellerName: 'Магазин B',
           photos: ['b1.jpg', 'b2.jpg'],
           priceText: '135 ₽ / шт',
           stockText: undefined,
+          supplyText: 'Поставка: Дата не указана',
         },
       ],
     });

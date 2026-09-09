@@ -41,7 +41,7 @@ const storeProduct = {
   stock: '9.000',
   description: null,
   origin_country: null,
-  supply_date: null,
+  supply_date: '2026-09-12',
   photos: [],
 };
 
@@ -105,7 +105,7 @@ async function mockBuyerApi(page: Page) {
               stock: '9.000',
               description: null,
               origin_country: null,
-              supply_date: null,
+              supply_date: '2026-09-12',
               photos: [],
             },
             {
@@ -149,7 +149,7 @@ async function mockBuyerApi(page: Page) {
     if (url.pathname.endsWith('/products')) {
       await route.fulfill({
         json: {
-          products: [{ id: 169, name: 'Global Apple', min_price: '125.00', offer_count: 2, photos: [] }],
+          products: [{ id: 169, name: 'Global Apple', min_price: '125.00', offer_count: 2, supply_date: '2026-09-12', photos: [] }],
           page: Number(url.searchParams.get('page') ?? 1),
           limit: 1,
           total: 3,
@@ -179,12 +179,14 @@ test('Global Catalog -> Product -> Store Global preserves URL context and histor
 
   await page.goto('/?search=apple&group_id=17,18&sort=price&page=1');
   await expect(page.getByRole('button', { name: /Global Apple/ })).toBeVisible();
+  await expect(page.getByText('Поставка: 12.09.2026').first()).toBeVisible();
   expect(lastProductRequest(requests)).toContain('/api/v1/catalog/products?group_id=17,18&search=apple&sort=price&page=1');
 
   await page.getByRole('button', { name: /Global Apple/ }).click();
   await expect(page).toHaveURL(/\/product\/169/);
   await expect(page).toHaveURL(/group_id=17%2C18|group_id=17,18/);
   await expect(page.getByRole('heading', { name: 'Global Apple' })).toBeVisible();
+  await expect(page.getByText('Поставка: 12.09.2026').first()).toBeVisible();
   await expect(page.locator('.gm-buyer-offer-card__store-link')).toHaveCount(2);
 
   await page.locator('.gm-buyer-offer-card__store-link').first().click();
@@ -393,7 +395,7 @@ test('Global Catalog, Seller List and Map share the SearchFilterBar structure', 
     '[data-testid="catalog-seller-toggle"]',
     '[data-testid="catalog-state-toggle"]',
   ]);
-  await expect(page.locator('.gm-search-filter-bar').first().locator('.gm-search-filter-bar__sort button')).toHaveCount(2);
+  await expect(page.locator('.gm-search-filter-bar').first().locator('.gm-search-filter-bar__sort button')).toHaveCount(3);
 
   await page.goto('/seller-list');
   await expectInOneBar([

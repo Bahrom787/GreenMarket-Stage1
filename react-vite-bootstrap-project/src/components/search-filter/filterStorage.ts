@@ -5,10 +5,18 @@ export interface StoredSearchFilters {
   categoryIds: number[];
   sellerIds: number[];
   stateIds: string[];
-  sort: 'name' | 'price';
+  sort: 'name' | 'price' | 'delivery';
+  sortDirection: 'asc' | 'desc';
 }
 
-const empty: StoredSearchFilters = { searchQuery: '', categoryIds: [], sellerIds: [], stateIds: [], sort: 'name' };
+const empty: StoredSearchFilters = {
+  searchQuery: '',
+  categoryIds: [],
+  sellerIds: [],
+  stateIds: [],
+  sort: 'name',
+  sortDirection: 'asc',
+};
 
 function strings(value: unknown) {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
@@ -23,7 +31,8 @@ export function loadStoredSearchFilters(): StoredSearchFilters {
       categoryIds: Array.isArray(parsed.categoryIds) ? parsed.categoryIds.filter(Number.isInteger) : [],
       sellerIds: Array.isArray(parsed.sellerIds) ? parsed.sellerIds.filter(Number.isInteger) : [],
       stateIds: strings(parsed.stateIds).filter((id) => id === 'open' || id === 'available'),
-      sort: parsed.sort === 'price' ? 'price' : 'name',
+      sort: parsed.sort === 'price' || parsed.sort === 'delivery' ? parsed.sort : 'name',
+      sortDirection: parsed.sortDirection === 'desc' ? 'desc' : 'asc',
     };
   } catch {
     return empty;

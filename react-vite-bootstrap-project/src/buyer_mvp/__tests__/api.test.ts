@@ -286,6 +286,17 @@ describe('catalog api', () => {
     );
   });
 
+  it('passes sort field and descending direction through the product endpoint', async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValue(response({ products: [], page: 1, limit: 10, total: 0 }));
+    vi.stubGlobal('fetch', fetch);
+
+    await fetchProducts({ sort: 'delivery', sortDirection: 'desc', page: 1 });
+
+    expect(fetch).toHaveBeenCalledWith('/api/v1/catalog/products?sort=delivery&sort_dir=desc&page=1');
+  });
+
   it('omits group_id when no categories are selected', async () => {
     const fetch = vi
       .fn()

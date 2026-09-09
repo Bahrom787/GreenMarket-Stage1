@@ -12,6 +12,7 @@ describe('ProductCard', () => {
     photos: [],
     priceText: '125 ₽ / шт',
     metaText: 'Остаток: 0 шт',
+    supplyText: 'Поставка: 12.09.2026',
   };
 
   it('renders context, accessible name and neutral no-image state from prepared data', () => {
@@ -19,7 +20,7 @@ describe('ProductCard', () => {
 
     expect(html).toContain('data-context="STORE"');
     expect(html).toContain('role="button"');
-    expect(html).toContain('aria-label="Очень длинное название товара Green Board. 125 ₽ / шт. Остаток: 0 шт"');
+    expect(html).toContain('aria-label="Очень длинное название товара Green Board. 125 ₽ / шт. Остаток: 0 шт. Поставка: 12.09.2026"');
     expect(html).toContain('aria-label="Нет изображения: Очень длинное название товара Green Board"');
     expect(html).toContain('GB');
   });
