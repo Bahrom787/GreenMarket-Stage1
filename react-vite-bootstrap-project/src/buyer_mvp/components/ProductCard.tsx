@@ -10,7 +10,7 @@ interface ProductCardProps {
 /** Prepared catalog card. Context and pricing semantics are resolved before JSX. */
 export function ProductCard({ product, onOpen }: ProductCardProps) {
   const photo = product.photos[0];
-  const accessibleName = [product.name, product.priceText, product.metaText]
+  const accessibleName = [product.name, product.priceText, product.metaText, product.supplyText]
     .filter(Boolean)
     .join('. ');
 
@@ -45,6 +45,9 @@ export function ProductCard({ product, onOpen }: ProductCardProps) {
           {product.metaText}
         </Text>
       )}
+      <Text variant="caption" tone="tertiary" className="gm-buyer-product-card__meta">
+        {product.supplyText}
+      </Text>
     </Card>
   );
 }

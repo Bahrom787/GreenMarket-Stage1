@@ -47,7 +47,38 @@ describe('catalog presentation', () => {
       name: 'Аджика домашняя',
       priceText: '125 ₽ / шт',
       metaText: 'Остаток: 29 шт',
+      supplyText: 'Поставка: Дата не указана',
     });
+  });
+
+  it('formats real supply date from API without inventing missing values', () => {
+    const globalProduct: ProductListItem = {
+      id: 1,
+      name: 'Аджика',
+      min_price: '125.00',
+      offer_count: 1,
+      supply_date: '2026-09-12',
+      photos: [],
+    };
+    const storeProduct: SellerCatalogItem = {
+      seller_product_id: 10,
+      product_id: 1,
+      name: 'Аджика домашняя',
+      catalog_name: 'Аджика',
+      group_id: 2,
+      group_name: 'Соусы',
+      price: '125.00',
+      unit: 'шт',
+      stock: null,
+      description: null,
+      origin_country: null,
+      supply_date: '2026-09-12',
+      photos: [],
+    };
+
+    expect(toGlobalProductCard(globalProduct).supplyText).toBe('Поставка: 12.09.2026');
+    expect(toStoreProductCard(storeProduct).supplyText).toBe('Поставка: 12.09.2026');
+    expect(toStoreProductCard({ ...storeProduct, supply_date: null }).supplyText).toBe('Поставка: Дата не указана');
   });
 
   it('does not invent missing global price text', () => {

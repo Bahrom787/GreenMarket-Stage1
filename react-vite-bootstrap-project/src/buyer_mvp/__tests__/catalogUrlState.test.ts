@@ -2,10 +2,13 @@ import { describe, expect, it } from 'vitest';
 import {
   catalogGroupIds,
   catalogSellerIds,
+  catalogSort,
+  catalogSortDirection,
   catalogStateIds,
   catalogGroupOptions,
   catalogGroupOptionLabel,
   clearCatalogSearchParams,
+  nextCatalogSort,
   selectedCatalogGroups,
   toggleCatalogGroupParam,
   toggleCatalogStateParam,
@@ -68,6 +71,16 @@ describe('catalog URL state', () => {
 
     expect(afterSearch.toString()).toBe('group_id=12%2C13&sort=price&page=1&search=milk');
     expect(afterSort.toString()).toBe('group_id=12%2C13&sort=name&page=1&search=milk');
+  });
+
+  it('tracks sort field and direction independently', () => {
+    expect(catalogSort('delivery')).toBe('delivery');
+    expect(catalogSort('bad')).toBe('name');
+    expect(catalogSortDirection('desc')).toBe('desc');
+    expect(catalogSortDirection('bad')).toBe('asc');
+    expect(nextCatalogSort('name', 'asc', 'name')).toEqual({ sort: 'name', sortDirection: 'desc' });
+    expect(nextCatalogSort('name', 'desc', 'name')).toEqual({ sort: 'name', sortDirection: 'asc' });
+    expect(nextCatalogSort('price', 'desc', 'delivery')).toEqual({ sort: 'delivery', sortDirection: 'asc' });
   });
 
   it('clears search and categories back to canonical default filters', () => {

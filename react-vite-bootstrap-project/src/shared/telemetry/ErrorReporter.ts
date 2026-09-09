@@ -32,7 +32,7 @@ export interface TelemetryEvent {
 }
 
 const SENSITIVE_KEY = /(authorization|cookie|token|password|secret|set-cookie)/i;
-const allowedQueryParams = new Set(['page', 'sort', 'group_id', 'seller_id']);
+const allowedQueryParams = new Set(['page', 'sort', 'sort_dir', 'group_id', 'seller_id']);
 
 let adapter: ErrorReporterAdapter = {
   captureException: () => undefined,

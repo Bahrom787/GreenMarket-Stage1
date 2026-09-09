@@ -45,7 +45,7 @@ export interface AnalyticsAdapter {
   trackEvent(name: AnalyticsEventName, payload?: AnalyticsPayload): void;
 }
 
-const safeQueryParams = new Set(['page', 'sort', 'group_id', 'seller_id']);
+const safeQueryParams = new Set(['page', 'sort', 'sort_dir', 'group_id', 'seller_id']);
 const sensitiveKeyParts = [
   'password',
   'token',

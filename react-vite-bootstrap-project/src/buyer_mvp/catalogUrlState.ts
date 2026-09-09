@@ -1,6 +1,6 @@
-import type { ProductGroup, SortOrder } from './types';
+import type { ProductGroup, SortDirection, SortOrder } from './types';
 
-export type CatalogParam = 'search' | 'group_id' | 'seller_id' | 'state' | 'sort' | 'page';
+export type CatalogParam = 'search' | 'group_id' | 'seller_id' | 'state' | 'sort' | 'sort_dir' | 'page';
 
 export function updateCatalogSearchParams(
   current: URLSearchParams,
@@ -24,7 +24,22 @@ export function catalogPage(value: string | null) {
 }
 
 export function catalogSort(value: string | null): SortOrder {
-  return value === 'price' ? 'price' : 'name';
+  return value === 'price' || value === 'delivery' ? value : 'name';
+}
+
+export function catalogSortDirection(value: string | null): SortDirection {
+  return value === 'desc' ? 'desc' : 'asc';
+}
+
+export function nextCatalogSort(
+  currentSort: SortOrder,
+  currentDirection: SortDirection,
+  nextSort: SortOrder,
+) {
+  return {
+    sort: nextSort,
+    sortDirection: currentSort === nextSort && currentDirection === 'asc' ? 'desc' : 'asc',
+  };
 }
 
 export function catalogGroupIds(value: string | null) {

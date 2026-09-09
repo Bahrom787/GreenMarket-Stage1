@@ -1,4 +1,4 @@
-import { formatOfferCount, formatPrice, formatStock } from './format';
+import { formatOfferCount, formatPrice, formatStock, formatSupplyDate } from './format';
 import type { ProductListItem, SellerCatalogItem } from './types';
 
 export type ProductCardContext = 'GLOBAL' | 'STORE';
@@ -12,6 +12,7 @@ export interface CatalogProductCardViewModel {
   photos: string[];
   priceText: string;
   metaText?: string;
+  supplyText: string;
 }
 
 function hasValue(value: string | null | undefined) {
@@ -31,6 +32,7 @@ export function toGlobalProductCard(product: ProductListItem): CatalogProductCar
     photos: product.photos ?? [],
     priceText: hasMultipleOffers && hasPrice ? `от ${priceText}` : priceText,
     metaText: hasMultipleOffers ? formatOfferCount(product.offer_count) : undefined,
+    supplyText: `Поставка: ${formatSupplyDate(product.supply_date)}`,
   };
 }
 
@@ -48,5 +50,6 @@ export function toStoreProductCard(product: SellerCatalogItem): CatalogProductCa
     photos: product.photos ?? [],
     priceText: hasPrice && product.unit ? `${priceText} / ${product.unit}` : priceText,
     metaText: stock ? `Остаток: ${formatStock(stock, product.unit)}` : undefined,
+    supplyText: `Поставка: ${formatSupplyDate(product.supply_date)}`,
   };
 }

@@ -39,7 +39,9 @@ import {
   catalogGroupOptions,
   catalogPage,
   catalogSort,
+  catalogSortDirection,
   clearCatalogSearchParams,
+  nextCatalogSort,
   toggleCatalogGroupParam,
   toggleCatalogStateParam,
   updateCatalogSearchParams,
@@ -105,6 +107,7 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
   const hasInvalidSellerId = Boolean(sellerId && !parsedSellerIds);
   const hasInvalidStateId = Boolean(stateId && !parsedStateIds);
   const sort = catalogSort(searchParams.get('sort'));
+  const sortDirection = catalogSortDirection(searchParams.get('sort_dir'));
   const page = catalogPage(searchParams.get('page'));
   const isStore = isStoreContext(context);
   const analyticsScreen = isStore ? 'StoreCatalog' : 'GlobalCatalog';
@@ -128,7 +131,7 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
   }));
   const selectedSellerItems = sellerItems.filter((item) => item.selected);
   const hasAppliedFilters = Boolean(groupIds.length || sellerIds.length || stateIds.length || hasInvalidGroupId || hasInvalidSellerId || hasInvalidStateId);
-  const hasFilters = Boolean(search || hasAppliedFilters || sort !== 'name');
+  const hasFilters = Boolean(search || hasAppliedFilters || sort !== 'name' || sortDirection !== 'asc');
 
   function load() {
     const requestId = catalogRequestId.current + 1;
@@ -151,6 +154,7 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
       groupIds,
       sellerIds: isStore ? undefined : sellerIds,
       sort,
+      sortDirection,
       page,
     };
 
@@ -200,20 +204,21 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
       });
   }
 
-  useEffect(load, [search, groupIds, sellerIds, stateIds, sort, page, isStore, storeId, hasInvalidGroupId, hasInvalidSellerId, hasInvalidStateId]);
+  useEffect(load, [search, groupIds, sellerIds, stateIds, sort, sortDirection, page, isStore, storeId, hasInvalidGroupId, hasInvalidSellerId, hasInvalidStateId]);
 
   useEffect(() => {
     if (isStore || restoredStoredFilters.current) return;
     restoredStoredFilters.current = true;
     if (searchParams.toString()) return;
     const stored = loadStoredSearchFilters();
-    if (!stored.searchQuery && stored.sort === 'name' && !stored.categoryIds.length && !stored.sellerIds.length && !stored.stateIds.length) return;
+    if (!stored.searchQuery && stored.sort === 'name' && stored.sortDirection === 'asc' && !stored.categoryIds.length && !stored.sellerIds.length && !stored.stateIds.length) return;
     const next = new URLSearchParams(searchParams);
     if (stored.searchQuery) next.set('search', stored.searchQuery);
     if (stored.categoryIds.length) next.set('group_id', stored.categoryIds.join(','));
     if (stored.sellerIds.length) next.set('seller_id', stored.sellerIds.join(','));
     if (stored.stateIds.length) next.set('state', stored.stateIds.join(','));
     if (stored.sort !== 'name') next.set('sort', stored.sort);
+    if (stored.sortDirection !== 'asc') next.set('sort_dir', stored.sortDirection);
     next.set('page', '1');
     skipStoredFiltersSave.current = true;
     setSearchParams(next, { replace: true });
@@ -225,9 +230,9 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
       return;
     }
     if (!isStore && !hasInvalidGroupId && !hasInvalidSellerId && !hasInvalidStateId) {
-      saveStoredSearchFilters({ searchQuery: search, categoryIds: groupIds, sellerIds, stateIds, sort });
+      saveStoredSearchFilters({ searchQuery: search, categoryIds: groupIds, sellerIds, stateIds, sort, sortDirection });
     }
-  }, [groupIds, hasInvalidGroupId, hasInvalidSellerId, hasInvalidStateId, isStore, search, sellerIds, sort, stateIds]);
+  }, [groupIds, hasInvalidGroupId, hasInvalidSellerId, hasInvalidStateId, isStore, search, sellerIds, sort, sortDirection, stateIds]);
 
   useEffect(() => {
     let active = true;
@@ -278,6 +283,19 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
     }
   }
 
+  function changeSort(nextSortField: typeof sort) {
+    const nextSort = nextCatalogSort(sort, sortDirection, nextSortField);
+    const next = updateCatalogSearchParams(searchParams, 'sort', nextSort.sort);
+    if (nextSort.sortDirection === 'desc') next.set('sort_dir', 'desc');
+    else next.delete('sort_dir');
+    setSearchParams(next);
+    trackEvent('catalog_sort_use', { screen: analyticsScreen, sort: nextSort.sort, direction: nextSort.sortDirection });
+  }
+
+  function sortText(field: typeof sort, label: string) {
+    return sort === field ? `${label} ${sortDirection === 'asc' ? '↑' : '↓'}` : label;
+  }
+
   function clearFilters() {
     if (isStore) {
       setSearchParams(clearCatalogSearchParams());
@@ -290,6 +308,7 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
     next.delete('group_id');
     next.delete('seller_id');
     next.delete('state');
+    next.delete('sort_dir');
     next.set('sort', 'name');
     next.set('page', '1');
     setSearchParams(next);
@@ -405,11 +424,14 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
               {groupsState.status === 'error' && <Text tone="secondary">{groupsState.message}</Text>}
             </Row>
             <Row gap="sm" wrap>
-              <Button variant={sort === 'name' ? 'primary' : 'secondary'} size="sm" onClick={() => updateParam('sort', 'name')}>
-                По названию
+              <Button variant={sort === 'name' ? 'primary' : 'secondary'} size="sm" onClick={() => changeSort('name')}>
+                {sortText('name', 'По названию')}
               </Button>
-              <Button variant={sort === 'price' ? 'primary' : 'secondary'} size="sm" onClick={() => updateParam('sort', 'price')}>
-                По цене
+              <Button variant={sort === 'price' ? 'primary' : 'secondary'} size="sm" onClick={() => changeSort('price')}>
+                {sortText('price', 'По цене')}
+              </Button>
+              <Button variant={sort === 'delivery' ? 'primary' : 'secondary'} size="sm" onClick={() => changeSort('delivery')}>
+                {sortText('delivery', 'Поставка')}
               </Button>
               {hasFilters && (
                 <Button variant="ghost" size="sm" onClick={clearFilters}>
@@ -495,11 +517,14 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
             onClearFilters={clearFilters}
             sortSlot={
               <Row gap="sm" wrap>
-                <Button variant={sort === 'name' ? 'primary' : 'secondary'} size="sm" onClick={() => updateParam('sort', 'name')}>
-                  По названию
+                <Button variant={sort === 'name' ? 'primary' : 'secondary'} size="sm" onClick={() => changeSort('name')}>
+                  {sortText('name', 'По названию')}
                 </Button>
-                <Button variant={sort === 'price' ? 'primary' : 'secondary'} size="sm" onClick={() => updateParam('sort', 'price')}>
-                  По цене
+                <Button variant={sort === 'price' ? 'primary' : 'secondary'} size="sm" onClick={() => changeSort('price')}>
+                  {sortText('price', 'По цене')}
+                </Button>
+                <Button variant={sort === 'delivery' ? 'primary' : 'secondary'} size="sm" onClick={() => changeSort('delivery')}>
+                  {sortText('delivery', 'Поставка')}
                 </Button>
               </Row>
             }
