@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Content, Header, Row, Stack } from '@/layout';
+import { Content, Row, Stack } from '@/layout';
 import { Avatar, Button, Chip, EmptyState, ErrorState, ListItem, Text } from '@/design-system/components';
 import { CatalogApiError, fetchGroups, fetchSellers } from '@/buyer_mvp/api';
 import { toBuyerSellerListRow, type BuyerSellerListRow } from '@/buyer_mvp/sellerListPresentation';
@@ -238,7 +238,7 @@ export function SellerListScreenView() {
 
   return (
     <div data-testid="seller-list-screen" className="gm-seller-list-screen">
-      <Header>
+      <div className="gm-search-filter-region">
         <SearchFilterBar
           searchSlot={
             <form className="gm-buyer-search" onSubmit={(e) => e.preventDefault()} role="search">
@@ -340,7 +340,7 @@ export function SellerListScreenView() {
             </>
           }
         />
-      </Header>
+      </div>
 
       <Content style={{ overflowY: 'auto' }}>
         {state.status === 'loading' && (

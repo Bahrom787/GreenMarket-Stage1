@@ -157,6 +157,13 @@
   padding: var(--space-lg) 0;
 }
 
+.gm-search-filter-region {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+}
+
 .gm-section {
   padding: var(--space-xl) 0;
 }

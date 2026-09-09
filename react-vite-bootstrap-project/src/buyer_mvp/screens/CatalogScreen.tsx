@@ -383,7 +383,7 @@ export function CatalogScreen({ context = globalCatalogContext }: CatalogScreenP
         </Row>
       )}
 
-      <Stack gap="sm" className="gm-catalog-filters">
+      <Stack gap="sm" className="gm-catalog-filters gm-search-filter-region">
         {isStore ? (
           <>
             <SearchBar initialValue={search} onSearch={(value) => updateParam('search', value || null)} />

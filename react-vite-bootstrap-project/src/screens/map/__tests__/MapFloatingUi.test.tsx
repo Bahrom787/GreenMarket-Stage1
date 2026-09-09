@@ -33,7 +33,7 @@ it('renders panel, legend and fab button accessibility hooks', () => {
 it('keeps map controls separate from the shared app header', () => {
   const view = readFileSync(join(process.cwd(), 'src/screens/map/MapScreenView.tsx'), 'utf8');
   const css = readFileSync(join(process.cwd(), 'src/screens/map/map.css'), 'utf8');
-  assert.match(view, /className="gm-map-controls"/);
+  assert.match(view, /className="[^"]*\bgm-map-controls\b[^"]*"/);
   assert.match(view, /className="gm-map-search-slot"/);
   assert.doesNotMatch(view, /gm-map-header__brand/);
   assert.doesNotMatch(view, /🌿 Green Board/);
