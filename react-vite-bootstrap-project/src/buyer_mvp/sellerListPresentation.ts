@@ -1,4 +1,5 @@
 import type { BuyerSellerListItem } from './types';
+import { getStorePublicIdentity, type StorePublicIdentity } from './publicStoreIdentity';
 
 export interface BuyerSellerListRow {
   sellerId: string;
@@ -8,6 +9,7 @@ export interface BuyerSellerListRow {
   market?: string;
   place?: string;
   workingHours?: string;
+  publicIdentity?: StorePublicIdentity;
 }
 
 function clean(value?: string | null) {
@@ -37,5 +39,6 @@ export function toBuyerSellerListRow(seller: BuyerSellerListItem): BuyerSellerLi
     market: [clean(seller.market.name), clean(seller.market.address)].filter(Boolean).join(', ') || undefined,
     place: [row && `Ряд ${row}`, place && `Место ${place}`].filter(Boolean).join(', ') || undefined,
     workingHours: clean(seller.working_hours),
+    publicIdentity: getStorePublicIdentity(seller),
   };
 }

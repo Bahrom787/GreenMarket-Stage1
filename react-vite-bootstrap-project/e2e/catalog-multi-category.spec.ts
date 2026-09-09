@@ -227,6 +227,9 @@ test('Store Catalog sends one seller-scoped multi-category request and preserves
   await page.goto('/store/6/catalog?search=milk&sort=price&page=2');
   await expect(page.getByText('Store Milk')).toBeVisible();
   await expect(page.getByTestId('catalog-pagination')).toBeVisible();
+  await expect(page.getByTestId('catalog-category-toggle')).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.getByTestId('catalog-seller-toggle')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Vegetables', exact: true })).toHaveCount(0);
 
   await selectCategories(page);
   await expect(page).toHaveURL(/search=milk/);
@@ -237,6 +240,7 @@ test('Store Catalog sends one seller-scoped multi-category request and preserves
 
   await page.reload();
   await expect(page).toHaveURL(/\/store\/6\/catalog/);
+  await page.getByTestId('catalog-category-toggle').click();
   await expect(page.getByRole('button', { name: 'Vegetables', exact: true })).toHaveAttribute('aria-pressed', 'true');
 
   await page.getByTestId('catalog-pagination').getByRole('button').last().click();
