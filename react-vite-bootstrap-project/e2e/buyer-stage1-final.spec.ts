@@ -296,9 +296,9 @@ test('Map Screen keeps header sections separated and FAB inside viewport', async
 
   await page.goto('/map');
   await expect(page.getByTestId('map-screen')).toBeVisible();
-  await expect(page.locator('.gm-site-header')).toContainText('Green Board');
+  await expect(page.locator('.gm-site-header')).toContainText('Green Boardex');
   await expect(page.locator('.gm-site-nav__link--active')).toHaveText('Карта');
-  await expect(page.getByTestId('map-controls')).not.toContainText('Green Board');
+  await expect(page.getByTestId('map-controls')).not.toContainText('Green Boardex');
 
   async function expectMapLayoutFits() {
     const entitySwitch = await page.locator('.gm-search-filter-bar__entity-switch').boundingBox();

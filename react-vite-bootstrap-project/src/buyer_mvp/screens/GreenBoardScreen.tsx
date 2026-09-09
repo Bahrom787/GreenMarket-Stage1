@@ -8,10 +8,10 @@ export function GreenBoardScreen() {
       <Stack gap="xl">
         <Stack gap="md" className="gm-green-board__intro">
           <Text variant="headline" as="h1">
-            Green Board
+            Green Boardex
           </Text>
           <Text variant="body" tone="secondary">
-            Green Board объединяет предложения местных продавцов в общем каталоге. Покупатель может найти товар,
+            Green Boardex объединяет предложения местных продавцов в общем каталоге. Покупатель может найти товар,
             сравнить доступные предложения и перейти к конкретному продавцу.
           </Text>
           <Text variant="body" tone="secondary">
