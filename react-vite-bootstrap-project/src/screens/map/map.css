@@ -160,18 +160,9 @@
 
 .gm-map-controls {
   flex: none;
-  display: block;
-  padding: max(var(--space-sm), env(safe-area-inset-top)) var(--space-lg) var(--space-sm);
   position: relative;
   z-index: var(--z-sticky-header);
   overflow: visible;
-  background: var(--color-surface-raised);
-  border-bottom: var(--border-width-hairline) solid var(--color-border-subtle);
-}
-
-.gm-map-controls .gm-search-filter-bar,
-.gm-map-controls .gm-map-search-filter {
-  width: 100%;
 }
 
 .gm-map-controls .gm-search-filter-bar__panel {
@@ -194,11 +185,6 @@
   .gm-map-screen:fullscreen {
     height: 100vh;
     height: 100dvh;
-  }
-
-  .gm-map-controls {
-    padding-right: var(--space-md);
-    padding-left: var(--space-md);
   }
 
   .gm-map-search {

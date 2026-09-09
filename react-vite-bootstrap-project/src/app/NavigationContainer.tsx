@@ -93,34 +93,27 @@ export function NavigationContainer() {
     );
   }
 
-  const isMapRoute = !storeMode.active && location.pathname === '/map';
-
   return (
     <>
       {!storeMode.active && <TopNav />}
-      {isMapRoute ? (
+      <Page>
         <Routes>
+          <Route path="/" element={<CatalogScreen context={globalCatalogContext} />} />
+          <Route path="/home" element={<Navigate to="/" replace />} />
+          <Route path="/catalog" element={<LegacyCatalogRedirect />} />
+          <Route path="/green-board" element={<GreenBoardScreen />} />
           <Route path="/map" element={<MapScreenView />} />
+          <Route path="/product/:productId" element={<ProductScreen context={globalCatalogContext} />} />
+          <Route path="/seller-list" element={<SellerListScreenView />} />
+          <Route path="/store/:storeId" element={<StoreHomeScreen />} />
+          <Route path="/store/:storeId/catalog" element={<StoreCatalogRoute />} />
+          <Route path="/store/:storeId/product/:productId" element={<StoreProductRoute />} />
+          <Route path="/cart" element={<PlaceholderScreen name="Корзина" />} />
+          <Route path="/profile" element={<PlaceholderScreen name="Профиль" />} />
+          <Route path="/seller/:sellerId" element={<SellerCardScreen />} />
+          <Route path="*" element={<PlaceholderScreen name="Страница не найдена" />} />
         </Routes>
-      ) : (
-        <Page>
-          <Routes>
-            <Route path="/" element={<CatalogScreen context={globalCatalogContext} />} />
-            <Route path="/home" element={<Navigate to="/" replace />} />
-            <Route path="/catalog" element={<LegacyCatalogRedirect />} />
-            <Route path="/green-board" element={<GreenBoardScreen />} />
-            <Route path="/product/:productId" element={<ProductScreen context={globalCatalogContext} />} />
-            <Route path="/seller-list" element={<SellerListScreenView />} />
-            <Route path="/store/:storeId" element={<StoreHomeScreen />} />
-            <Route path="/store/:storeId/catalog" element={<StoreCatalogRoute />} />
-            <Route path="/store/:storeId/product/:productId" element={<StoreProductRoute />} />
-            <Route path="/cart" element={<PlaceholderScreen name="Корзина" />} />
-            <Route path="/profile" element={<PlaceholderScreen name="Профиль" />} />
-            <Route path="/seller/:sellerId" element={<SellerCardScreen />} />
-            <Route path="*" element={<PlaceholderScreen name="Страница не найдена" />} />
-          </Routes>
-        </Page>
-      )}
+      </Page>
     </>
   );
 }

@@ -427,7 +427,7 @@ export function MapScreenView() {
 
   return (
     <div className="gm-map-screen" data-testid="map-screen" ref={mapScreenRef}>
-      <div className="gm-map-controls" data-testid="map-controls">
+      <div className="gm-map-controls gm-search-filter-region" data-testid="map-controls">
         <SearchFilterBar
           className="gm-map-search-filter"
           searchSlot={

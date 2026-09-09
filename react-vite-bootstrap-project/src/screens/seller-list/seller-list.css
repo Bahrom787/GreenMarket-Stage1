@@ -5,12 +5,6 @@
   min-height: 100vh;
 }
 
-.gm-seller-list-screen .gm-header {
-  height: auto;
-  min-height: 56px;
-  padding-block: var(--space-sm);
-}
-
 .gm-seller-list-skeleton__avatar,
 .gm-seller-list-skeleton__pill,
 .gm-seller-list-skeleton__line {
@@ -41,10 +35,4 @@
 
 .gm-seller-list-skeleton__line--short {
   width: min(70%, 260px);
-}
-
-@media (max-width: 640px) {
-  .gm-seller-list-screen .gm-header {
-    padding-block: var(--space-md);
-  }
 }
